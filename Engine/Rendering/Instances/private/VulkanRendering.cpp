@@ -33,10 +33,19 @@ void VulkanRendering::InitVulkan(GLFWwindow* window)
 
     // Create Surface 
     if (glfwCreateWindowSurface(vInstance->vkInstance, window, nullptr, &surface) != VK_SUCCESS)
-        throw std::runtime_error(" failed to create window surface!"); 
+        throw std::runtime_error("Failed to create window surface!"); 
 
     // Create a new device
     device = new DeviceCheck();
     device->PickPhysicalDevice(vInstance, surface);
     device->CreateLogicalDevice(surface, isValidationLayersEnabled, valLayersAndExt);
+
+    // Create SwapChain
+    swapChain = new SwapChain();
+    swapChain->Create(surface);
+}
+
+DeviceCheck* VulkanRendering::GetDevice()
+{
+    return device;
 }

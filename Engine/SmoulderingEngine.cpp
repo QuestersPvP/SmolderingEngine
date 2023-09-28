@@ -1,29 +1,46 @@
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h> 
+//#define GLFW_INCLUDE_VULKAN
+//#include <GLFW/glfw3.h> 
+//
+//#include "Rendering/Instances/public/VulkanRendering.h"
+//
+//#define WIDTH 1280
+//#define HEIGHT 720
 
-#include "Rendering/Instances/public/VulkanRendering.h"
+/*
+Note: Currently SmoulderingEngine only supports Windows operating system, it is assumed you are
+running this project on a Windows based platform. 
+*/
 
-#define WIDTH 1280
-#define HEIGHT 720
+#include "Common/Common.h"
 
-int main() 
+using namespace SmoulderingEngine;
+
+int main()
 {
-    glfwInit();
+    LIBRARY_TYPE VulkanLibrary;
 
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-   GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "HELLO VULKAN ", nullptr, nullptr); 
- 
-   VulkanRendering::GetInstance()->InitVulkan(window); 
-
-    while (!glfwWindowShouldClose(window)) {
-
-        glfwPollEvents();
-    }
-
-    glfwDestroyWindow(window);
-    glfwTerminate();
+    if (!LoadFunctionExportedFromVulkanLoaderLibrary(VulkanLibrary))
+        return false;
 
     return 0;
+    
+
+   // glfwInit();
+
+   // glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+   // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+   //GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "HELLO VULKAN ", nullptr, nullptr); 
+ 
+   //VulkanRendering::GetInstance()->InitVulkan(window); 
+
+   // while (!glfwWindowShouldClose(window)) {
+
+   //     glfwPollEvents();
+   // }
+
+   // glfwDestroyWindow(window);
+   // glfwTerminate();
+
+   // return 0;
 }

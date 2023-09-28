@@ -51,16 +51,17 @@ std::vector<const char*>ValidationLayersAndExtensions::GetRequiredExtensions(boo
     const char** glfwExtensions;
 
     // Get extensions 
-    glfwExtensions = glfwGetRequiredInstanceExtensions
-    (&glfwExtensionCount);
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    std::vector<const char*>extensions(glfwExtensions, glfwExtensions
-        + glfwExtensionCount);
+    std::vector<const char*>extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
     //debug report extention is added. 
-
-    if (isValidationLayersEnabled) {
+    if (isValidationLayersEnabled) 
+    {
         extensions.push_back("VK_EXT_debug_report");
+        
+        // This extension is needed in order to call vkSetDebugUtilsObjectNameEXT()
+        extensions.push_back("VK_EXT_debug_utils");
     }
 
     return extensions;

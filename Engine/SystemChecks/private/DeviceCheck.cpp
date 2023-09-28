@@ -180,6 +180,7 @@ void DeviceCheck::CreateLogicalDevice(VkSurfaceKHR surface, bool isValidationLay
 
     float queuePriority = 1.0f;
 
+
     // For every queue family populate the information
     for (int queueFamily : uniqueQueueFamilies) 
     {
@@ -220,8 +221,7 @@ void DeviceCheck::CreateLogicalDevice(VkSurfaceKHR surface, bool isValidationLay
         throw std::runtime_error("failed to create logical device !"); 
 
     // Get handle to the graphics queue of the gpu 
-    vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0,
-        &graphicsQueue);
+    vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
 
     // Get handle to the presentation queue of the gpu 
     vkGetDeviceQueue(logicalDevice, indices.presentFamily, 0, &presentQueue);

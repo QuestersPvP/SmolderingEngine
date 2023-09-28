@@ -43,13 +43,10 @@ public:
                      vkGetInstanceProcAddr(instance,
                      "vkCreateDebugReportCallbackEXT");
 
-         if (func != nullptr) {
-               return func(instance, pCreateInfo, pAllocator, pCallback);
-         }
-         else {
-               return VK_ERROR_EXTENSION_NOT_PRESENT;
-         }
-
+         if (func != nullptr)
+             return func(instance, pCreateInfo, pAllocator, pCallback);
+         else
+             return VK_ERROR_EXTENSION_NOT_PRESENT;
    }
 
    void DestroyDebugReportCallbackEXT(
@@ -60,9 +57,8 @@ public:
          auto func = (PFN_vkDestroyDebugReportCallbackEXT)
                      vkGetInstanceProcAddr(instance,
                      "vkDestroyDebugReportCallbackEXT");
-         if (func != nullptr) {
+         if (func != nullptr)
                func(instance, callback, pAllocator);
-         }
    }
  
    static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
@@ -71,7 +67,6 @@ public:
        const char* msg, void* userData) 
    {
        std::cerr << "validation layer: " << msg << std::endl << std::endl;
-
        return false;
    }
 };

@@ -10,6 +10,7 @@
 #include "../../../SystemChecks/public/DeviceCheck.h"
 
 #include "../public/VulkanInstance.h"
+#include "../../RenderPasses/public/SwapChain.h"
 
 
 #ifdef _DEBUG
@@ -25,11 +26,11 @@ public:
     static VulkanRendering* instance;
     static VulkanRendering* GetInstance();
 
-
     ~VulkanRendering();
 
     void InitVulkan(GLFWwindow* window);
 
+    DeviceCheck* GetDevice();
 
 private:
 
@@ -40,5 +41,8 @@ private:
 
     //surface 
     VkSurfaceKHR surface;
+
+    // Swap chain reference
+    SwapChain* swapChain;
 };
 
