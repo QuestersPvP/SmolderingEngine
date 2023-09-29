@@ -9,7 +9,7 @@
 #include "../../../SystemChecks/public/ValidationLayersAndExtensions.h"
 #include "../../../SystemChecks/public/DeviceCheck.h"
 
-#include "../public/VulkanInstance.h"
+//#include "../public/VulkanInstance.h"
 #include "../../RenderPasses/public/SwapChain.h"
 
 
@@ -36,7 +36,7 @@ private:
 
     // My Classes 
     ValidationLayersAndExtensions* valLayersAndExt;
-    VulkanInstance* vInstance;
+    /*VulkanInstance* vInstance;*/
     DeviceCheck* device;
 
     //surface 

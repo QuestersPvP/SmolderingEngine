@@ -6,7 +6,7 @@
 #include <vector> 
 #include <set> 
 
-#include "../../Rendering/Instances/public/VulkanInstance.h" 
+//#include "../../Rendering/Instances/public/VulkanInstance.h" 
 #include "../public/ValidationLayersAndExtensions.h" 
 
 struct SwapChainSupportDetails
@@ -46,7 +46,7 @@ public:
 	// Used for double buffering in the swapchain if it is supported.
 	std::vector<const char*>deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-	void PickPhysicalDevice(VulkanInstance* vInstance, VkSurfaceKHR surface);
+	/*void PickPhysicalDevice(VulkanInstance* vInstance, VkSurfaceKHR surface);*/
 	bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
 	bool CheckDeviceExtensionSupported(VkPhysicalDevice device);
 	SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);

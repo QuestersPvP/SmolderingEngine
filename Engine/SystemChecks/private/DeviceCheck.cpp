@@ -8,45 +8,45 @@ DeviceCheck::~DeviceCheck()
 {
 }
 
-void DeviceCheck::PickPhysicalDevice(VulkanInstance* vInstance, VkSurfaceKHR surface)
-{
-    // Store count of physical devices
-    uint32_t deviceCount = 0;
-
-    // Get number of available GPUs
-    vkEnumeratePhysicalDevices(vInstance->vkInstance, &deviceCount, nullptr);
-
-    if (deviceCount == 0)
-        throw std::runtime_error("failed to find GPUs with vulkan support!"); 
-
-    std::cout << "Device Count: " << deviceCount << std::endl;
-
-    // Now that we know there are devices get them and store them into our vector
-    std::vector<VkPhysicalDevice>devices(deviceCount);
-    vkEnumeratePhysicalDevices(vInstance->vkInstance, &deviceCount, devices.data());
-
-    std::cout << std::endl;
-    std::cout << "DEVICE PROPERTIES" << std::endl;
-    std::cout << "=================" << std::endl;
-
-    for (const auto& device : devices) 
-    {
-        // Get properties of the devices we found
-        VkPhysicalDeviceProperties  deviceProperties;
-        vkGetPhysicalDeviceProperties(device, &deviceProperties);
-
-        std::cout << std::endl;
-        std::cout << "Device name: " << deviceProperties.deviceName << std::endl;
-
-        if (IsDeviceSuitable(device, surface))
-            physicalDevice = device;
-
-        break;
-    }
-
-    if (physicalDevice == VK_NULL_HANDLE)
-        throw std::runtime_error("failed to find suitable GPU!");
-}
+//void DeviceCheck::PickPhysicalDevice(VulkanInstance* vInstance, VkSurfaceKHR surface)
+//{
+//    // Store count of physical devices
+//    uint32_t deviceCount = 0;
+//
+//    // Get number of available GPUs
+//    vkEnumeratePhysicalDevices(vInstance->vkInstance, &deviceCount, nullptr);
+//
+//    if (deviceCount == 0)
+//        throw std::runtime_error("failed to find GPUs with vulkan support!"); 
+//
+//    std::cout << "Device Count: " << deviceCount << std::endl;
+//
+//    // Now that we know there are devices get them and store them into our vector
+//    std::vector<VkPhysicalDevice>devices(deviceCount);
+//    vkEnumeratePhysicalDevices(vInstance->vkInstance, &deviceCount, devices.data());
+//
+//    std::cout << std::endl;
+//    std::cout << "DEVICE PROPERTIES" << std::endl;
+//    std::cout << "=================" << std::endl;
+//
+//    for (const auto& device : devices) 
+//    {
+//        // Get properties of the devices we found
+//        VkPhysicalDeviceProperties  deviceProperties;
+//        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+//
+//        std::cout << std::endl;
+//        std::cout << "Device name: " << deviceProperties.deviceName << std::endl;
+//
+//        if (IsDeviceSuitable(device, surface))
+//            physicalDevice = device;
+//
+//        break;
+//    }
+//
+//    if (physicalDevice == VK_NULL_HANDLE)
+//        throw std::runtime_error("failed to find suitable GPU!");
+//}
 
 bool DeviceCheck::IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
