@@ -22,16 +22,28 @@
 #include "../Common/VulkanFunctions.h"
 
 // TODO: Make file to store all headers in one location
-#include "../Rendering/Instances/InstancesAndDevices.h"
+//#include "../Rendering/Instances/InstancesAndDevices.h"
 
 namespace SmolderingEngine
 {
+    // TODO: make a place to store all structs
     // OS-specific parameters
     struct WindowParameters
     {
         HINSTANCE          HInstance;
         HWND               HWnd;
     };
+
+    // Store information about queues we want to request for a logical device
+    // Stores a family index that we want the queues to be created with and
+    // The total number of queues requested from this family w/ the list of 
+    // Priorities assigned to them.
+    struct QueueInfo
+    {
+        uint32_t           FamilyIndex;
+        std::vector<float> Priorities;
+    };
+
 
     // Extension availability check
     bool IsExtensionSupported(std::vector<VkExtensionProperties> const& available_extensions, char const* const extension);

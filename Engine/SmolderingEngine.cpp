@@ -5,6 +5,7 @@ running this project on a Windows based platform.
 */
 
 #include "Common/Common.h"
+#include "Rendering/Instances/InstancesAndDevices.h"
 
 using namespace SmolderingEngine;
 
@@ -33,6 +34,9 @@ int main()
         setUp = false;
 
     if (!LoadInstanceLevelFunctions(instance, {}))
+        setUp = false;
+
+    if (!CreateLogicalDeviceWithGeometryShadersAndGraphicsAndComputeQueues(instance, logicDevice, graphicsQueue, computeQueue))
         setUp = false;
 
     while (setUp)
