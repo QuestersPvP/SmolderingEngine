@@ -24,7 +24,7 @@
 // TODO: Make file to store all headers in one location
 #include "../Rendering/Instances/InstancesAndDevices.h"
 
-namespace SmoulderingEngine
+namespace SmolderingEngine
 {
     // OS-specific parameters
     struct WindowParameters

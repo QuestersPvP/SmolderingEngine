@@ -1,6 +1,6 @@
 #include "Common.h"
 
-namespace SmoulderingEngine
+namespace SmolderingEngine
 {
     bool IsExtensionSupported(std::vector<VkExtensionProperties> const& available_extensions, char const* const extension)
     {

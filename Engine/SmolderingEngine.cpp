@@ -6,7 +6,7 @@ running this project on a Windows based platform.
 
 #include "Common/Common.h"
 
-using namespace SmoulderingEngine;
+using namespace SmolderingEngine;
 
 int main()
 {

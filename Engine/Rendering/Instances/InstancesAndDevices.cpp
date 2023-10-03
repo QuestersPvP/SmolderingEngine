@@ -1,7 +1,7 @@
 
 #include "InstancesAndDevices.h"
 
-namespace SmoulderingEngine
+namespace SmolderingEngine
 {
     bool ConnectWithVulkanLoaderLibrary(LIBRARY_TYPE& vulkan_library)
     {
@@ -139,7 +139,7 @@ namespace SmoulderingEngine
           nullptr,                                              // const void              * pNext
           application_name,                                     // const char              * pApplicationName
           VK_MAKE_API_VERSION(0, 0, 1, 0),                      // uint32_t                  applicationVersion
-          "Smouldering Engine",                                 // const char              * pEngineName
+          "Smoldering Engine",                                 // const char              * pEngineName
           VK_MAKE_API_VERSION(0, 0, 1, 0),                      // uint32_t                  engineVersion
           VK_MAKE_API_VERSION(0, 1, 0, 0)                       // uint32_t                  apiVersion
         };

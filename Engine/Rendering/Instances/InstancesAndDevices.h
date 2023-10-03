@@ -2,7 +2,7 @@
 
 #include "../../Common/Common.h"
 
-namespace SmoulderingEngine
+namespace SmolderingEngine
 {
 	// These functions are responsible for connecting
 	// the vulkan library and load vulkan functions using macros.
