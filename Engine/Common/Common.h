@@ -4,9 +4,9 @@
 // Vulkan library type for Windows
 #define LIBRARY_TYPE HMODULE
 // Wide character string to help load vulkan-1.dll
-#define VULKAN_DLL_NAME L"vulkan-1.dll"
-#define WINDOW_NAME L"Smoldering Engine"
-#define WINDOW_TITLE L"Smoldering Engine"
+#define VULKAN_DLL_NAME "vulkan-1.dll"
+#define WINDOW_NAME "Smoldering Engine"
+#define WINDOW_TITLE "Smoldering Engine"
 
 // OS include
 #include <Windows.h>
@@ -29,13 +29,13 @@
 namespace SmolderingEngine
 {
     // TODO: make a place to store all structs
-    // OS-specific parameters
+    // Struct for Windows platform application windows
     struct WindowParameters
     {
         HINSTANCE          HInstance;
         HWND               HWnd;
     };
-
+    
     // Store information about queues we want to request for a logical device
     // Stores a family index that we want the queues to be created with and
     // The total number of queues requested from this family w/ the list of 
@@ -47,5 +47,5 @@ namespace SmolderingEngine
     };
 
     // Extension availability check
-    bool IsExtensionSupported(std::vector<VkExtensionProperties> const& available_extensions, char const* const extension);
+    bool IsExtensionSupported(std::vector<VkExtensionProperties> const& _availableExtensions, char const* const _extension);
 };

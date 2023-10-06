@@ -1,21 +1,21 @@
-#include "../public/VulkanRendering.h"
-
-VulkanRendering* VulkanRendering::instance = nullptr;
-
-VulkanRendering* VulkanRendering::GetInstance()
-{
-    if (!instance)
-        instance = new VulkanRendering();
-    
-    return instance;
-}
-
-VulkanRendering::~VulkanRendering()
-{
-}
-
-void VulkanRendering::InitVulkan(GLFWwindow* window)
-{
+//#include "../public/VulkanRendering.h"
+//
+//VulkanRendering* VulkanRendering::instance = nullptr;
+//
+//VulkanRendering* VulkanRendering::GetInstance()
+//{
+//    if (!instance)
+//        instance = new VulkanRendering();
+//    
+//    return instance;
+//}
+//
+//VulkanRendering::~VulkanRendering()
+//{
+//}
+//
+//void VulkanRendering::InitVulkan(GLFWwindow* window)
+//{
     // -- Platform Specific 
     // Validation and Extension Layers 
     //valLayersAndExt = new ValidationLayersAndExtensions();
@@ -43,9 +43,9 @@ void VulkanRendering::InitVulkan(GLFWwindow* window)
     //// Create SwapChain
     //swapChain = new SwapChain();
     //swapChain->Create(surface);
-}
-
-DeviceCheck* VulkanRendering::GetDevice()
-{
-    return device;
-}
+//}
+//
+//DeviceCheck* VulkanRendering::GetDevice()
+//{
+//    return device;
+//}

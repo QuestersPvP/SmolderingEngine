@@ -14,7 +14,7 @@ namespace SmolderingEngine
 
 	// These functions are responsible for making the VkInstance
 	bool CheckAvailableInstanceExtensions(std::vector<VkExtensionProperties>& _availableExtensions);
-	bool CreateVulkanInstance(std::vector<char const*> const& _desiredExtensions,char const* const _applicationName, VkInstance& _instance);
+	bool CreateVulkanInstance(std::vector<char const*>& _desiredExtensions, char const* const _applicationName, VkInstance& _instance);
 
 	// These functions are all needed to create a logical device w/ geomitry shaders, and graphics/compute queues
 	bool EnumerateAvailablePhysicalDevices(VkInstance _instance, std::vector<VkPhysicalDevice>& _availableDevices);
@@ -25,5 +25,10 @@ namespace SmolderingEngine
 	bool CreateLogicalDevice(VkPhysicalDevice _physicalDevice, std::vector<QueueInfo> _queueInfo, std::vector<char const*> const& _desiredExtensions, VkPhysicalDeviceFeatures* _desiredFeatures, VkDevice& _logicalDevice);
 	void GetDeviceQueue(VkDevice _logicalDevice, uint32_t _queueFamilyIndex, uint32_t _queueIndex, VkQueue& _queue);
 	bool CreateLogicalDeviceWithGeometryShadersAndGraphicsAndComputeQueues(VkInstance _instance, VkDevice& _logicalDevice, VkQueue& _graphicsQueue, VkQueue& _computeQueue);
+
+	// Clean-Up
+	void DestroyLogicalDevice(VkDevice& _logicalDevice);
+	void DestroyVulkanInstance(VkInstance& _instance);
+	void ReleaseVulkanLoaderLibrary(LIBRARY_TYPE& _vulkanLibrary);
 };
 

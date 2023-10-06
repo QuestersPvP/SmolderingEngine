@@ -3,6 +3,8 @@
 
 namespace SmolderingEngine
 {
+#pragma region Function Macros
+
     bool ConnectWithVulkanLoaderLibrary(LIBRARY_TYPE& _vulkanLibrary)
     {
         _vulkanLibrary = LoadLibrary(VULKAN_DLL_NAME);
@@ -19,7 +21,7 @@ namespace SmolderingEngine
     {
         // Defines a macro called LoadFunction that represents vkGetInstanceProcAddr()
         #define LoadFunction GetProcAddress 
-
+        
         // We then create a macro that loads a vulkan function from the loader library,
         // It casts the result into a PFN_GetInstanceProcAddr type and stores it into 
         // vkGetInstanceProcAddr and checks if it has succeeded or not. 
@@ -31,7 +33,7 @@ namespace SmolderingEngine
             #name << std::endl;                                                 \
             return false;                                                       \
         }                                                                       \
-        
+
         // This seems strange, this is needed however for the line 
         // #define EXPORTED_VULKAN_FUNCTION(name) to link to the .inl file
         // and load the EXPORTED_VULKAN_FUNCTIONs
@@ -74,7 +76,7 @@ namespace SmolderingEngine
           #name << std::endl;                                                       \
           return false;                                                             \
         }                                                                           \
-        
+
         // Load instance-level functions from enabled extensions ONLY, we must
         // know what extensions are enabled and what functions come from them.
         #define INSTANCE_LEVEL_VULKAN_FUNCTION_FROM_EXTENSION(name, extension)      \
@@ -91,7 +93,7 @@ namespace SmolderingEngine
             }                                                                       \
           }                                                                         \
         }                                                                           \
-        
+
         #include "../../Common/VulkanFunctionsList.inl"
 
         return true;
@@ -109,7 +111,7 @@ namespace SmolderingEngine
             #name << std::endl;                                                     \
           return false;                                                             \
         }                                                                           \
-    
+
         // Load device-level functions from enabled extensions.
         // For each enabled extension it compares the name of the enabled extension
         // Inside of the vector to the name of the extension specified for the function.
@@ -133,6 +135,10 @@ namespace SmolderingEngine
         return true;
     }
 
+#pragma endregion
+
+#pragma region Vulkan Instance
+
     bool CheckAvailableInstanceExtensions(std::vector<VkExtensionProperties>& _availableExtensions)
     {
         // Make a variable and read in the amount of extensions this platform supports
@@ -145,7 +151,7 @@ namespace SmolderingEngine
 
         // Now that we know how many extensions we need we resize the vector and get the extension properties.
         _availableExtensions.resize(extensionsCount);
-        if ((vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, _availableExtensions.data()) != VK_SUCCESS) ||(extensionsCount == 0))
+        if ((vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, _availableExtensions.data()) != VK_SUCCESS) || (extensionsCount == 0))
         {
             std::cout << "Could not enumerate instance extensions." << std::endl;
             return false;
@@ -154,8 +160,12 @@ namespace SmolderingEngine
         return true;
     }
 
-    bool CreateVulkanInstance(std::vector<char const*> const& _desiredExtensions, char const* const _applicationName, VkInstance& _instance)
+    bool CreateVulkanInstance(std::vector<char const*>& _desiredExtensions, char const* const _applicationName, VkInstance& _instance)
     {
+        // Presentation surface extension for windows platforms.
+        _desiredExtensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
+        _desiredExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+
         // Create a vector of instance-level extensions we want to enable.
         std::vector<VkExtensionProperties> availableExtensions;
         if (!CheckAvailableInstanceExtensions(availableExtensions))
@@ -172,7 +182,7 @@ namespace SmolderingEngine
         }
 
         // Make a variable that has our applications information
-        VkApplicationInfo applicationInfo = 
+        VkApplicationInfo applicationInfo =
         {
           VK_STRUCTURE_TYPE_APPLICATION_INFO,                   // VkStructureType           sType
           nullptr,                                              // const void              * pNext
@@ -184,12 +194,12 @@ namespace SmolderingEngine
         };
 
         // Variable that stores the parameters used to create an instance.
-        VkInstanceCreateInfo instanceCreateInfo = 
+        VkInstanceCreateInfo instanceCreateInfo =
         {
           VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,               // VkStructureType           sType
           nullptr,                                              // const void              * pNext
           0,                                                    // VkInstanceCreateFlags     flags
-          & applicationInfo,                                    // const VkApplicationInfo * pApplicationInfo
+          &applicationInfo,                                    // const VkApplicationInfo * pApplicationInfo
           0,                                                    // uint32_t                  enabledLayerCount
           nullptr,                                              // const char * const      * ppEnabledLayerNames
           static_cast<uint32_t>(_desiredExtensions.size()),     // uint32_t                  enabledExtensionCount
@@ -206,11 +216,15 @@ namespace SmolderingEngine
         return true;
     }
 
+#pragma endregion
+
+#pragma region Physical / Logical Device
+
     bool EnumerateAvailablePhysicalDevices(VkInstance _instance, std::vector<VkPhysicalDevice>& _availableDevices)
     {
         // Here we check how many physical devices are available on the computer using vkEnumeratePhysicalDevices.
         uint32_t devicesCount = 0;
-        if ((vkEnumeratePhysicalDevices(_instance, &devicesCount, nullptr) != VK_SUCCESS) ||(devicesCount == 0))
+        if ((vkEnumeratePhysicalDevices(_instance, &devicesCount, nullptr) != VK_SUCCESS) || (devicesCount == 0))
         {
             std::cout << "Could not get the number of available physical devices." << std::endl;
             return false;
@@ -302,18 +316,18 @@ namespace SmolderingEngine
 
         return false;
     }
-    
+
     bool CreateLogicalDevice(VkPhysicalDevice _physicalDevice, std::vector<QueueInfo> _queueInfo, std::vector<char const*> const& _desiredExtensions, VkPhysicalDeviceFeatures* _desiredFeatures, VkDevice& _logicalDevice)
     {
         // First get all the extensions supported by this physical device
         std::vector<VkExtensionProperties> availableExtensions;
         if (!CheckAvailableDeviceExtensions(_physicalDevice, availableExtensions))
             return false;
-        
+
         // Then we check to make sure the extensions are supported so we can make a logical device. 
-        for (auto& extension : _desiredExtensions) 
+        for (auto& extension : _desiredExtensions)
         {
-            if (!IsExtensionSupported(availableExtensions, extension)) 
+            if (!IsExtensionSupported(availableExtensions, extension))
             {
                 std::cout << "Extension named '" << extension << "' is not supported by a physical device." << std::endl;
                 return false;
@@ -323,7 +337,7 @@ namespace SmolderingEngine
         // Next we make a vector queueCreateInfo that contains information about queues and family queues
         // That we want to request for the logical device. 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfo;
-        for (auto& info : _queueInfo) 
+        for (auto& info : _queueInfo)
         {
             queueCreateInfo.push_back
             ({
@@ -333,14 +347,14 @@ namespace SmolderingEngine
               info.FamilyIndex,                                 // uint32_t                         queueFamilyIndex
               static_cast<uint32_t>(info.Priorities.size()),    // uint32_t                         queueCount
               info.Priorities.data()                            // const float                    * pQueuePriorities
-            });
+                });
         };
 
         // Now that we have the queueCreateInfo we provide this information to deviceCreateInfo,
         // DeviceCreateInfo will store information about the number of different queue families in which we
         // Will be requesting queues for a logical device, names of enabled layers, extensions we want to enable,
         // And features we wish to use. 
-        VkDeviceCreateInfo deviceCreateInfo = 
+        VkDeviceCreateInfo deviceCreateInfo =
         {
           VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,                 // VkStructureType                  sType
           nullptr,                                              // const void                     * pNext
@@ -363,12 +377,12 @@ namespace SmolderingEngine
 
         return true;
     }
-    
+
     void GetDeviceQueue(VkDevice _logicalDevice, uint32_t _queueFamilyIndex, uint32_t _queueIndex, VkQueue& _queue)
     {
         vkGetDeviceQueue(_logicalDevice, _queueFamilyIndex, _queueIndex, &_queue);
     }
-    
+
     bool CreateLogicalDeviceWithGeometryShadersAndGraphicsAndComputeQueues(VkInstance _instance, VkDevice& _logicalDevice, VkQueue& _graphicsQueue, VkQueue& _computeQueue)
     {
         // Get handles to physical devices on the computer.
@@ -376,7 +390,7 @@ namespace SmolderingEngine
         EnumerateAvailablePhysicalDevices(_instance, physicalDevices);
 
         // loop through all available physical devices 
-        for (auto& physicalDevice : physicalDevices) 
+        for (auto& physicalDevice : physicalDevices)
         {
             // Get the features and properties to get information.
             VkPhysicalDeviceFeatures deviceFeatures;
@@ -388,7 +402,7 @@ namespace SmolderingEngine
             {
                 continue;
             }
-            else 
+            else
             {
                 // If they are reset all other members of features list. 
                 deviceFeatures = {};
@@ -412,10 +426,10 @@ namespace SmolderingEngine
             // make a list of queue families that we want to request queues from and assign priorities to them.
             // If the graphics and queue families have the same index only request one queue from one queue family,
             // If they are different then request two queues, one from the graphics and one from the compute families. 
-            std::vector<QueueInfo> requestedQueues = {{graphicsQueueFamilyIndex, {1.0f}}};
+            std::vector<QueueInfo> requestedQueues = { {graphicsQueueFamilyIndex, {1.0f}} };
             if (graphicsQueueFamilyIndex != computeQueueFamilyIndex)
             {
-                requestedQueues.push_back({computeQueueFamilyIndex, {1.0f}});
+                requestedQueues.push_back({ computeQueueFamilyIndex, {1.0f} });
             }
 
             // Try to make a logical device.
@@ -423,7 +437,7 @@ namespace SmolderingEngine
             {
                 continue;
             }
-            else 
+            else
             {
                 // Since we have a logical device load device functions.
                 if (!LoadDeviceLevelFunctions(_logicalDevice, {}))
@@ -438,4 +452,45 @@ namespace SmolderingEngine
         }
         return false;
     }
+
+#pragma endregion
+
+#pragma region Clean-Up
+
+    void DestroyLogicalDevice(VkDevice& _logicalDevice)
+    {
+        // Check to make sure we have a valid logical device
+        // Then destroy it and set it to null.
+        if (_logicalDevice)
+        {
+            vkDestroyDevice(_logicalDevice, nullptr);
+            _logicalDevice = VK_NULL_HANDLE;
+        }
+    }
+
+    void DestroyVulkanInstance(VkInstance& _instance)
+    {
+        // Check to make sure we have a valid instance
+        // Then destroy it and set it to null.
+        if (_instance)
+        {
+            vkDestroyInstance(_instance, nullptr);
+            _instance = VK_NULL_HANDLE;
+        }
+    }
+
+    void ReleaseVulkanLoaderLibrary(LIBRARY_TYPE& _vulkanLibrary)
+    {
+        // Check to make sure we have a valid library
+        // Then set the library to null.
+        if (_vulkanLibrary)
+        {
+            // FreeLibrary is for windows platforms
+            FreeLibrary(_vulkanLibrary);
+            _vulkanLibrary = nullptr;
+        }
+    }
+
+#pragma endregion
+
 };

@@ -2,11 +2,11 @@
 
 namespace SmolderingEngine
 {
-    bool IsExtensionSupported(std::vector<VkExtensionProperties> const& available_extensions, char const* const extension)
+    bool IsExtensionSupported(std::vector<VkExtensionProperties> const& _availableExtensions, char const* const _extension)
     {
-        for (auto& available_extension : available_extensions)
+        for (auto& availableExtension : _availableExtensions)
         {
-            if (strstr(available_extension.extensionName, extension))
+            if (strstr(availableExtension.extensionName, _extension))
                 return true;
         }
         return false;
