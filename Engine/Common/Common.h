@@ -5,6 +5,8 @@
 #define LIBRARY_TYPE HMODULE
 // Wide character string to help load vulkan-1.dll
 #define VULKAN_DLL_NAME L"vulkan-1.dll"
+#define WINDOW_NAME L"Smoldering Engine"
+#define WINDOW_TITLE L"Smoldering Engine"
 
 // OS include
 #include <Windows.h>
@@ -43,7 +45,6 @@ namespace SmolderingEngine
         uint32_t           FamilyIndex;
         std::vector<float> Priorities;
     };
-
 
     // Extension availability check
     bool IsExtensionSupported(std::vector<VkExtensionProperties> const& available_extensions, char const* const extension);
