@@ -317,8 +317,10 @@ namespace SmolderingEngine
         return false;
     }
 
-    bool CreateLogicalDevice(VkPhysicalDevice _physicalDevice, std::vector<QueueInfo> _queueInfo, std::vector<char const*> const& _desiredExtensions, VkPhysicalDeviceFeatures* _desiredFeatures, VkDevice& _logicalDevice)
+    bool CreateLogicalDevice(VkPhysicalDevice _physicalDevice, std::vector<QueueInfo> _queueInfo, std::vector<char const*>& _desiredExtensions, VkPhysicalDeviceFeatures* _desiredFeatures, VkDevice& _logicalDevice)
     {
+        _desiredExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
         // First get all the extensions supported by this physical device
         std::vector<VkExtensionProperties> availableExtensions;
         if (!CheckAvailableDeviceExtensions(_physicalDevice, availableExtensions))
@@ -433,7 +435,8 @@ namespace SmolderingEngine
             }
 
             // Try to make a logical device.
-            if (!CreateLogicalDevice(physicalDevice, requestedQueues, {}, &deviceFeatures, _logicalDevice))
+            std::vector<char const*> deviceExtensions;
+            if (!CreateLogicalDevice(physicalDevice, requestedQueues, deviceExtensions, &deviceFeatures, _logicalDevice))
             {
                 continue;
             }

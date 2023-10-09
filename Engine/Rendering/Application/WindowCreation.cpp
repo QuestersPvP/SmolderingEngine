@@ -1,4 +1,7 @@
+
 #include "WindowCreation.h"
+
+#include "../Instances/InstancesAndDevices.h"
 
 namespace SmolderingEngine
 {
@@ -42,18 +45,18 @@ namespace SmolderingEngine
 
     WindowParameters GenerateApplicationWindowParameters()
     {
-        WindowParameters _windowParams;
+        WindowParameters windowParams;
 
-        _windowParams.HInstance = GetModuleHandle(nullptr);
+        windowParams.HInstance = GetModuleHandle(nullptr);
 
-        WNDCLASSEX window_class = 
+        WNDCLASSEX windowClass = 
         {
             sizeof(WNDCLASSEX),                 // UINT         cbSize
             CS_HREDRAW | CS_VREDRAW,            // UINT         style
             WindowProcedure,                    // WNDPROC      lpfnWndProc
             0,                                  // int          cbClsExtra
             0,                                  // int          cbWndExtra
-            _windowParams.HInstance,            // HINSTANCE    hInstance
+            windowParams.HInstance,            // HINSTANCE    hInstance
             nullptr,                            // HICON        hIcon
             LoadCursor(nullptr, IDC_ARROW),     // HCURSOR      hCursor
             (HBRUSH)(COLOR_WINDOW + 1),         // HBRUSH       hbrBackground
@@ -62,7 +65,7 @@ namespace SmolderingEngine
             nullptr                             // HICON        hIconSm
         };
 
-        if (!RegisterClassEx(&window_class)) 
+        if (!RegisterClassEx(&windowClass))
         {
             std::cout << "Error Registering Class" << std::endl;
         }
@@ -82,18 +85,18 @@ namespace SmolderingEngine
         //    NULL
         //);
 
-        _windowParams.HWnd = CreateWindow(WINDOW_NAME, WINDOW_TITLE, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, nullptr, nullptr, _windowParams.HInstance, nullptr);
-        if (!_windowParams.HWnd)
+        windowParams.HWnd = CreateWindow(WINDOW_NAME, WINDOW_TITLE, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, nullptr, nullptr, windowParams.HInstance, nullptr);
+        if (!windowParams.HWnd)
         {
             std::cout << "Error Creating Window" << std::endl;
         }
 
-        return _windowParams;
+        return windowParams;
     }
 
     bool CreatePresentationSurface(VkInstance _instance, WindowParameters _windowParameters, VkSurfaceKHR& _presentationSurface)
 	{
-        VkWin32SurfaceCreateInfoKHR surface_create_info = 
+        VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = 
         {
           VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,      // VkStructureType                 sType
           nullptr,                                              // const void                    * pNext
@@ -102,7 +105,7 @@ namespace SmolderingEngine
           _windowParameters.HWnd                                // HWND                            hwnd
         };
 
-        if ((vkCreateWin32SurfaceKHR(_instance, &surface_create_info, nullptr, &_presentationSurface) != VK_SUCCESS) || (VK_NULL_HANDLE == _presentationSurface))
+        if ((vkCreateWin32SurfaceKHR(_instance, &surfaceCreateInfo, nullptr, &_presentationSurface) != VK_SUCCESS) || (VK_NULL_HANDLE == _presentationSurface))
         {
             std::cout << "Could not create presentation surface." << std::endl;
             return false;
@@ -110,4 +113,25 @@ namespace SmolderingEngine
 
         return true;
 	}
+
+    bool SelectQueueFamilyThatSupportsPresentationToGivenSurface(VkPhysicalDevice _physicalDevice, VkSurfaceKHR _presentationSurface, uint32_t& _queueFamilyIndex)
+    {
+        // Check what queue families are exposed by a physical device.
+        std::vector<VkQueueFamilyProperties> queueFamilies;
+        if (!CheckAvailableQueueFamiliesAndTheirProperties(_physicalDevice, queueFamilies))
+            return false;
+
+        // iterate over all queue families and check if they support image presentation.
+        for (uint32_t index = 0; index < static_cast<uint32_t>(queueFamilies.size()); ++index) 
+        {
+            VkBool32 presentationSupported = VK_FALSE;
+            if ((vkGetPhysicalDeviceSurfaceSupportKHR(_physicalDevice, index, _presentationSurface, &presentationSupported) == VK_SUCCESS) && (presentationSupported == VK_TRUE))
+            {
+                _queueFamilyIndex = index;
+                return true;
+            }
+        }
+
+        return false;
+    }
 };

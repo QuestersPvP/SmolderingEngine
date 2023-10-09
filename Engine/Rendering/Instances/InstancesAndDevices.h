@@ -22,7 +22,7 @@ namespace SmolderingEngine
 	void GetFeaturesAndPropertiesOfPhysicalDevice(VkPhysicalDevice _physicalDevice, VkPhysicalDeviceFeatures& _deviceFeatures, VkPhysicalDeviceProperties& _deviceProperties);
 	bool CheckAvailableQueueFamiliesAndTheirProperties(VkPhysicalDevice _physicalDevice, std::vector<VkQueueFamilyProperties>& _queueFamilies);
 	bool SelectIndexOfQueueFamilyWithDesiredCapabilities(VkPhysicalDevice _physicalDevice, VkQueueFlags _desiredCapabilities, uint32_t& _queueFamilyIndex);
-	bool CreateLogicalDevice(VkPhysicalDevice _physicalDevice, std::vector<QueueInfo> _queueInfo, std::vector<char const*> const& _desiredExtensions, VkPhysicalDeviceFeatures* _desiredFeatures, VkDevice& _logicalDevice);
+	bool CreateLogicalDevice(VkPhysicalDevice _physicalDevice, std::vector<QueueInfo> _queueInfo, std::vector<char const*>& _desiredExtensions, VkPhysicalDeviceFeatures* _desiredFeatures, VkDevice& _logicalDevice);
 	void GetDeviceQueue(VkDevice _logicalDevice, uint32_t _queueFamilyIndex, uint32_t _queueIndex, VkQueue& _queue);
 	bool CreateLogicalDeviceWithGeometryShadersAndGraphicsAndComputeQueues(VkInstance _instance, VkDevice& _logicalDevice, VkQueue& _graphicsQueue, VkQueue& _computeQueue);
 

@@ -7,6 +7,7 @@ running this project on a Windows based platform.
 #include "Common/Common.h"
 #include "Rendering/Instances/InstancesAndDevices.h"
 #include "Rendering/Application/WindowCreation.h"
+#include "Rendering/ImagePresentation/SwapChain.h"
 
 using namespace SmolderingEngine;
 
@@ -16,74 +17,143 @@ int main()
     // TODO: throw this stuff somewhere other than main 
     LIBRARY_TYPE vulkanLibrary;
     VkInstance instance;
-    VkDevice logicDevice;
+    VkDevice logicDevice = nullptr;
+
+    uint32_t graphicsQueueFamilyIndex;
+    uint32_t presentQueueFamilyIndex;
     VkQueue graphicsQueue;
-    VkQueue computeQueue;
+    VkQueue presentQueue;
+
+    std::vector<VkPhysicalDevice> physicalDevices;
+    VkPhysicalDevice physicalDevice = nullptr;
+
     std::vector<char const*> instanceExtensions;
+
     WindowParameters windowParams = GenerateApplicationWindowParameters();
     VkSurfaceKHR presentationSurface;
 
-#pragma region Window Creation
-
-    // To create the window that you can see,
-    // Ignore if you are using a library like Glfw.
-    //WNDCLASSEX windowClass = {};
-    //windowClass.cbSize = sizeof(WNDCLASSEX);
-    //windowClass.style = CS_HREDRAW | CS_VREDRAW;
-    //windowClass.lpfnWndProc = DefWindowProc;
-    //windowClass.hInstance = GetModuleHandle(NULL);
-    //windowClass.lpszClassName = WINDOW_NAME;
-
-    //if (!RegisterClassEx(&windowClass)) 
-    //{
-    //    return 0;
-    //}
-
-    //HWND windowHandle = CreateWindow
-    //(
-    //    WINDOW_NAME,
-    //    WINDOW_TITLE,
-    //    WS_OVERLAPPEDWINDOW,
-    //    CW_USEDEFAULT,
-    //    CW_USEDEFAULT,
-    //    1280,
-    //    720,
-    //    NULL,
-    //    NULL,
-    //    GetModuleHandle(NULL),
-    //    NULL
-    //);
-
-    //if (!windowHandle)
-    //{
-    //    return 0;
-    //}
-
-#pragma endregion
+    VkFormat swapchainImageFormat;
+    VkExtent2D swapchainImageSize;
+    VkSwapchainKHR swapchain = nullptr;
+    VkSwapchainKHR oldSwapchain = std::move(swapchain);
+    std::vector<VkImage> swapchainImages;
 
     // For testing
     bool setUp = true;
 
+    // Connecting to vulkan-1.dll
     if (!ConnectWithVulkanLoaderLibrary(vulkanLibrary))
         setUp = false;
 
+    // Loading macros
     if (!LoadFunctionExportedFromVulkanLoaderLibrary(vulkanLibrary))
         setUp = false;
 
+    // Loading macros
     if (!LoadGlobalLevelFunctions()) 
         setUp = false;
 
+    // Create vulkan instance
     if (!CreateVulkanInstance(instanceExtensions, "Smouldering Engine", instance))
         setUp = false;
 
+    // loading macros based off of enabled extensions
     if (!LoadInstanceLevelFunctions(instance, instanceExtensions))
         setUp = false;
 
+    // Create presentation surface
     if (!CreatePresentationSurface(instance, windowParams, presentationSurface))
         setUp = false;
 
-    if (!CreateLogicalDeviceWithGeometryShadersAndGraphicsAndComputeQueues(instance, logicDevice, graphicsQueue, computeQueue))
+    // Create logical device
+    if (!EnumerateAvailablePhysicalDevices(instance, physicalDevices))
         setUp = false;
+
+    for (auto& _physicalDevice : physicalDevices)
+    {
+        if (!SelectIndexOfQueueFamilyWithDesiredCapabilities(_physicalDevice, VK_QUEUE_GRAPHICS_BIT, graphicsQueueFamilyIndex)) {
+            continue;
+        }
+
+        if (!SelectQueueFamilyThatSupportsPresentationToGivenSurface(_physicalDevice, presentationSurface, presentQueueFamilyIndex)) {
+            continue;
+        }
+
+        std::vector<QueueInfo> requestedQueues = { { graphicsQueueFamilyIndex, { 1.0f } } };
+        if (graphicsQueueFamilyIndex != presentQueueFamilyIndex) 
+        {
+            requestedQueues.push_back({ presentQueueFamilyIndex, { 1.0f } });
+        }
+
+        VkDevice _logicalDevice;
+        std::vector<char const*> deviceExtensions;
+        if (!CreateLogicalDevice(_physicalDevice, requestedQueues, deviceExtensions, nullptr, _logicalDevice))
+        {
+            continue;
+        }
+        else 
+        {
+            if (!LoadDeviceLevelFunctions(_logicalDevice, deviceExtensions))
+            {
+                continue;
+            }
+            physicalDevice = _physicalDevice;
+            logicDevice = std::move(_logicalDevice);
+            GetDeviceQueue(logicDevice, graphicsQueueFamilyIndex, 0, graphicsQueue);
+            GetDeviceQueue(logicDevice, presentQueueFamilyIndex, 0, presentQueue);
+            break;
+        }
+    }
+
+    if (!logicDevice)
+        setUp = false;
+
+    VkPresentModeKHR desiredPresentMode;
+    if (!SelectDesiredPresentationMode(physicalDevice, presentationSurface, VK_PRESENT_MODE_MAILBOX_KHR, desiredPresentMode))
+        setUp = false;
+
+
+    VkSurfaceCapabilitiesKHR surfaceCapabilities;
+    if (!GetCapabilitiesOfPresentationSurface(physicalDevice, presentationSurface, surfaceCapabilities))
+        setUp = false;
+
+    uint32_t numberOfImages;
+    if (!SelectNumberOfSwapchainImages(surfaceCapabilities, numberOfImages))
+        setUp = false;
+
+    bool skip = false;
+    if (!ChooseSizeOfSwapchainImages(surfaceCapabilities, swapchainImageSize))
+        setUp = false;
+
+    if ((0 == swapchainImageSize.width) || (0 == swapchainImageSize.height))
+        skip = true;
+
+    if (!skip)
+    {
+        VkImageUsageFlags imageUsage;
+        if (!SelectDesiredUsageScenariosOfSwapchainImages(surfaceCapabilities, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageUsage)) 
+            setUp = false;
+        
+
+        VkSurfaceTransformFlagBitsKHR surfaceTransform;
+        if (!SelectTransformationOfSwapchainImagesInSwapChain(surfaceCapabilities, VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR, surfaceTransform))
+            setUp = false;
+
+
+        VkColorSpaceKHR imageColorSpace;
+        if (!SelectFormatOfSwapchainImages(physicalDevice, presentationSurface, { VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR }, swapchainImageFormat, imageColorSpace)) 
+            setUp = false;
+
+        if (!CreateSwapchain(logicDevice, presentationSurface, numberOfImages, { swapchainImageFormat, imageColorSpace }, swapchainImageSize, imageUsage, surfaceTransform, desiredPresentMode, oldSwapchain, swapchain))
+            setUp = false;
+        
+
+        if (!GetHandlesOfSwapchainImages(logicDevice, swapchain, swapchainImages))
+            setUp = false;
+    }
+
+    //if (!CreateLogicalDeviceWithGeometryShadersAndGraphicsAndComputeQueues(instance, logicDevice, graphicsQueue, computeQueue))
+    //    setUp = false;
 
     if (setUp)
     {
