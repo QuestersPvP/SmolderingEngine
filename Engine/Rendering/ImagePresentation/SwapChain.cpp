@@ -247,4 +247,52 @@ namespace SmolderingEngine
 
         return true;
     }
+
+    bool AcquireSwapchainImage(VkDevice _logicalDevice, VkSwapchainKHR _swapchain, VkSemaphore _semaphore, VkFence _fence, uint32_t& _imageIndex)
+    {
+        // 2000000000 is the wait time in nanoseconds (e.g. 2 second limit) for the next image to be aquired.
+        // This function just returns an index to the array of swapchain images. 
+        VkResult result = vkAcquireNextImageKHR(_logicalDevice, _swapchain, 2000000000, _semaphore, _fence, &_imageIndex);
+        switch (result) 
+        {
+        case VK_SUCCESS:
+        case VK_SUBOPTIMAL_KHR:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    bool PresentImage(VkQueue _queue, std::vector<VkSemaphore> _renderingSemaphores, std::vector<PresentInfo> _imagesToPresent)
+    {
+        std::vector<VkSwapchainKHR> swapchains;
+        std::vector<uint32_t> imageIndices;
+
+        for (auto& imageToPresent : _imagesToPresent) 
+        {
+            swapchains.emplace_back(imageToPresent.swapchain);
+            imageIndices.emplace_back(imageToPresent.imageIndex);
+        }
+
+        VkPresentInfoKHR presentInfo = 
+        {
+          VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,                   // VkStructureType          sType
+          nullptr,                                              // const void*              pNext
+          static_cast<uint32_t>(_renderingSemaphores.size()),   // uint32_t                 waitSemaphoreCount
+          _renderingSemaphores.data(),                          // const VkSemaphore      * pWaitSemaphores
+          static_cast<uint32_t>(swapchains.size()),             // uint32_t                 swapchainCount
+          swapchains.data(),                                    // const VkSwapchainKHR   * pSwapchains
+          imageIndices.data(),                                  // const uint32_t         * pImageIndices
+          nullptr                                               // VkResult*                pResults
+        };
+
+        VkResult result = vkQueuePresentKHR(_queue, &presentInfo);
+        switch (result) 
+        {
+        case VK_SUCCESS:
+            return true;
+        default:
+            return false;
+        }
+    }
 };

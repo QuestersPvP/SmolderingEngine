@@ -1,5 +1,6 @@
 
 #include "InstancesAndDevices.h"
+#include "../Application/WindowCreation.h"
 
 namespace SmolderingEngine
 {
@@ -454,6 +455,48 @@ namespace SmolderingEngine
             }
         }
         return false;
+    }
+
+    void ChoosePhysicalAndLogicalDevices(std::vector<VkPhysicalDevice> _physicalDevices, VkPhysicalDevice& _physicalDevice, VkDevice& _logicalDevice, uint32_t _graphicsQueueFamilyIndex,
+        uint32_t _presentQueueFamilyIndex, VkSurfaceKHR _presentationSurface, VkQueue _graphicsQueue, VkQueue _presentQueue)
+    {
+        // Basically just loop through physical devices to see what one is best.
+        for (auto& physicalDevice : _physicalDevices)
+        {
+            if (!SelectIndexOfQueueFamilyWithDesiredCapabilities(physicalDevice, VK_QUEUE_GRAPHICS_BIT, _graphicsQueueFamilyIndex)) {
+                continue;
+            }
+
+            if (!SelectQueueFamilyThatSupportsPresentationToGivenSurface(physicalDevice, _presentationSurface, _presentQueueFamilyIndex)) {
+                continue;
+            }
+
+            std::vector<QueueInfo> requestedQueues = { { _graphicsQueueFamilyIndex, { 1.0f } } };
+            if (_graphicsQueueFamilyIndex != _presentQueueFamilyIndex)
+            {
+                requestedQueues.push_back({ _presentQueueFamilyIndex, { 1.0f } });
+            }
+
+            VkDevice logicalDevice;
+            std::vector<char const*> deviceExtensions;
+            if (!CreateLogicalDevice(physicalDevice, requestedQueues, deviceExtensions, nullptr, logicalDevice))
+            {
+                continue;
+            }
+            else
+            {
+                // Once we can create a logical device load functions, set devices, get queues, and return.
+                if (!LoadDeviceLevelFunctions(_logicalDevice, deviceExtensions))
+                {
+                    continue;
+                }
+                _physicalDevice = physicalDevice;
+                _logicalDevice = std::move(logicalDevice);
+                GetDeviceQueue(logicalDevice, _graphicsQueueFamilyIndex, 0, _graphicsQueue);
+                GetDeviceQueue(logicalDevice, _presentQueueFamilyIndex, 0, _presentQueue);
+                return;
+            }
+        }
     }
 
 #pragma endregion

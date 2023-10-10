@@ -14,4 +14,6 @@ namespace SmolderingEngine
     bool CreateSwapchain(VkDevice _logicalDevice, VkSurfaceKHR _presentationSurface, uint32_t _imageCount, VkSurfaceFormatKHR _surfaceFormat, VkExtent2D _imageSize, VkImageUsageFlags _imageUsage,
         VkSurfaceTransformFlagBitsKHR _surfaceTransform, VkPresentModeKHR _presentMode, VkSwapchainKHR& _oldSwapchain, VkSwapchainKHR& _swapchain);
     bool GetHandlesOfSwapchainImages(VkDevice _logicalDevice, VkSwapchainKHR _swapchain, std::vector<VkImage>& _swapchainImages);
+    bool AcquireSwapchainImage(VkDevice _logicalDevice, VkSwapchainKHR _swapchain, VkSemaphore _semaphore, VkFence _fence, uint32_t& _imageIndex);
+    bool PresentImage(VkQueue _queue, std::vector<VkSemaphore> _renderingSemaphores, std::vector<PresentInfo> _imagesToPresent);
 };

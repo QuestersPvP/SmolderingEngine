@@ -32,8 +32,15 @@ namespace SmolderingEngine
     // Struct for Windows platform application windows
     struct WindowParameters
     {
-        HINSTANCE          HInstance;
-        HWND               HWnd;
+        HINSTANCE           HInstance;
+        HWND                HWnd;
+    };
+
+    // Defines a swapchain from which we want to present an image.
+    struct PresentInfo 
+    {
+        VkSwapchainKHR      swapchain;
+        uint32_t            imageIndex;
     };
     
     // Store information about queues we want to request for a logical device

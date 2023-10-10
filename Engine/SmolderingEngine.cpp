@@ -14,18 +14,17 @@ using namespace SmolderingEngine;
 int main()
 {
     // TODO: Clean up main
-    // TODO: throw this stuff somewhere other than main 
     LIBRARY_TYPE vulkanLibrary;
     VkInstance instance;
-    VkDevice logicDevice = nullptr;
+    VkDevice logicalDevice = VK_NULL_HANDLE;
 
-    uint32_t graphicsQueueFamilyIndex;
-    uint32_t presentQueueFamilyIndex;
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
+    uint32_t graphicsQueueFamilyIndex = 0;
+    uint32_t presentQueueFamilyIndex = 0;
+    VkQueue graphicsQueue = VK_NULL_HANDLE;
+    VkQueue presentQueue = VK_NULL_HANDLE;
 
     std::vector<VkPhysicalDevice> physicalDevices;
-    VkPhysicalDevice physicalDevice = nullptr;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
     std::vector<char const*> instanceExtensions;
 
@@ -34,9 +33,11 @@ int main()
 
     VkFormat swapchainImageFormat;
     VkExtent2D swapchainImageSize;
-    VkSwapchainKHR swapchain = nullptr;
+    VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     VkSwapchainKHR oldSwapchain = std::move(swapchain);
     std::vector<VkImage> swapchainImages;
+    VkSemaphore imageAcquiredSemaphore = VK_NULL_HANDLE;
+    VkSemaphore readyToPresentSemaphore = VK_NULL_HANDLE;
 
     // For testing
     bool setUp = true;
@@ -69,6 +70,7 @@ int main()
     if (!EnumerateAvailablePhysicalDevices(instance, physicalDevices))
         setUp = false;
 
+    //ChoosePhysicalAndLogicalDevices(physicalDevices, physicalDevice, logicalDevice, graphicsQueueFamilyIndex, presentQueueFamilyIndex, presentationSurface, graphicsQueue, presentQueue);
     for (auto& _physicalDevice : physicalDevices)
     {
         if (!SelectIndexOfQueueFamilyWithDesiredCapabilities(_physicalDevice, VK_QUEUE_GRAPHICS_BIT, graphicsQueueFamilyIndex)) {
@@ -98,21 +100,23 @@ int main()
                 continue;
             }
             physicalDevice = _physicalDevice;
-            logicDevice = std::move(_logicalDevice);
-            GetDeviceQueue(logicDevice, graphicsQueueFamilyIndex, 0, graphicsQueue);
-            GetDeviceQueue(logicDevice, presentQueueFamilyIndex, 0, presentQueue);
+            logicalDevice = std::move(_logicalDevice);
+            GetDeviceQueue(logicalDevice, graphicsQueueFamilyIndex, 0, graphicsQueue);
+            GetDeviceQueue(logicalDevice, presentQueueFamilyIndex, 0, presentQueue);
             break;
         }
     }
 
-    if (!logicDevice)
+    if (!logicalDevice)
         setUp = false;
 
+#pragma region Swapchain Creation
+    // Choose presentation mode VK_PRESENT_MODE_MAILBOX_KHR is our preference to avoid screen tearing. 
     VkPresentModeKHR desiredPresentMode;
     if (!SelectDesiredPresentationMode(physicalDevice, presentationSurface, VK_PRESENT_MODE_MAILBOX_KHR, desiredPresentMode))
         setUp = false;
 
-
+    // Get capabilities.
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
     if (!GetCapabilitiesOfPresentationSurface(physicalDevice, presentationSurface, surfaceCapabilities))
         setUp = false;
@@ -131,9 +135,9 @@ int main()
     if (!skip)
     {
         VkImageUsageFlags imageUsage;
-        if (!SelectDesiredUsageScenariosOfSwapchainImages(surfaceCapabilities, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageUsage)) 
+        if (!SelectDesiredUsageScenariosOfSwapchainImages(surfaceCapabilities, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageUsage))
             setUp = false;
-        
+
 
         VkSurfaceTransformFlagBitsKHR surfaceTransform;
         if (!SelectTransformationOfSwapchainImagesInSwapChain(surfaceCapabilities, VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR, surfaceTransform))
@@ -141,19 +145,27 @@ int main()
 
 
         VkColorSpaceKHR imageColorSpace;
-        if (!SelectFormatOfSwapchainImages(physicalDevice, presentationSurface, { VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR }, swapchainImageFormat, imageColorSpace)) 
+        if (!SelectFormatOfSwapchainImages(physicalDevice, presentationSurface, { VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR }, swapchainImageFormat, imageColorSpace))
             setUp = false;
 
-        if (!CreateSwapchain(logicDevice, presentationSurface, numberOfImages, { swapchainImageFormat, imageColorSpace }, swapchainImageSize, imageUsage, surfaceTransform, desiredPresentMode, oldSwapchain, swapchain))
+        if (!CreateSwapchain(logicalDevice, presentationSurface, numberOfImages, { swapchainImageFormat, imageColorSpace }, swapchainImageSize, imageUsage, surfaceTransform, desiredPresentMode, oldSwapchain, swapchain))
             setUp = false;
-        
 
-        if (!GetHandlesOfSwapchainImages(logicDevice, swapchain, swapchainImages))
+
+        if (!GetHandlesOfSwapchainImages(logicalDevice, swapchain, swapchainImages))
             setUp = false;
     }
 
-    //if (!CreateLogicalDeviceWithGeometryShadersAndGraphicsAndComputeQueues(instance, logicDevice, graphicsQueue, computeQueue))
-    //    setUp = false;
+    // Create a semaphore using vkCreateSemaphore
+    VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &imageAcquiredSemaphore) != VK_SUCCESS)
+        setUp = false;
+
+    if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &readyToPresentSemaphore) != VK_SUCCESS)
+        setUp = false;
+#pragma endregion
 
     if (setUp)
     {
@@ -173,8 +185,24 @@ int main()
             }
             else
             {
-                // Do whatever you want (e.g. render stuff)
-                std::cout << "rendering..." << std::endl;
+                // Rendering
+
+                uint32_t image_index;
+                if (!AcquireSwapchainImage(logicalDevice, swapchain, imageAcquiredSemaphore, VK_NULL_HANDLE, image_index)) 
+                    setUp = false;
+                
+
+                PresentInfo present_info = 
+                {
+                  swapchain,   // VkSwapchainKHR   Swapchain
+                  image_index   // uint32_t         ImageIndex
+                };
+
+                if (!PresentImage(presentQueue, { readyToPresentSemaphore }, { present_info })) 
+                    setUp = false;
+                
+
+                setUp = true;
             }
         }
     }
