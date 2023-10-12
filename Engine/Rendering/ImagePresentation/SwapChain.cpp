@@ -295,4 +295,13 @@ namespace SmolderingEngine
             return false;
         }
     }
+
+    void DestroySwapchain(VkDevice _logicalDevice, VkSwapchainKHR& _swapchain)
+    {
+        if (_swapchain)
+        {
+            vkDestroySwapchainKHR(_logicalDevice, _swapchain, nullptr);
+            _swapchain = VK_NULL_HANDLE;
+        }
+    }
 };

@@ -16,6 +16,7 @@ namespace SmolderingEngine
 
     WindowParameters GenerateApplicationWindowParameters();
     bool CreatePresentationSurface(VkInstance _instance, WindowParameters _windowParameters, VkSurfaceKHR& _presentationSurface);
+    void DestroyPresentationSurface(VkInstance _instance, VkSurfaceKHR& _presentationSurface);
 
     bool SelectQueueFamilyThatSupportsPresentationToGivenSurface(VkPhysicalDevice _physicalDevice, VkSurfaceKHR _presentationSurface, uint32_t& _queueFamilyIndex);
 };

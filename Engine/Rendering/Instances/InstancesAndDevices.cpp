@@ -200,7 +200,7 @@ namespace SmolderingEngine
           VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,               // VkStructureType           sType
           nullptr,                                              // const void              * pNext
           0,                                                    // VkInstanceCreateFlags     flags
-          &applicationInfo,                                    // const VkApplicationInfo * pApplicationInfo
+          &applicationInfo,                                     // const VkApplicationInfo * pApplicationInfo
           0,                                                    // uint32_t                  enabledLayerCount
           nullptr,                                              // const char * const      * ppEnabledLayerNames
           static_cast<uint32_t>(_desiredExtensions.size()),     // uint32_t                  enabledExtensionCount

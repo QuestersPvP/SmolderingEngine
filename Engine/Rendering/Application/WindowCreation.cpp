@@ -114,6 +114,15 @@ namespace SmolderingEngine
         return true;
 	}
 
+    void DestroyPresentationSurface(VkInstance _instance, VkSurfaceKHR& _presentationSurface)
+    {
+        if (_presentationSurface)
+        {
+            vkDestroySurfaceKHR(_instance, _presentationSurface, nullptr);
+            _presentationSurface = VK_NULL_HANDLE;
+        }
+    }
+
     bool SelectQueueFamilyThatSupportsPresentationToGivenSurface(VkPhysicalDevice _physicalDevice, VkSurfaceKHR _presentationSurface, uint32_t& _queueFamilyIndex)
     {
         // Check what queue families are exposed by a physical device.

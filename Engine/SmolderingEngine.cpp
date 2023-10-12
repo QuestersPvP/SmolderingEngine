@@ -73,6 +73,7 @@ int main()
     //ChoosePhysicalAndLogicalDevices(physicalDevices, physicalDevice, logicalDevice, graphicsQueueFamilyIndex, presentQueueFamilyIndex, presentationSurface, graphicsQueue, presentQueue);
     for (auto& _physicalDevice : physicalDevices)
     {
+        // Check for a device that supports graphics operations. 
         if (!SelectIndexOfQueueFamilyWithDesiredCapabilities(_physicalDevice, VK_QUEUE_GRAPHICS_BIT, graphicsQueueFamilyIndex)) {
             continue;
         }
@@ -200,9 +201,6 @@ int main()
 
                 if (!PresentImage(presentQueue, { readyToPresentSemaphore }, { present_info })) 
                     setUp = false;
-                
-
-                setUp = true;
             }
         }
     }
