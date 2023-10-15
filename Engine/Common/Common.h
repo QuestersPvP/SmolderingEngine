@@ -42,6 +42,32 @@ namespace SmolderingEngine
         VkSwapchainKHR      swapchain;
         uint32_t            imageIndex;
     };
+
+    // Provide a semaphone that the hardware should wait for and at which pipeline stage we should wait.
+    struct WaitSemaphoreInfo
+    {
+        VkSemaphore           Semaphore;
+        VkPipelineStageFlags  WaitingStage;
+    };
+
+    struct SwapchainParameters 
+    {
+        VkSwapchainKHR              handle;
+        VkFormat                    format;
+        VkExtent2D                  size;
+        std::vector<VkImage>        images;
+        std::vector<VkImageView>    imageViews;
+    };
+
+    struct SubpassParameters 
+    {
+        VkPipelineBindPoint                     pipelineType;
+        std::vector<VkAttachmentReference>      inputAttachments;
+        std::vector<VkAttachmentReference>      colorAttachments;
+        std::vector<VkAttachmentReference>      resolveAttachments;
+        VkAttachmentReference const*            depthStencilAttachment;
+        std::vector<uint32_t>                   preserveAttachments;
+    };
     
     // Store information about queues we want to request for a logical device
     // Stores a family index that we want the queues to be created with and
