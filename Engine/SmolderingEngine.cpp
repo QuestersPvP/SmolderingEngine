@@ -20,10 +20,10 @@ int main()
     VkInstance instance;
     VkDevice logicalDevice = VK_NULL_HANDLE;
 
-    uint32_t graphicsQueueFamilyIndex = 0;
-    uint32_t presentQueueFamilyIndex = 0;
-    VkQueue graphicsQueue = VK_NULL_HANDLE;
-    VkQueue presentQueue = VK_NULL_HANDLE;
+    //uint32_t graphicsQueueFamilyIndex = 0;
+    //uint32_t presentQueueFamilyIndex = 0;
+    QueueParameters graphicsQueue;
+    QueueParameters presentQueue;
 
     std::vector<VkPhysicalDevice> physicalDevices;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -44,6 +44,12 @@ int main()
 
     VkRenderPass renderPass = VK_NULL_HANDLE;
     VkFence drawingFence = VK_NULL_HANDLE;
+    VkCommandPool commandPool = VK_NULL_HANDLE;
+    VkCommandBuffer commandBuffer;
+    VkFramebuffer framebuffer;
+    std::vector<FrameResources> framesResources;
+    std::vector<VkImage> depthImages;
+    std::vector<VkDeviceMemory> depthImagesMemory;
 
     // For testing
     bool setUp = true;
@@ -80,18 +86,16 @@ int main()
     for (auto& _physicalDevice : physicalDevices)
     {
         // Check for a device that supports graphics operations. 
-        if (!SelectIndexOfQueueFamilyWithDesiredCapabilities(_physicalDevice, VK_QUEUE_GRAPHICS_BIT, graphicsQueueFamilyIndex)) {
+        if (!SelectIndexOfQueueFamilyWithDesiredCapabilities(_physicalDevice, VK_QUEUE_GRAPHICS_BIT, graphicsQueue.familyIndex)) 
             continue;
-        }
 
-        if (!SelectQueueFamilyThatSupportsPresentationToGivenSurface(_physicalDevice, presentationSurface, presentQueueFamilyIndex)) {
+        if (!SelectQueueFamilyThatSupportsPresentationToGivenSurface(_physicalDevice, presentationSurface, presentQueue.familyIndex)) 
             continue;
-        }
-
-        std::vector<QueueInfo> requestedQueues = { { graphicsQueueFamilyIndex, { 1.0f } } };
-        if (graphicsQueueFamilyIndex != presentQueueFamilyIndex) 
+        
+        std::vector<QueueInfo> requestedQueues = { { graphicsQueue.familyIndex, { 1.0f } } };
+        if (graphicsQueue.familyIndex != presentQueue.familyIndex) 
         {
-            requestedQueues.push_back({ presentQueueFamilyIndex, { 1.0f } });
+            requestedQueues.push_back({ presentQueue.familyIndex, { 1.0f } });
         }
 
         VkDevice _logicalDevice;
@@ -108,8 +112,8 @@ int main()
             }
             physicalDevice = _physicalDevice;
             logicalDevice = std::move(_logicalDevice);
-            GetDeviceQueue(logicalDevice, graphicsQueueFamilyIndex, 0, graphicsQueue);
-            GetDeviceQueue(logicalDevice, presentQueueFamilyIndex, 0, presentQueue);
+            GetDeviceQueue(logicalDevice, graphicsQueue.familyIndex, 0, graphicsQueue.handle);
+            GetDeviceQueue(logicalDevice, presentQueue.familyIndex, 0, presentQueue.handle);
             break;
         }
     }
@@ -117,8 +121,55 @@ int main()
     if (!logicalDevice)
         setUp = false;
 
+    // Create a semaphore using vkCreateSemaphore
+    VkSemaphoreCreateInfo semaphoreCreateInfo =
+    {
+        VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        nullptr,
+        0
+    };
+
+    if (!CreateCommandPool(logicalDevice, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.familyIndex, commandPool))
+        setUp = false;
+
+    for (uint32_t i = 0; i < 3; i++)
+    {
+        std::vector<VkCommandBuffer> _commandBuffer;
+        VkSemaphore image_acquired_semaphore;
+        VkSemaphore ready_to_present_semaphore;
+        VkFence drawing_finished_fence;
+        VkImageView depth_attachment;
+        VkFramebuffer tempIdea;
+
+
+        if (!AllocateCommandBuffers(logicalDevice, commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1, _commandBuffer)) {
+            return false;
+        }
+        if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &image_acquired_semaphore) != VK_SUCCESS) {
+            return false;
+        }
+        if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &ready_to_present_semaphore) != VK_SUCCESS) {
+            return false;
+        }
+        if (!CreateFence(logicalDevice, true, drawing_finished_fence)) {
+            return false;
+        }
+
+        framesResources.emplace_back(_commandBuffer[0], image_acquired_semaphore, ready_to_present_semaphore, drawing_finished_fence, depth_attachment, tempIdea);
+
+        //framesResources.emplace_back(
+        //    _commandBuffer[0],
+        //    image_acquired_semaphore,
+        //    ready_to_present_semaphore,
+        //    drawing_finished_fence,
+        //    depth_attachment,
+        //    VkFramebuffer()
+        //);
+    }
+
 #pragma region Swapchain Creation
 
+    swapchain.ImageViewsRaw.clear();
     swapchain.imageViews.clear();
     swapchain.images.clear();
 
@@ -166,30 +217,46 @@ int main()
         if (!GetHandlesOfSwapchainImages(logicalDevice, swapchain.handle, swapchain.images))
             setUp = false;
     }
+
+    for (size_t i = 0; i < swapchain.images.size(); ++i) 
+    {
+        VkImageView* imageView = new VkImageView;
+        swapchain.imageViews.emplace_back(imageView);
+        if (!CreateImageView(logicalDevice, swapchain.images[i], VK_IMAGE_VIEW_TYPE_2D, swapchain.format, VK_IMAGE_ASPECT_COLOR_BIT, *swapchain.imageViews.back())) 
+        {
+            return false;
+        }
+        swapchain.ImageViewsRaw.push_back(*swapchain.imageViews.back());
+    }
+    
+    // When we want to use depth buffering, we need to use a depth attachment
+    // It must have the same size as the swapchain, so we need to recreate it along with the swapchain
+    depthImages.clear();
+    depthImagesMemory.clear();
+    
+    for (uint32_t i = 0; i < 3; ++i) 
+    {
+        depthImages.emplace_back(VkImage());
+        depthImagesMemory.emplace_back(VkDeviceMemory());
+    
+        if (!Create2DImageAndView(physicalDevice, logicalDevice, VK_FORMAT_D16_UNORM, swapchain.size, 1, 1, VK_SAMPLE_COUNT_1_BIT,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, depthImages.back(), depthImagesMemory.back(),
+            framesResources[i].depthAttachment)) 
+        {
+            return false;
+        }
+    }
 #pragma endregion
 
-    //if (!CreateCommandPool(logicalDevice, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.FamilyIndex, *CommandPool)) 
-    //    return false;
-    //
-    //
-    //std::vector<VkCommandBuffer> commandBuffers;
-    //if (!AllocateCommandBuffers(logicalDevice, *CommandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1, commandBuffers))
-    //    return false;
-    //
-    //CommandBuffer = commandBuffers[0];
-    //
-    //// Drawing synchronization
-    //if (!CreateFence(logicalDevice, true, drawingFence))
-    //    return false;
+    std::vector<VkCommandBuffer> commandBuffers;
+    if (!AllocateCommandBuffers(logicalDevice, commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1, commandBuffers))
+        setUp = false;
     
-
-    // Create a semaphore using vkCreateSemaphore
-    VkSemaphoreCreateInfo semaphoreCreateInfo =
-    {
-        VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-        nullptr,
-        0
-    };
+    commandBuffer = commandBuffers[0];
+    
+    // Drawing synchronization
+    if (!CreateFence(logicalDevice, true, drawingFence))
+        setUp = false;
 
     if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &imageAcquiredSemaphore) != VK_SUCCESS)
         setUp = false;
@@ -275,22 +342,77 @@ int main()
             {
                 // Rendering
 
-                //if (!WaitForFences(logicalDevice, { drawingFence }, false, 5000000000))
-                //    setUp = false;;
-                
-
-                uint32_t image_index;
-                if (!AcquireSwapchainImage(logicalDevice, swapchain.handle, imageAcquiredSemaphore, VK_NULL_HANDLE, image_index)) 
+                if (!WaitForFences(logicalDevice, { drawingFence }, false, 5000000000))
                     setUp = false;
-                
 
-                PresentInfo present_info = 
+                if (!ResetFences(logicalDevice, { drawingFence }))
+                    setUp = false;
+
+                uint32_t imageIndex;
+                if (!AcquireSwapchainImage(logicalDevice, swapchain.handle, imageAcquiredSemaphore, VK_NULL_HANDLE, imageIndex))
+                    setUp = false;
+
+                if (!CreateFramebuffer(logicalDevice, renderPass, { *swapchain.imageViews[imageIndex] }, swapchain.size.width, swapchain.size.height, 1, framebuffer))
+                    setUp = false;
+
+                if (!BeginCommandBufferRecordingOperation(commandBuffer, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, nullptr))
+                    setUp = false;
+
+                if (presentQueue.familyIndex != graphicsQueue.familyIndex) 
                 {
-                  swapchain.handle,     // VkSwapchainKHR   Swapchain
-                  image_index           // uint32_t         ImageIndex
+                    ImageTransition imageTransitionBeforeDrawing =
+                    {
+                      swapchain.images[imageIndex],                 // VkImage              Image
+                      VK_ACCESS_MEMORY_READ_BIT,                    // VkAccessFlags        CurrentAccess
+                      VK_ACCESS_MEMORY_READ_BIT,                    // VkAccessFlags        NewAccess
+                      VK_IMAGE_LAYOUT_UNDEFINED,                    // VkImageLayout        CurrentLayout
+                      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,     // VkImageLayout        NewLayout
+                      presentQueue.familyIndex,                     // uint32_t             CurrentQueueFamily
+                      graphicsQueue.familyIndex,                    // uint32_t             NewQueueFamily
+                      VK_IMAGE_ASPECT_COLOR_BIT                     // VkImageAspectFlags   Aspect
+                    };
+                    SetImageMemoryBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, { imageTransitionBeforeDrawing });
+                }
+
+                BeginRenderPass(commandBuffer, renderPass, framebuffer, { { 0, 0 }, swapchain.size }, { { 0.2f, 0.5f, 0.8f, 1.0f } }, VK_SUBPASS_CONTENTS_INLINE);
+
+                EndRenderPass(commandBuffer);
+
+                if (presentQueue.familyIndex != graphicsQueue.familyIndex)
+                {
+                    ImageTransition imageTransitionBeforePresent = 
+                    {
+                      swapchain.images[imageIndex],                 // VkImage              Image
+                      VK_ACCESS_MEMORY_READ_BIT,                    // VkAccessFlags        CurrentAccess
+                      VK_ACCESS_MEMORY_READ_BIT,                    // VkAccessFlags        NewAccess
+                      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,              // VkImageLayout        CurrentLayout
+                      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,              // VkImageLayout        NewLayout
+                      graphicsQueue.familyIndex,                    // uint32_t             CurrentQueueFamily
+                      presentQueue.familyIndex,                     // uint32_t             NewQueueFamily
+                      VK_IMAGE_ASPECT_COLOR_BIT                     // VkImageAspectFlags   Aspect
+                    };
+                    SetImageMemoryBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, { imageTransitionBeforePresent });
+                }
+
+                if (!EndCommandBufferRecordingOperation(commandBuffer))
+                    return false;
+
+                WaitSemaphoreInfo waitSemaphoreInfo = 
+                {
+                  imageAcquiredSemaphore,               // VkSemaphore            Semaphore
+                  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT    // VkPipelineStageFlags   WaitingStage
                 };
 
-                if (!PresentImage(presentQueue, { readyToPresentSemaphore }, { present_info })) 
+                if (!SubmitCommandBuffersToQueue(graphicsQueue.handle, { waitSemaphoreInfo }, { commandBuffer }, { readyToPresentSemaphore }, drawingFence))
+                    return false;
+
+                PresentInfo presentInfo = 
+                {
+                  swapchain.handle,     // VkSwapchainKHR   Swapchain
+                  imageIndex           // uint32_t         ImageIndex
+                };
+
+                if (!PresentImage(presentQueue.handle, { readyToPresentSemaphore }, { presentInfo }))
                     setUp = false;
             }
         }

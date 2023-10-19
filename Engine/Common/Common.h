@@ -50,13 +50,20 @@ namespace SmolderingEngine
         VkPipelineStageFlags  WaitingStage;
     };
 
+    struct QueueParameters 
+    {
+        VkQueue   handle;
+        uint32_t  familyIndex;
+    };
+
     struct SwapchainParameters 
     {
         VkSwapchainKHR              handle;
         VkFormat                    format;
         VkExtent2D                  size;
         std::vector<VkImage>        images;
-        std::vector<VkImageView>    imageViews;
+        std::vector<VkImageView*>   imageViews;
+        std::vector<VkImageView>    ImageViewsRaw;
     };
 
     struct SubpassParameters 
@@ -67,6 +74,67 @@ namespace SmolderingEngine
         std::vector<VkAttachmentReference>      resolveAttachments;
         VkAttachmentReference const*            depthStencilAttachment;
         std::vector<uint32_t>                   preserveAttachments;
+    };
+
+    struct ImageTransition 
+    {
+        VkImage             image;
+        VkAccessFlags       currentAccess;
+        VkAccessFlags       newAccess;
+        VkImageLayout       currentLayout;
+        VkImageLayout       newLayout;
+        uint32_t            currentQueueFamily;
+        uint32_t            newQueueFamily;
+        VkImageAspectFlags  aspect;
+    };
+
+    struct FrameResources 
+    {
+        VkCommandBuffer commandBuffer;
+        VkSemaphore     imageAcquiredSemaphore;
+        VkSemaphore     readyToPresentSemaphore;
+        VkFence         drawingFinishedFence;
+        VkImageView     depthAttachment;
+        VkFramebuffer   framebuffer;
+
+        FrameResources(VkCommandBuffer& command_buffer,
+            VkSemaphore& image_acquired_semaphore,
+            VkSemaphore& ready_to_present_semaphore,
+            VkFence& drawing_finished_fence,
+            VkImageView& depth_attachment,
+            VkFramebuffer& framebuffer) :
+            commandBuffer(command_buffer),
+            imageAcquiredSemaphore(std::move(image_acquired_semaphore)),
+            readyToPresentSemaphore(std::move(ready_to_present_semaphore)),
+            drawingFinishedFence(std::move(drawing_finished_fence)),
+            depthAttachment(std::move(depth_attachment)),
+            framebuffer(std::move(framebuffer)) {
+        }
+
+        FrameResources(FrameResources&& other) 
+        {
+            *this = std::move(other);
+        }
+
+        FrameResources& operator=(FrameResources&& other) 
+        {
+            if (this != &other) 
+            {
+                VkCommandBuffer command_buffer = commandBuffer;
+
+                commandBuffer = other.commandBuffer;
+                other.commandBuffer = command_buffer;
+                imageAcquiredSemaphore = std::move(other.imageAcquiredSemaphore);
+                readyToPresentSemaphore = std::move(other.readyToPresentSemaphore);
+                drawingFinishedFence = std::move(other.drawingFinishedFence);
+                depthAttachment = std::move(other.depthAttachment);
+                framebuffer = std::move(other.framebuffer);
+            }
+            return *this;
+        }
+
+        FrameResources(FrameResources const&) = delete;
+        FrameResources& operator=(FrameResources const&) = delete;
     };
     
     // Store information about queues we want to request for a logical device
