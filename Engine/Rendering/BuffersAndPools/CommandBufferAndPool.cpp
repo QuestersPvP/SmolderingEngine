@@ -35,6 +35,15 @@ namespace SmolderingEngine
         return true;
     }
 
+    void DestroyCommandPool(VkDevice _logicalDevice, VkCommandPool& _commandPool)
+    {
+        if (_commandPool != VK_NULL_HANDLE)
+        {
+            vkDestroyCommandPool(_logicalDevice, _commandPool, nullptr);
+            _commandPool = VK_NULL_HANDLE;
+        }
+    }
+
     bool AllocateCommandBuffers(VkDevice _logicalDevice, VkCommandPool _commandPool, VkCommandBufferLevel _level, uint32_t _count, std::vector<VkCommandBuffer>& _commandBuffers)
     {
         VkCommandBufferAllocateInfo commandBufferAllocateInfo = 
@@ -117,6 +126,15 @@ namespace SmolderingEngine
             return false;
 
         return WaitForFences(_logicalDevice, { _fence }, VK_FALSE, _timeout);
+    }
+
+    void DestroyCommandBuffers(VkDevice _logicalDevice, VkCommandPool _commandPool, std::vector<VkCommandBuffer>& _commandBuffers)
+    {
+        if (_commandBuffers.size() > 0)
+        {
+            vkFreeCommandBuffers(_logicalDevice, _commandPool, static_cast<uint32_t>(_commandBuffers.size()), _commandBuffers.data());
+            _commandBuffers.clear();
+        }
     }
 
     bool WaitUntilAllCommandsSubmittedToQueueAreFinished(VkQueue _queue)
@@ -228,5 +246,23 @@ namespace SmolderingEngine
         }
 
         return false;
+    }
+
+    void DestroyFence(VkDevice _logicalDevice, VkFence& _fence)
+    {
+        if (_fence != VK_NULL_HANDLE) 
+        {
+            vkDestroyFence(_logicalDevice, _fence, nullptr);
+            _fence = VK_NULL_HANDLE;
+        }
+    }
+
+    void DestroySemaphore(VkDevice _logicalDevice, VkSemaphore& _semaphore)
+    {
+        if (_semaphore != VK_NULL_HANDLE)
+        {
+            vkDestroySemaphore(_logicalDevice, _semaphore, nullptr);
+            _semaphore = VK_NULL_HANDLE;
+        }
     }
 };

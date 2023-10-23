@@ -88,6 +88,15 @@ namespace SmolderingEngine
         VkImageAspectFlags  aspect;
     };
 
+    struct BufferTransition 
+    {
+        VkBuffer        buffer;
+        VkAccessFlags   currentAccess;
+        VkAccessFlags   newAccess;
+        uint32_t        currentQueueFamily;
+        uint32_t        newQueueFamily;
+    };
+
     struct FrameResources 
     {
         VkCommandBuffer commandBuffer;

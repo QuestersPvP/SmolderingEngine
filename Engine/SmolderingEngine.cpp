@@ -11,10 +11,15 @@ running this project on a Windows based platform.
 #include "Rendering/BuffersAndPools/CommandBufferAndPool.h"
 #include "Rendering/RenderPass/RenderPass.h"
 
+//#define _CRTDBG_MAP_ALLOC
+
 using namespace SmolderingEngine;
 
 int main()
 {
+    //_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    //_CrtDumpMemoryLeaks();
+
     // TODO: Clean up main
     LIBRARY_TYPE vulkanLibrary;
     VkInstance instance;
