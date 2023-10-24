@@ -484,6 +484,268 @@ namespace SmolderingEngine
         return true;
     }
 
+    void DrawGeometry(VkCommandBuffer _commandBuffer, uint32_t _vertexCount, uint32_t _instanceCount, uint32_t _firstVertex, uint32_t _firstInstance)
+    {
+        vkCmdDraw(_commandBuffer, _vertexCount, _instanceCount, _firstVertex, _firstInstance);
+    }
+
+    void BindVertexBuffers(VkCommandBuffer _commandBuffer, uint32_t _firstBinding, std::vector<VertexBufferParameters> const& _buffersParameters)
+    {
+        if (_buffersParameters.size() > 0)
+        {
+            std::vector<VkBuffer> buffers;
+            std::vector<VkDeviceSize> offsets;
+            for (auto& bufferParameters : _buffersParameters)
+            {
+                buffers.push_back(bufferParameters.buffer);
+                offsets.push_back(bufferParameters.memoryOffset);
+            }
+            vkCmdBindVertexBuffers(_commandBuffer, _firstBinding, static_cast<uint32_t>(_buffersParameters.size()), buffers.data(), offsets.data());
+        }
+    }
+
+    bool CreateShaderModule(VkDevice _logicalDevice, std::vector<unsigned char> const& _sourceCode, VkShaderModule& _shaderModule)
+    {
+        VkShaderModuleCreateInfo shader_module_create_info = 
+        {
+            VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,                // VkStructureType              sType
+            nullptr,                                                    // const void                 * pNext
+            0,                                                          // VkShaderModuleCreateFlags    flags
+            _sourceCode.size(),                                         // size_t                       codeSize
+            reinterpret_cast<uint32_t const*>(_sourceCode.data())       // const uint32_t             * pCode
+        };
+
+        if (vkCreateShaderModule(_logicalDevice, &shader_module_create_info, nullptr, &_shaderModule) != VK_SUCCESS)
+        {
+            std::cout << "Could not create a shader module." << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    void SpecifyPipelineShaderStages(std::vector<ShaderStageParameters> const& _shaderStageParams, std::vector<VkPipelineShaderStageCreateInfo>& _shaderStageCreateInfos)
+    {
+        _shaderStageCreateInfos.clear();
+
+        for (auto& shaderStage : _shaderStageParams)
+        {
+            _shaderStageCreateInfos.push_back
+            ({
+                VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,  // VkStructureType                    sType
+                nullptr,                                              // const void                       * pNext
+                0,                                                    // VkPipelineShaderStageCreateFlags   flags
+                shaderStage.shaderStage,                             // VkShaderStageFlagBits              stage
+                shaderStage.shaderModule,                            // VkShaderModule                     module
+                shaderStage.entryPointName,                          // const char                       * pName
+                shaderStage.specializationInfo                       // const VkSpecializationInfo       * pSpecializationInfo
+            });
+        }
+    }
+
+    void SpecifyPipelineVertexInputState(std::vector<VkVertexInputBindingDescription> const& _bindingDescriptions, std::vector<VkVertexInputAttributeDescription> const& _attributeDescriptions,
+        VkPipelineVertexInputStateCreateInfo& _vertexInputStateCreateInfo)
+    {
+        _vertexInputStateCreateInfo =
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,    // VkStructureType                           sType
+            nullptr,                                                      // const void                              * pNext
+            0,                                                            // VkPipelineVertexInputStateCreateFlags     flags
+            static_cast<uint32_t>(_bindingDescriptions.size()),           // uint32_t                                  vertexBindingDescriptionCount
+            _bindingDescriptions.data(),                                  // const VkVertexInputBindingDescription   * pVertexBindingDescriptions
+            static_cast<uint32_t>(_attributeDescriptions.size()),         // uint32_t                                  vertexAttributeDescriptionCount
+            _attributeDescriptions.data()                                 // const VkVertexInputAttributeDescription * pVertexAttributeDescriptions
+        };
+    }
+
+    void SpecifyPipelineInputAssemblyState(VkPrimitiveTopology _topology, bool _primitiveRestartEnable, VkPipelineInputAssemblyStateCreateInfo& _inputAssemblyStateCreateInfo)
+    {
+        _inputAssemblyStateCreateInfo =
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,    // VkStructureType                           sType
+            nullptr,                                                        // const void                              * pNext
+            0,                                                              // VkPipelineInputAssemblyStateCreateFlags   flags
+            _topology,                                                      // VkPrimitiveTopology                       topology
+            _primitiveRestartEnable                                         // VkBool32                                  primitiveRestartEnable
+        };
+    }
+
+    void SpecifyPipelineViewportAndScissorTestState(ViewportInfo const& _viewportInfos, VkPipelineViewportStateCreateInfo& _viewportStateCreateInfo)
+    {
+        uint32_t viewportCount = static_cast<uint32_t>(_viewportInfos.viewports.size());
+        uint32_t scissorCount = static_cast<uint32_t>(_viewportInfos.scissors.size());
+        
+        _viewportStateCreateInfo =
+        {
+          VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,    // VkStructureType                      sType
+          nullptr,                                                  // const void                         * pNext
+          0,                                                        // VkPipelineViewportStateCreateFlags   flags
+          viewportCount,                                            // uint32_t                             viewportCount
+          _viewportInfos.viewports.data(),                          // const VkViewport                   * pViewports
+          scissorCount,                                             // uint32_t                             scissorCount
+          _viewportInfos.scissors.data()                            // const VkRect2D                     * pScissors
+        };
+    }
+
+    void SpecifyPipelineRasterizationState(bool _depthClampEnable, bool _rasterizerDiscardEnable, VkPolygonMode _polygonMode, VkCullModeFlags _cullingMode, VkFrontFace _frontFace,
+        bool _depthBiasEnable, float _depthBiasConstantFactor, float _depthBiasClamp, float _depthBiasSlopeFactor, float _lineWidth, VkPipelineRasterizationStateCreateInfo& _rasterizationStateCreateInfo)
+    {
+        _rasterizationStateCreateInfo =
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO, // VkStructureType                            sType
+            nullptr,                                                    // const void                               * pNext
+            0,                                                          // VkPipelineRasterizationStateCreateFlags    flags
+            _depthClampEnable,                                          // VkBool32                                   depthClampEnable
+            _rasterizerDiscardEnable,                                   // VkBool32                                   rasterizerDiscardEnable
+            _polygonMode,                                               // VkPolygonMode                              polygonMode
+            _cullingMode,                                               // VkCullModeFlags                            cullMode
+            _frontFace,                                                 // VkFrontFace                                frontFace
+            _depthBiasEnable,                                           // VkBool32                                   depthBiasEnable
+            _depthBiasConstantFactor,                                   // float                                      depthBiasConstantFactor
+            _depthBiasClamp,                                            // float                                      depthBiasClamp
+            _depthBiasSlopeFactor,                                      // float                                      depthBiasSlopeFactor
+            _lineWidth                                                  // float                                      lineWidth
+        };
+    }
+
+    void SpecifyPipelineMultisampleState(VkSampleCountFlagBits _sampleCount, bool _perSampleShadingEnable, float _minSampleShading, VkSampleMask const* _sampleMasks,
+        bool _alphaToCoverageEnable, bool _alphaToOneEnable, VkPipelineMultisampleStateCreateInfo& _multisampleStateCreateInfo)
+    {
+        _multisampleStateCreateInfo =
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,   // VkStructureType                          sType
+            nullptr,                                                    // const void                             * pNext
+            0,                                                          // VkPipelineMultisampleStateCreateFlags    flags
+            _sampleCount,                                               // VkSampleCountFlagBits                    rasterizationSamples
+            _perSampleShadingEnable,                                    // VkBool32                                 sampleShadingEnable
+            _minSampleShading,                                          // float                                    minSampleShading
+            _sampleMasks,                                               // const VkSampleMask                     * pSampleMask
+            _alphaToCoverageEnable,                                     // VkBool32                                 alphaToCoverageEnable
+            _alphaToOneEnable                                           // VkBool32                                 alphaToOneEnable
+        };
+    }
+
+    void SpecifyPipelineBlendState(bool _logicOpEnable, VkLogicOp _logicOp, std::vector<VkPipelineColorBlendAttachmentState> const& _attachmentBlendStates,
+        std::array<float, 4> const& _blendConstants, VkPipelineColorBlendStateCreateInfo& _blendStateCreateInfo)
+    {
+        _blendStateCreateInfo = 
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,   // VkStructureType                              sType
+            nullptr,                                                    // const void                                 * pNext
+            0,                                                          // VkPipelineColorBlendStateCreateFlags         flags
+            _logicOpEnable,                                             // VkBool32                                     logicOpEnable
+            _logicOp,                                                   // VkLogicOp                                    logicOp
+            static_cast<uint32_t>(_attachmentBlendStates.size()),       // uint32_t                                     attachmentCount
+            _attachmentBlendStates.data(),                              // const VkPipelineColorBlendAttachmentState  * pAttachments
+            {                                                           // float                                        blendConstants[4]
+              _blendConstants[0],
+              _blendConstants[1],
+              _blendConstants[2],
+              _blendConstants[3]
+            }
+        };
+    }
+
+    void SpecifyPipelineDynamicStates(std::vector<VkDynamicState> const& _dynamicStates, VkPipelineDynamicStateCreateInfo& _dynamicStateCreateInfo)
+    {
+        _dynamicStateCreateInfo =
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,     // VkStructureType                      sType
+            nullptr,                                                  // const void                         * pNext
+            0,                                                        // VkPipelineDynamicStateCreateFlags    flags
+            static_cast<uint32_t>(_dynamicStates.size()),             // uint32_t                             dynamicStateCount
+            _dynamicStates.data()                                     // const VkDynamicState               * pDynamicStates
+        };
+    }
+
+    bool CreatePipelineLayout(VkDevice _logicalDevice, std::vector<VkDescriptorSetLayout> const& _descriptorSetLayouts,
+        std::vector<VkPushConstantRange> const& _pushConstantRanges, VkPipelineLayout& _pipelineLayout)
+    {
+        VkPipelineLayoutCreateInfo pipeline_layout_create_info = 
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,          // VkStructureType                  sType
+            nullptr,                                                // const void                     * pNext
+            0,                                                      // VkPipelineLayoutCreateFlags      flags
+            static_cast<uint32_t>(_descriptorSetLayouts.size()),    // uint32_t                         setLayoutCount
+            _descriptorSetLayouts.data(),                           // const VkDescriptorSetLayout    * pSetLayouts
+            static_cast<uint32_t>(_pushConstantRanges.size()),      // uint32_t                         pushConstantRangeCount
+            _pushConstantRanges.data()                              // const VkPushConstantRange      * pPushConstantRanges
+        };
+
+        if (vkCreatePipelineLayout(_logicalDevice, &pipeline_layout_create_info, nullptr, &_pipelineLayout) != VK_SUCCESS)
+        {
+            std::cout << "Could not create pipeline layout." << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    void SpecifyGraphicsPipelineCreationParameters(VkPipelineCreateFlags _additionalOptions, std::vector<VkPipelineShaderStageCreateInfo> const& _shaderStageCreateInfos,
+        VkPipelineVertexInputStateCreateInfo const& _vertexInputStateCreateInfo, VkPipelineInputAssemblyStateCreateInfo const& _inputAssemblyStateCreateInfo,
+        VkPipelineTessellationStateCreateInfo const* _tessellationStateCreateInfo, VkPipelineViewportStateCreateInfo const* _viewportStateCreateInfo,
+        VkPipelineRasterizationStateCreateInfo const& _rasterizationStateCreateInfo, VkPipelineMultisampleStateCreateInfo const* _multisampleStateCreateInfo,
+        VkPipelineDepthStencilStateCreateInfo const* _depthAndStencilStateCreateInfo, VkPipelineColorBlendStateCreateInfo const* _blendStateCreateInfo,
+        VkPipelineDynamicStateCreateInfo const* _dynamicStateCreateInfo, VkPipelineLayout _pipelineLayout, VkRenderPass _renderPass, uint32_t _subpass,
+        VkPipeline _basePipelineHandle, int32_t _basePipelineIndex, VkGraphicsPipelineCreateInfo& _graphicsPipelineCreateInfo)
+    {
+        _graphicsPipelineCreateInfo =
+        {
+            VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,            // VkStructureType                                sType
+            nullptr,                                                    // const void                                   * pNext
+            _additionalOptions,                                         // VkPipelineCreateFlags                          flags
+            static_cast<uint32_t>(_shaderStageCreateInfos.size()),      // uint32_t                                       stageCount
+            _shaderStageCreateInfos.data(),                             // const VkPipelineShaderStageCreateInfo        * pStages
+            &_vertexInputStateCreateInfo,                               // const VkPipelineVertexInputStateCreateInfo   * pVertexInputState
+            &_inputAssemblyStateCreateInfo,                             // const VkPipelineInputAssemblyStateCreateInfo * pInputAssemblyState
+            _tessellationStateCreateInfo,                               // const VkPipelineTessellationStateCreateInfo  * pTessellationState
+            _viewportStateCreateInfo,                                   // const VkPipelineViewportStateCreateInfo      * pViewportState
+            &_rasterizationStateCreateInfo,                             // const VkPipelineRasterizationStateCreateInfo * pRasterizationState
+            _multisampleStateCreateInfo,                                // const VkPipelineMultisampleStateCreateInfo   * pMultisampleState
+            _depthAndStencilStateCreateInfo,                            // const VkPipelineDepthStencilStateCreateInfo  * pDepthStencilState
+            _blendStateCreateInfo,                                      // const VkPipelineColorBlendStateCreateInfo    * pColorBlendState
+            _dynamicStateCreateInfo,                                    // const VkPipelineDynamicStateCreateInfo       * pDynamicState
+            _pipelineLayout,                                            // VkPipelineLayout                               layout
+            _renderPass,                                                // VkRenderPass                                   renderPass
+            _subpass,                                                   // uint32_t                                       subpass
+            _basePipelineHandle,                                        // VkPipeline                                     basePipelineHandle
+            _basePipelineIndex                                          // int32_t                                        basePipelineIndex
+        };
+    }
+
+    bool CreateGraphicsPipelines(VkDevice _logicalDevice, std::vector<VkGraphicsPipelineCreateInfo> const& _graphicsPipelineCreateInfos,
+        VkPipelineCache _pipelineCache, std::vector<VkPipeline>& _graphicsPipelines)
+    {
+        if (_graphicsPipelineCreateInfos.size() > 0)
+        {
+            _graphicsPipelines.resize(_graphicsPipelineCreateInfos.size());
+            if (vkCreateGraphicsPipelines(_logicalDevice, _pipelineCache, static_cast<uint32_t>(_graphicsPipelineCreateInfos.size()), _graphicsPipelineCreateInfos.data(), nullptr, _graphicsPipelines.data()) != VK_SUCCESS)
+            {
+                std::cout << "Could not create a graphics pipeline." << std::endl;
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    void BindPipelineObject(VkCommandBuffer _commandBuffer, VkPipelineBindPoint _pipelineType, VkPipeline _pipeline)
+    {
+        vkCmdBindPipeline(_commandBuffer, _pipelineType, _pipeline);
+    }
+
+    void SetViewportStateDynamically(VkCommandBuffer _commandBuffer, uint32_t _firstViewport, std::vector<VkViewport> const& _viewports)
+    {
+        vkCmdSetViewport(_commandBuffer, _firstViewport, static_cast<uint32_t>(_viewports.size()), _viewports.data());
+    }
+
+    void SetScissorStateDynamically(VkCommandBuffer _commandBuffer, uint32_t _firstScissor, std::vector<VkRect2D> const& _scissors)
+    {
+        vkCmdSetScissor(_commandBuffer, _firstScissor, static_cast<uint32_t>(_scissors.size()), _scissors.data());
+    }
+
     void SetImageMemoryBarrier(VkCommandBuffer _commandBuffer, VkPipelineStageFlags _generatingStages, VkPipelineStageFlags _consumingStages, std::vector<ImageTransition> _imageTransitions)
     {
 

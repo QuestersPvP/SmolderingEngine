@@ -97,6 +97,26 @@ namespace SmolderingEngine
         uint32_t        newQueueFamily;
     };
 
+    struct VertexBufferParameters 
+    {
+        VkBuffer      buffer;
+        VkDeviceSize  memoryOffset;
+    };
+
+    struct ShaderStageParameters 
+    {
+        VkShaderStageFlagBits           shaderStage;
+        VkShaderModule                  shaderModule;
+        char const*                     entryPointName;
+        VkSpecializationInfo const*     specializationInfo;
+    };
+
+    struct ViewportInfo 
+    {
+        std::vector<VkViewport>   viewports;
+        std::vector<VkRect2D>     scissors;
+    };
+
     struct FrameResources 
     {
         VkCommandBuffer commandBuffer;
@@ -158,4 +178,5 @@ namespace SmolderingEngine
 
     // Extension availability check
     bool IsExtensionSupported(std::vector<VkExtensionProperties> const& _availableExtensions, char const* const _extension);
+    bool GetBinaryFileContents(std::string const& _filename, std::vector<unsigned char>& _contents);
 };

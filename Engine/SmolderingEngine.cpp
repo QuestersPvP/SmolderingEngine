@@ -11,15 +11,10 @@ running this project on a Windows based platform.
 #include "Rendering/BuffersAndPools/CommandBufferAndPool.h"
 #include "Rendering/RenderPass/RenderPass.h"
 
-//#define _CRTDBG_MAP_ALLOC
-
 using namespace SmolderingEngine;
 
 int main()
 {
-    //_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-    //_CrtDumpMemoryLeaks();
-
     // TODO: Clean up main
     LIBRARY_TYPE vulkanLibrary;
     VkInstance instance;
@@ -55,6 +50,11 @@ int main()
     std::vector<FrameResources> framesResources;
     std::vector<VkImage> depthImages;
     std::vector<VkDeviceMemory> depthImagesMemory;
+
+    VkBuffer vertexBuffer; 
+    VkDeviceMemory bufferMemory;
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
 
     // For testing
     bool setUp = true;
@@ -253,6 +253,9 @@ int main()
     }
 #pragma endregion
 
+    if (!CreateCommandPool(logicalDevice, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.familyIndex, commandPool))
+        setUp = false;
+
     std::vector<VkCommandBuffer> commandBuffers;
     if (!AllocateCommandBuffers(logicalDevice, commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1, commandBuffers))
         setUp = false;
@@ -327,6 +330,162 @@ int main()
     if (!CreateRenderPass(logicalDevice, attachmentDescriptions, subpassParameters, subpassDependencies, renderPass))
         setUp = false;
 
+    // Graphics pipeline
+    std::vector<unsigned char> vertexShaderSpirv;
+    if (!GetBinaryFileContents("S:/SmoulderingEngine/Dependencies/Shaders/shader.vert.spv", vertexShaderSpirv))
+        setUp = false;
+    
+    VkShaderModule vertexShaderModule;
+    if (!CreateShaderModule(logicalDevice, vertexShaderSpirv, vertexShaderModule))
+        setUp = false;
+    
+    std::vector<unsigned char> fragmentShaderSpirv;
+    if (!GetBinaryFileContents("S:/SmoulderingEngine/Dependencies/Shaders/shader.frag.spv", fragmentShaderSpirv))
+        setUp = false;
+
+    VkShaderModule fragmentShaderModule;
+    if (!CreateShaderModule(logicalDevice, fragmentShaderSpirv, fragmentShaderModule))
+        setUp = false;
+    
+    std::vector<ShaderStageParameters> shaderStageParams = 
+    {
+      {
+        VK_SHADER_STAGE_VERTEX_BIT,     // VkShaderStageFlagBits        ShaderStage
+        vertexShaderModule,             // VkShaderModule               ShaderModule
+        "main",                         // char const                 * EntryPointName
+        nullptr                         // VkSpecializationInfo const * SpecializationInfo
+      },
+      {
+        VK_SHADER_STAGE_FRAGMENT_BIT, // VkShaderStageFlagBits        ShaderStage
+        fragmentShaderModule,      // VkShaderModule               ShaderModule
+        "main",                       // char const                 * EntryPointName
+        nullptr                       // VkSpecializationInfo const * SpecializationInfo
+      }
+    };
+    
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfos;
+    SpecifyPipelineShaderStages(shaderStageParams, shaderStageCreateInfos);
+    
+    std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions = 
+    {
+        {
+          0,                            // uint32_t                     binding
+          3 * sizeof(float),            // uint32_t                     stride
+          VK_VERTEX_INPUT_RATE_VERTEX   // VkVertexInputRate            inputRate
+        }
+    };
+    
+    std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions = 
+    {
+        {
+          0,                            // uint32_t                     location
+          0,                            // uint32_t                     binding
+          VK_FORMAT_R32G32B32_SFLOAT,   // VkFormat                     format
+          0                             // uint32_t                     offset
+        }
+    };
+    
+    VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo;
+    SpecifyPipelineVertexInputState(vertexInputBindingDescriptions, vertexAttributeDescriptions, vertexInputStateCreateInfo);
+    
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo;
+    SpecifyPipelineInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, false, inputAssemblyStateCreateInfo);
+    
+    ViewportInfo viewportInfos = 
+    {
+      {                     // std::vector<VkViewport>   Viewports
+        {
+          0.0f,               // float          x
+          0.0f,               // float          y
+          500.0f,             // float          width
+          500.0f,             // float          height
+          0.0f,               // float          minDepth
+          1.0f                // float          maxDepth
+        }
+      },
+      {                     // std::vector<VkRect2D>     Scissors;
+        {
+          {                   // VkOffset2D     offset
+            0,                  // int32_t        x
+            0                   // int32_t        y
+          },
+          {                   // VkExtent2D     extent
+            500,                // uint32_t       width
+            500                 // uint32_t       height
+          }
+        }
+      }
+    };
+
+    VkPipelineViewportStateCreateInfo viewportStateCreateInfo;
+    SpecifyPipelineViewportAndScissorTestState(viewportInfos, viewportStateCreateInfo);
+    
+    VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo;
+    SpecifyPipelineRasterizationState(false, false, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, false, 0.0f, 0.0f, 0.0f, 1.0f, rasterizationStateCreateInfo);
+    
+    VkPipelineMultisampleStateCreateInfo multisampleStateCreateInfo;
+    SpecifyPipelineMultisampleState(VK_SAMPLE_COUNT_1_BIT, false, 0.0f, nullptr, false, false, multisampleStateCreateInfo);
+    
+    std::vector<VkPipelineColorBlendAttachmentState> attachmentBlendStates = 
+    {
+        {
+            false,                          // VkBool32                 blendEnable
+            VK_BLEND_FACTOR_ONE,            // VkBlendFactor            srcColorBlendFactor
+            VK_BLEND_FACTOR_ONE,            // VkBlendFactor            dstColorBlendFactor
+            VK_BLEND_OP_ADD,                // VkBlendOp                colorBlendOp
+            VK_BLEND_FACTOR_ONE,            // VkBlendFactor            srcAlphaBlendFactor
+            VK_BLEND_FACTOR_ONE,            // VkBlendFactor            dstAlphaBlendFactor
+            VK_BLEND_OP_ADD,                // VkBlendOp                alphaBlendOp
+            VK_COLOR_COMPONENT_R_BIT |      // VkColorComponentFlags    colorWriteMask
+            VK_COLOR_COMPONENT_G_BIT |
+            VK_COLOR_COMPONENT_B_BIT |
+            VK_COLOR_COMPONENT_A_BIT
+        }
+    };
+    VkPipelineColorBlendStateCreateInfo blendStateCreateInfo;
+    SpecifyPipelineBlendState(false, VK_LOGIC_OP_COPY, attachmentBlendStates, { 1.0f, 1.0f, 1.0f, 1.0f }, blendStateCreateInfo);
+    
+    std::vector<VkDynamicState> dynamicStates =
+    {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
+
+    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo;
+    SpecifyPipelineDynamicStates(dynamicStates, dynamicStateCreateInfo);
+    
+    if (!CreatePipelineLayout(logicalDevice, {}, {}, pipelineLayout))
+        setUp = false;
+    
+    VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo;
+    SpecifyGraphicsPipelineCreationParameters(0, shaderStageCreateInfos, vertexInputStateCreateInfo, inputAssemblyStateCreateInfo,
+        nullptr, &viewportStateCreateInfo, rasterizationStateCreateInfo, &multisampleStateCreateInfo, nullptr, &blendStateCreateInfo,
+        &dynamicStateCreateInfo, pipelineLayout, renderPass, 0, VK_NULL_HANDLE, -1, graphicsPipelineCreateInfo);
+    
+    std::vector<VkPipeline> _graphicsPipeline;
+    if (!CreateGraphicsPipelines(logicalDevice, { graphicsPipelineCreateInfo }, VK_NULL_HANDLE, _graphicsPipeline))
+        setUp = false;
+
+    graphicsPipeline = _graphicsPipeline[0];
+    
+    // Vertex data
+    std::vector<float> vertices =
+    {
+      0.0f, -0.75f, 0.0f,
+      -0.75f, 0.75f, 0.0f,
+      0.75f, 0.75f, 0.0f
+    };
+    
+    if (!CreateBuffer(logicalDevice, sizeof(vertices[0]) * vertices.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBuffer))
+        setUp = false;
+    
+    if (!AllocateAndBindMemoryObjectToBuffer(physicalDevice, logicalDevice, vertexBuffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bufferMemory))
+        setUp = false;
+    
+    if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(physicalDevice, logicalDevice, sizeof(vertices[0]) * vertices.size(), &vertices[0], vertexBuffer, 0, 0,
+        VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, graphicsQueue.handle, commandBuffer, {}))
+        setUp = false;
+
     if (setUp)
     {
         // Show the window (assuming windows OS)
@@ -379,7 +538,34 @@ int main()
                     SetImageMemoryBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, { imageTransitionBeforeDrawing });
                 }
 
-                BeginRenderPass(commandBuffer, renderPass, framebuffer, { { 0, 0 }, swapchain.size }, { { 0.2f, 0.5f, 0.8f, 1.0f } }, VK_SUBPASS_CONTENTS_INLINE);
+                BeginRenderPass(commandBuffer, renderPass, framebuffer, { { 0, 0 }, swapchain.size }, { { 1.0f, 0.0f, 1.0f, 1.0f } }, VK_SUBPASS_CONTENTS_INLINE);
+
+                BindPipelineObject(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+                VkViewport viewport = {
+                  0.0f,                                       // float    x
+                  0.0f,                                       // float    y
+                  static_cast<float>(swapchain.size.width),   // float    width
+                  static_cast<float>(swapchain.size.height),  // float    height
+                  0.0f,                                       // float    minDepth
+                  1.0f,                                       // float    maxDepth
+                };
+                SetViewportStateDynamically(commandBuffer, 0, { viewport });
+                
+                VkRect2D scissor = {
+                  {                                         // VkOffset2D     offset
+                    0,                                        // int32_t        x
+                    0                                         // int32_t        y
+                  },
+                  {                                         // VkExtent2D     extent
+                    swapchain.size.width,                     // uint32_t       width
+                    swapchain.size.height                     // uint32_t       height
+                  }
+                };
+                SetScissorStateDynamically(commandBuffer, 0, { scissor });
+                
+                BindVertexBuffers(commandBuffer, 0, { { vertexBuffer, 0 } });
+                
+                DrawGeometry(commandBuffer, 3, 1, 0, 0);
 
                 EndRenderPass(commandBuffer);
 
