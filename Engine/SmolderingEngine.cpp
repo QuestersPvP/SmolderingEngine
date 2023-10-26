@@ -83,47 +83,7 @@ int main()
     if (!CreatePresentationSurface(instance, windowParams, presentationSurface))
         setUp = false;
 
-    // Create logical device
-    if (!EnumerateAvailablePhysicalDevices(instance, physicalDevices))
-        setUp = false;
-
-    //ChoosePhysicalAndLogicalDevices(physicalDevices, physicalDevice, logicalDevice, graphicsQueueFamilyIndex, presentQueueFamilyIndex, presentationSurface, graphicsQueue, presentQueue);
-    for (auto& _physicalDevice : physicalDevices)
-    {
-        // Check for a device that supports graphics operations. 
-        if (!SelectIndexOfQueueFamilyWithDesiredCapabilities(_physicalDevice, VK_QUEUE_GRAPHICS_BIT, graphicsQueue.familyIndex)) 
-            continue;
-
-        if (!SelectQueueFamilyThatSupportsPresentationToGivenSurface(_physicalDevice, presentationSurface, presentQueue.familyIndex)) 
-            continue;
-        
-        std::vector<QueueInfo> requestedQueues = { { graphicsQueue.familyIndex, { 1.0f } } };
-        if (graphicsQueue.familyIndex != presentQueue.familyIndex) 
-        {
-            requestedQueues.push_back({ presentQueue.familyIndex, { 1.0f } });
-        }
-
-        VkDevice _logicalDevice;
-        std::vector<char const*> deviceExtensions;
-        if (!CreateLogicalDevice(_physicalDevice, requestedQueues, deviceExtensions, nullptr, _logicalDevice))
-        {
-            continue;
-        }
-        else 
-        {
-            if (!LoadDeviceLevelFunctions(_logicalDevice, deviceExtensions))
-            {
-                continue;
-            }
-            physicalDevice = _physicalDevice;
-            logicalDevice = std::move(_logicalDevice);
-            GetDeviceQueue(logicalDevice, graphicsQueue.familyIndex, 0, graphicsQueue.handle);
-            GetDeviceQueue(logicalDevice, presentQueue.familyIndex, 0, presentQueue.handle);
-            break;
-        }
-    }
-
-    if (!logicalDevice)
+    if (!ChoosePhysicalAndLogicalDevices(instance, physicalDevices, physicalDevice, logicalDevice, graphicsQueue.familyIndex, presentQueue.familyIndex, presentationSurface, graphicsQueue.handle, presentQueue.handle))
         setUp = false;
 
     // Create a semaphore using vkCreateSemaphore
@@ -211,8 +171,8 @@ int main()
             setUp = false;
 
 
-        VkColorSpaceKHR imageColorSpace;
-        if (!SelectFormatOfSwapchainImages(physicalDevice, presentationSurface, { VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR }, swapchain.format, imageColorSpace))
+        VkColorSpaceKHR imageColorSpace;                                        /* VK_FORMAT_R8G8B8A8_UNORM */
+        if (!SelectFormatOfSwapchainImages(physicalDevice, presentationSurface, { VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR }, swapchain.format, imageColorSpace))
             setUp = false;
 
         if (!CreateSwapchain(logicalDevice, presentationSurface, numberOfImages, { swapchain.format, imageColorSpace }, swapchain.size, imageUsage, surfaceTransform, desiredPresentMode, oldSwapchain, swapchain.handle))

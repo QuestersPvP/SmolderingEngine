@@ -189,7 +189,7 @@ namespace SmolderingEngine
           nullptr,                                              // const void              * pNext
           _applicationName,                                     // const char              * pApplicationName
           VK_MAKE_API_VERSION(0, 0, 1, 0),                      // uint32_t                  applicationVersion
-          "Smoldering Engine",                                 // const char              * pEngineName
+          "Smoldering Engine",                                  // const char              * pEngineName
           VK_MAKE_API_VERSION(0, 0, 1, 0),                      // uint32_t                  engineVersion
           VK_MAKE_API_VERSION(0, 1, 0, 0)                       // uint32_t                  apiVersion
         };
@@ -457,19 +457,21 @@ namespace SmolderingEngine
         return false;
     }
 
-    void ChoosePhysicalAndLogicalDevices(std::vector<VkPhysicalDevice> _physicalDevices, VkPhysicalDevice& _physicalDevice, VkDevice& _logicalDevice, uint32_t _graphicsQueueFamilyIndex,
-        uint32_t _presentQueueFamilyIndex, VkSurfaceKHR _presentationSurface, VkQueue _graphicsQueue, VkQueue _presentQueue)
+    bool ChoosePhysicalAndLogicalDevices(VkInstance _instance, std::vector<VkPhysicalDevice> _physicalDevices, VkPhysicalDevice& _physicalDevice, VkDevice& _logicalDevice,
+        uint32_t& _graphicsQueueFamilyIndex, uint32_t& _presentQueueFamilyIndex, VkSurfaceKHR _presentationSurface, VkQueue& _graphicsQueue, VkQueue& _presentQueue)
     {
+        // Create logical device
+        if (!EnumerateAvailablePhysicalDevices(_instance, _physicalDevices))
+            return false;
+
         // Basically just loop through physical devices to see what one is best.
         for (auto& physicalDevice : _physicalDevices)
         {
-            if (!SelectIndexOfQueueFamilyWithDesiredCapabilities(physicalDevice, VK_QUEUE_GRAPHICS_BIT, _graphicsQueueFamilyIndex)) {
+            if (!SelectIndexOfQueueFamilyWithDesiredCapabilities(physicalDevice, VK_QUEUE_GRAPHICS_BIT, _graphicsQueueFamilyIndex))
                 continue;
-            }
 
-            if (!SelectQueueFamilyThatSupportsPresentationToGivenSurface(physicalDevice, _presentationSurface, _presentQueueFamilyIndex)) {
+            if (!SelectQueueFamilyThatSupportsPresentationToGivenSurface(physicalDevice, _presentationSurface, _presentQueueFamilyIndex))
                 continue;
-            }
 
             std::vector<QueueInfo> requestedQueues = { { _graphicsQueueFamilyIndex, { 1.0f } } };
             if (_graphicsQueueFamilyIndex != _presentQueueFamilyIndex)
@@ -486,17 +488,22 @@ namespace SmolderingEngine
             else
             {
                 // Once we can create a logical device load functions, set devices, get queues, and return.
-                if (!LoadDeviceLevelFunctions(_logicalDevice, deviceExtensions))
+                if (!LoadDeviceLevelFunctions(logicalDevice, deviceExtensions))
                 {
                     continue;
                 }
                 _physicalDevice = physicalDevice;
                 _logicalDevice = std::move(logicalDevice);
-                GetDeviceQueue(logicalDevice, _graphicsQueueFamilyIndex, 0, _graphicsQueue);
-                GetDeviceQueue(logicalDevice, _presentQueueFamilyIndex, 0, _presentQueue);
-                return;
+                GetDeviceQueue(_logicalDevice, _graphicsQueueFamilyIndex, 0, _graphicsQueue);
+                GetDeviceQueue(_logicalDevice, _presentQueueFamilyIndex, 0, _presentQueue);
+                break;
             }
         }
+
+        if (!_logicalDevice)
+            return false;
+
+        return true;
     }
 
 #pragma endregion

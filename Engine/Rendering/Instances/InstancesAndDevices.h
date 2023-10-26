@@ -27,8 +27,8 @@ namespace SmolderingEngine
 	bool CreateLogicalDeviceWithGeometryShadersAndGraphicsAndComputeQueues(VkInstance _instance, VkDevice& _logicalDevice, VkQueue& _graphicsQueue, VkQueue& _computeQueue);
 
 	// Choose the best the physical and logical device
-	void ChoosePhysicalAndLogicalDevices(std::vector<VkPhysicalDevice> _physicalDevices, VkPhysicalDevice& _physicalDevice, VkDevice& _logicalDevice, uint32_t _graphicsQueueFamilyIndex,
-		uint32_t _presentQueueFamilyIndex, VkSurfaceKHR _presentationSurface, VkQueue _graphicsQueue, VkQueue _presentQueue);
+	bool ChoosePhysicalAndLogicalDevices(VkInstance _instance, std::vector<VkPhysicalDevice> _physicalDevices, VkPhysicalDevice& _physicalDevice, VkDevice& _logicalDevice,
+		uint32_t& _graphicsQueueFamilyIndex, uint32_t& _presentQueueFamilyIndex, VkSurfaceKHR _presentationSurface, VkQueue& _graphicsQueue, VkQueue& _presentQueue);
 
 	// Clean-Up
 	void DestroyLogicalDevice(VkDevice& _logicalDevice);

@@ -164,8 +164,8 @@ namespace SmolderingEngine
         {
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,    // VkStructureType                        sType
             nullptr,                                        // const void                           * pNext
-            _usage,                                          // VkCommandBufferUsageFlags              flags
-            _secondaryCommandBufferInfo                   // const VkCommandBufferInheritanceInfo * pInheritanceInfo
+            _usage,                                         // VkCommandBufferUsageFlags              flags
+            _secondaryCommandBufferInfo                     // const VkCommandBufferInheritanceInfo * pInheritanceInfo
         };
 
         if (vkBeginCommandBuffer(_commandBuffer, &commandBufferBeginInfo) != VK_SUCCESS)

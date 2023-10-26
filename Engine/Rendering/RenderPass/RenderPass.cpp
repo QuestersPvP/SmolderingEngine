@@ -13,15 +13,15 @@ namespace SmolderingEngine
             _subpassDescriptions.push_back
             ({
                 0,                                                                      // VkSubpassDescriptionFlags        flags
-                subpassDescription.pipelineType,                                       // VkPipelineBindPoint              pipelineBindPoint
-                static_cast<uint32_t>(subpassDescription.inputAttachments.size()),     // uint32_t                         inputAttachmentCount
-                subpassDescription.inputAttachments.data(),                            // const VkAttachmentReference    * pInputAttachments
-                static_cast<uint32_t>(subpassDescription.colorAttachments.size()),     // uint32_t                         colorAttachmentCount
-                subpassDescription.colorAttachments.data(),                            // const VkAttachmentReference    * pColorAttachments
-                subpassDescription.resolveAttachments.data(),                          // const VkAttachmentReference    * pResolveAttachments
-                subpassDescription.depthStencilAttachment,                             // const VkAttachmentReference    * pDepthStencilAttachment
-                static_cast<uint32_t>(subpassDescription.preserveAttachments.size()),  // uint32_t                         preserveAttachmentCount
-                subpassDescription.preserveAttachments.data()                          // const uint32_t                 * pPreserveAttachments
+                subpassDescription.pipelineType,                                        // VkPipelineBindPoint              pipelineBindPoint
+                static_cast<uint32_t>(subpassDescription.inputAttachments.size()),      // uint32_t                         inputAttachmentCount
+                subpassDescription.inputAttachments.data(),                             // const VkAttachmentReference    * pInputAttachments
+                static_cast<uint32_t>(subpassDescription.colorAttachments.size()),      // uint32_t                         colorAttachmentCount
+                subpassDescription.colorAttachments.data(),                             // const VkAttachmentReference    * pColorAttachments
+                subpassDescription.resolveAttachments.data(),                           // const VkAttachmentReference    * pResolveAttachments
+                subpassDescription.depthStencilAttachment,                              // const VkAttachmentReference    * pDepthStencilAttachment
+                static_cast<uint32_t>(subpassDescription.preserveAttachments.size()),   // uint32_t                         preserveAttachmentCount
+                subpassDescription.preserveAttachments.data()                           // const uint32_t                 * pPreserveAttachments
             });
         }
     }
@@ -29,23 +29,20 @@ namespace SmolderingEngine
     bool CreateRenderPass(VkDevice _logicalDevice, std::vector<VkAttachmentDescription> const& _attachmentsDescriptions, std::vector<SubpassParameters> const& _subpassParameters,
         std::vector<VkSubpassDependency> const& _subpassDependencies, VkRenderPass& _renderPass)
 	{
-        //SpecifyAttachmentsDescriptions(_attachmentsDescriptions);
-
         std::vector<VkSubpassDescription> subpassDescriptions;
         SpecifySubpassDescriptions(_subpassParameters, subpassDescriptions);
 
-        //SpecifyDependenciesBetweenSubpasses(_subpassDependencies);
-
-        VkRenderPassCreateInfo render_pass_create_info = {
-          VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,                // VkStructureType                    sType
-          nullptr,                                                  // const void                       * pNext
-          0,                                                        // VkRenderPassCreateFlags            flags
-          static_cast<uint32_t>(_attachmentsDescriptions.size()),   // uint32_t                           attachmentCount
-          _attachmentsDescriptions.data(),                          // const VkAttachmentDescription    * pAttachments
-          static_cast<uint32_t>(subpassDescriptions.size()),        // uint32_t                           subpassCount
-          subpassDescriptions.data(),                               // const VkSubpassDescription       * pSubpasses
-          static_cast<uint32_t>(_subpassDependencies.size()),       // uint32_t                           dependencyCount
-          _subpassDependencies.data()                               // const VkSubpassDependency        * pDependencies
+        VkRenderPassCreateInfo render_pass_create_info = 
+        {
+            VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,                // VkStructureType                    sType
+            nullptr,                                                  // const void                       * pNext
+            0,                                                        // VkRenderPassCreateFlags            flags
+            static_cast<uint32_t>(_attachmentsDescriptions.size()),   // uint32_t                           attachmentCount
+            _attachmentsDescriptions.data(),                          // const VkAttachmentDescription    * pAttachments
+            static_cast<uint32_t>(subpassDescriptions.size()),        // uint32_t                           subpassCount
+            subpassDescriptions.data(),                               // const VkSubpassDescription       * pSubpasses
+            static_cast<uint32_t>(_subpassDependencies.size()),       // uint32_t                           dependencyCount
+            _subpassDependencies.data()                               // const VkSubpassDependency        * pDependencies
         };
 
         if (vkCreateRenderPass(_logicalDevice, &render_pass_create_info, nullptr, &_renderPass) != VK_SUCCESS)
@@ -138,24 +135,24 @@ namespace SmolderingEngine
     {
         VkImageViewCreateInfo imageViewCreateInfo = 
         {
-            VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,   // VkStructureType            sType
-            nullptr,                                    // const void               * pNext
-            0,                                          // VkImageViewCreateFlags     flags
-            _image,                                      // VkImage                    image
-            _viewType,                                  // VkImageViewType            viewType
-            _format,                                     // VkFormat                   format
-            {                                           // VkComponentMapping         components
-              VK_COMPONENT_SWIZZLE_IDENTITY,              // VkComponentSwizzle         r
-              VK_COMPONENT_SWIZZLE_IDENTITY,              // VkComponentSwizzle         g
-              VK_COMPONENT_SWIZZLE_IDENTITY,              // VkComponentSwizzle         b
-              VK_COMPONENT_SWIZZLE_IDENTITY               // VkComponentSwizzle         a
+            VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,       // VkStructureType            sType
+            nullptr,                                        // const void               * pNext
+            0,                                              // VkImageViewCreateFlags     flags
+            _image,                                         // VkImage                    image
+            _viewType,                                      // VkImageViewType            viewType
+            _format,                                        // VkFormat                   format
+            {                                               // VkComponentMapping         components
+              VK_COMPONENT_SWIZZLE_IDENTITY,                // VkComponentSwizzle         r
+              VK_COMPONENT_SWIZZLE_IDENTITY,                // VkComponentSwizzle         g
+              VK_COMPONENT_SWIZZLE_IDENTITY,                // VkComponentSwizzle         b
+              VK_COMPONENT_SWIZZLE_IDENTITY                 // VkComponentSwizzle         a
             },
-            {                                           // VkImageSubresourceRange    subresourceRange
-              _aspect,                                     // VkImageAspectFlags         aspectMask
-              0,                                          // uint32_t                   baseMipLevel
-              VK_REMAINING_MIP_LEVELS,                    // uint32_t                   levelCount
-              0,                                          // uint32_t                   baseArrayLayer
-              VK_REMAINING_ARRAY_LAYERS                   // uint32_t                   layerCount
+            {                                               // VkImageSubresourceRange    subresourceRange
+              _aspect,                                      // VkImageAspectFlags         aspectMask
+              0,                                            // uint32_t                   baseMipLevel
+              VK_REMAINING_MIP_LEVELS,                      // uint32_t                   levelCount
+              0,                                            // uint32_t                   baseArrayLayer
+              VK_REMAINING_ARRAY_LAYERS                     // uint32_t                   layerCount
             }
         };
 
