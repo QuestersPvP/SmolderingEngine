@@ -59,24 +59,7 @@ int main()
     // For testing
     bool setUp = true;
 
-    // Connecting to vulkan-1.dll
-    if (!ConnectWithVulkanLoaderLibrary(vulkanLibrary))
-        setUp = false;
-
-    // Loading macros
-    if (!LoadFunctionExportedFromVulkanLoaderLibrary(vulkanLibrary))
-        setUp = false;
-
-    // Loading macros
-    if (!LoadGlobalLevelFunctions()) 
-        setUp = false;
-
-    // Create vulkan instance
-    if (!CreateVulkanInstance(instanceExtensions, "Smouldering Engine", instance))
-        setUp = false;
-
-    // loading macros based off of enabled extensions
-    if (!LoadInstanceLevelFunctions(instance, instanceExtensions))
+    if (!CreateVulkanInstanceAndFunctions(instanceExtensions, vulkanLibrary, instance))
         setUp = false;
 
     // Create presentation surface
@@ -86,50 +69,32 @@ int main()
     if (!ChoosePhysicalAndLogicalDevices(instance, physicalDevices, physicalDevice, logicalDevice, graphicsQueue.familyIndex, presentQueue.familyIndex, presentationSurface, graphicsQueue.handle, presentQueue.handle))
         setUp = false;
 
-    // Create a semaphore using vkCreateSemaphore
-    VkSemaphoreCreateInfo semaphoreCreateInfo =
-    {
-        VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-        nullptr,
-        0
-    };
-
     if (!CreateCommandPool(logicalDevice, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.familyIndex, commandPool))
         setUp = false;
 
     for (uint32_t i = 0; i < 3; i++)
     {
         std::vector<VkCommandBuffer> _commandBuffer;
-        VkSemaphore image_acquired_semaphore;
-        VkSemaphore ready_to_present_semaphore;
+        VkSemaphore image_acquired_semaphore = VK_NULL_HANDLE;
+        VkSemaphore ready_to_present_semaphore = VK_NULL_HANDLE;
         VkFence drawing_finished_fence;
         VkImageView depth_attachment;
         VkFramebuffer tempIdea;
 
 
-        if (!AllocateCommandBuffers(logicalDevice, commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1, _commandBuffer)) {
+        if (!AllocateCommandBuffers(logicalDevice, commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1, _commandBuffer))
             return false;
-        }
-        if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &image_acquired_semaphore) != VK_SUCCESS) {
+
+        if (!GenerateSemaphore(logicalDevice, image_acquired_semaphore))
             return false;
-        }
-        if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &ready_to_present_semaphore) != VK_SUCCESS) {
+
+        if (!GenerateSemaphore(logicalDevice, ready_to_present_semaphore))
             return false;
-        }
-        if (!CreateFence(logicalDevice, true, drawing_finished_fence)) {
+
+        if (!CreateFence(logicalDevice, true, drawing_finished_fence)) 
             return false;
-        }
 
         framesResources.emplace_back(_commandBuffer[0], image_acquired_semaphore, ready_to_present_semaphore, drawing_finished_fence, depth_attachment, tempIdea);
-
-        //framesResources.emplace_back(
-        //    _commandBuffer[0],
-        //    image_acquired_semaphore,
-        //    ready_to_present_semaphore,
-        //    drawing_finished_fence,
-        //    depth_attachment,
-        //    VkFramebuffer()
-        //);
     }
 
 #pragma region Swapchain Creation
@@ -213,9 +178,6 @@ int main()
     }
 #pragma endregion
 
-    if (!CreateCommandPool(logicalDevice, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.familyIndex, commandPool))
-        setUp = false;
-
     std::vector<VkCommandBuffer> commandBuffers;
     if (!AllocateCommandBuffers(logicalDevice, commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1, commandBuffers))
         setUp = false;
@@ -226,10 +188,10 @@ int main()
     if (!CreateFence(logicalDevice, true, drawingFence))
         setUp = false;
 
-    if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &imageAcquiredSemaphore) != VK_SUCCESS)
+    if (!GenerateSemaphore(logicalDevice, imageAcquiredSemaphore))
         setUp = false;
 
-    if (vkCreateSemaphore(logicalDevice, &semaphoreCreateInfo, nullptr, &readyToPresentSemaphore) != VK_SUCCESS)
+    if (!GenerateSemaphore(logicalDevice, readyToPresentSemaphore))
         setUp = false;
 
     // Render pass

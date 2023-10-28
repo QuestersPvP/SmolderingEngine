@@ -296,6 +296,25 @@ namespace SmolderingEngine
         }
     }
 
+    bool GenerateSemaphore(VkDevice _logicalDevice, VkSemaphore& _semaphore)
+    {
+        // Create a semaphore using vkCreateSemaphore
+        VkSemaphoreCreateInfo semaphoreCreateInfo =
+        {
+            VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            nullptr,
+            0
+        };
+
+        if (vkCreateSemaphore(_logicalDevice, &semaphoreCreateInfo, nullptr, &_semaphore) != VK_SUCCESS)
+        {
+            std::cout << "Semaphore creation failed." << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
     void DestroySwapchain(VkDevice _logicalDevice, VkSwapchainKHR& _swapchain)
     {
         if (_swapchain)

@@ -17,5 +17,7 @@ namespace SmolderingEngine
     bool AcquireSwapchainImage(VkDevice _logicalDevice, VkSwapchainKHR _swapchain, VkSemaphore _semaphore, VkFence _fence, uint32_t& _imageIndex);
     bool PresentImage(VkQueue _queue, std::vector<VkSemaphore> _renderingSemaphores, std::vector<PresentInfo> _imagesToPresent);
 
+    bool GenerateSemaphore(VkDevice _logicalDevice, VkSemaphore& _semaphore);
+
     void DestroySwapchain(VkDevice _logicalDevice, VkSwapchainKHR& _swapchain);
 };

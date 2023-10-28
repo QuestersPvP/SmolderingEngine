@@ -6,6 +6,31 @@ namespace SmolderingEngine
 {
 #pragma region Function Macros
 
+    bool CreateVulkanInstanceAndFunctions(std::vector<char const*>& _extensions, LIBRARY_TYPE& _vulkanLibrary, VkInstance& _instance)
+    {   
+        // Connecting to vulkan-1.dll
+        if (!ConnectWithVulkanLoaderLibrary(_vulkanLibrary))
+            return false;
+
+        // Loading macros
+        if (!LoadFunctionExportedFromVulkanLoaderLibrary(_vulkanLibrary))
+            return false;
+
+        // Loading macros
+        if (!LoadGlobalLevelFunctions())
+            return false;
+
+        // Create vulkan instance
+        if (!CreateVulkanInstance(_extensions, "Smouldering Engine", _instance))
+            return false;
+
+        // loading macros based off of enabled extensions
+        if (!LoadInstanceLevelFunctions(_instance, _extensions))
+            return false;
+
+        return true;
+    }
+
     bool ConnectWithVulkanLoaderLibrary(LIBRARY_TYPE& _vulkanLibrary)
     {
         _vulkanLibrary = LoadLibrary(VULKAN_DLL_NAME);

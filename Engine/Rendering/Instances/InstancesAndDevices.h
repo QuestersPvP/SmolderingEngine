@@ -4,6 +4,9 @@
 
 namespace SmolderingEngine
 {
+	// Connect vulkan functions and create a vulkan instance
+	bool CreateVulkanInstanceAndFunctions(std::vector<char const*>& _extensions, LIBRARY_TYPE& _vulkanLibrary, VkInstance& _instance);
+
 	// These functions are responsible for connecting
 	// the vulkan library and load vulkan functions using macros.
 	bool ConnectWithVulkanLoaderLibrary(LIBRARY_TYPE& _vulkanLibrary);
