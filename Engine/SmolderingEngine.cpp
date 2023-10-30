@@ -56,6 +56,9 @@ int main()
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
 
+    Mesh model;  
+    VkDeviceMemory vertexBufferMemory;
+
     // For testing
     bool setUp = true;
 
@@ -193,6 +196,27 @@ int main()
 
     if (!GenerateSemaphore(logicalDevice, readyToPresentSemaphore))
         setUp = false;
+
+    // 3D model 
+    if (!Load3DModelFromObjFile("S:/SmoulderingEngine/Engine/Other/Models/cube.obj", true, false, false, true, model))
+        setUp = false;
+
+  /*  InitVkDestroyer(LogicalDevice, VertexBuffer);
+    if (!CreateBuffer(*LogicalDevice, sizeof(Model.Data[0]) * Model.Data.size(),
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, *VertexBuffer)) {
+        setUp = false;
+    }
+
+    InitVkDestroyer(LogicalDevice, VertexBufferMemory);
+    if (!AllocateAndBindMemoryObjectToBuffer(PhysicalDevice, *LogicalDevice, *VertexBuffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, *VertexBufferMemory)) {
+        setUp = false;
+    }
+
+    if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(PhysicalDevice, *LogicalDevice, sizeof(Model.Data[0]) * Model.Data.size(),
+        &Model.Data[0], *VertexBuffer, 0, 0, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+        GraphicsQueue.Handle, FramesResources.front().CommandBuffer, {})) {
+        setUp = false;
+    }*/
 
     // Render pass
     std::vector<VkAttachmentDescription> attachmentDescriptions = 

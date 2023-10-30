@@ -117,6 +117,19 @@ namespace SmolderingEngine
         std::vector<VkRect2D>     scissors;
     };
 
+    struct Mesh 
+    {
+        std::vector<float>  data;
+
+        struct Part 
+        {
+            uint32_t        vertexOffset;
+            uint32_t        vertexCount;
+        };
+
+        std::vector<Part>   parts;
+    };
+
     struct FrameResources 
     {
         VkCommandBuffer commandBuffer;
@@ -179,4 +192,5 @@ namespace SmolderingEngine
     // Extension availability check
     bool IsExtensionSupported(std::vector<VkExtensionProperties> const& _availableExtensions, char const* const _extension);
     bool GetBinaryFileContents(std::string const& _filename, std::vector<unsigned char>& _contents);
+    bool Load3DModelFromObjFile(char const* _filename, bool _loadNormals, bool _loadTexcoords, bool _generateTangentSpaceVectors, bool _unify, Mesh& _mesh, uint32_t* _vertexStride = nullptr);
 };
