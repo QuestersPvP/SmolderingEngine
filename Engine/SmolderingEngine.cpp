@@ -58,6 +58,8 @@ int main()
 
     Mesh model;  
     VkDeviceMemory vertexBufferMemory;
+    VkBuffer uniformBuffer;
+    VkDeviceMemory uniformBufferMemory;
 
     // For testing
     bool setUp = true;
@@ -201,22 +203,18 @@ int main()
     if (!Load3DModelFromObjFile("S:/SmoulderingEngine/Engine/Other/Models/cube.obj", true, false, false, true, model))
         setUp = false;
 
-  /*  InitVkDestroyer(LogicalDevice, VertexBuffer);
-    if (!CreateBuffer(*LogicalDevice, sizeof(Model.Data[0]) * Model.Data.size(),
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, *VertexBuffer)) {
-        setUp = false;
-    }
+    if (!CreateBuffer(logicalDevice, sizeof(model.data[0]) * model.data.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBuffer))
+        return false;
 
-    InitVkDestroyer(LogicalDevice, VertexBufferMemory);
-    if (!AllocateAndBindMemoryObjectToBuffer(PhysicalDevice, *LogicalDevice, *VertexBuffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, *VertexBufferMemory)) {
-        setUp = false;
-    }
+    if (!AllocateAndBindMemoryObjectToBuffer(physicalDevice, logicalDevice, vertexBuffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBufferMemory))
+        return false;
 
-    if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(PhysicalDevice, *LogicalDevice, sizeof(Model.Data[0]) * Model.Data.size(),
-        &Model.Data[0], *VertexBuffer, 0, 0, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-        GraphicsQueue.Handle, FramesResources.front().CommandBuffer, {})) {
-        setUp = false;
-    }*/
+    if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(physicalDevice, logicalDevice, sizeof(model.data[0]) * model.data.size(), &model.data[0], vertexBuffer, 0, 0,
+        VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, graphicsQueue.handle, framesResources.front().commandBuffer, {}))
+        return false;
+
+    if (!CreateUniformBuffer(physicalDevice, logicalDevice, 2 * 16 * sizeof(float), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, uniformBuffer, uniformBufferMemory))
+        return false;
 
     // Render pass
     std::vector<VkAttachmentDescription> attachmentDescriptions = 
@@ -278,7 +276,7 @@ int main()
 
     // Graphics pipeline
     std::vector<unsigned char> vertexShaderSpirv;
-    if (!GetBinaryFileContents("S:/SmoulderingEngine/Dependencies/Shaders/shader.vert.spv", vertexShaderSpirv))
+    if (!GetBinaryFileContents("S:/SmoulderingEngine/Engine/Other/Shaders/shader.vert.spv", vertexShaderSpirv))
         setUp = false;
     
     VkShaderModule vertexShaderModule;
@@ -286,7 +284,7 @@ int main()
         setUp = false;
     
     std::vector<unsigned char> fragmentShaderSpirv;
-    if (!GetBinaryFileContents("S:/SmoulderingEngine/Dependencies/Shaders/shader.frag.spv", fragmentShaderSpirv))
+    if (!GetBinaryFileContents("S:/SmoulderingEngine/Engine/Other/Shaders/shader.frag.spv", fragmentShaderSpirv))
         setUp = false;
 
     VkShaderModule fragmentShaderModule;
@@ -415,22 +413,22 @@ int main()
     graphicsPipeline = _graphicsPipeline[0];
     
     // Vertex data
-    std::vector<float> vertices =
-    {
-      0.0f, -0.75f, 0.0f,
-      -0.75f, 0.75f, 0.0f,
-      0.75f, 0.75f, 0.0f
-    };
+    //std::vector<float> vertices =
+    //{
+    //  0.0f, -0.75f, 0.0f,
+    //  -0.75f, 0.75f, 0.0f,
+    //  0.75f, 0.75f, 0.0f
+    //};
     
-    if (!CreateBuffer(logicalDevice, sizeof(vertices[0]) * vertices.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBuffer))
-        setUp = false;
-    
-    if (!AllocateAndBindMemoryObjectToBuffer(physicalDevice, logicalDevice, vertexBuffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bufferMemory))
-        setUp = false;
-    
-    if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(physicalDevice, logicalDevice, sizeof(vertices[0]) * vertices.size(), &vertices[0], vertexBuffer, 0, 0,
-        VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, graphicsQueue.handle, commandBuffer, {}))
-        setUp = false;
+    //if (!CreateBuffer(logicalDevice, sizeof(vertices[0]) * vertices.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBuffer))
+    //    setUp = false;
+    //
+    //if (!AllocateAndBindMemoryObjectToBuffer(physicalDevice, logicalDevice, vertexBuffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bufferMemory))
+    //    setUp = false;
+    //
+    //if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(physicalDevice, logicalDevice, sizeof(vertices[0]) * vertices.size(), &vertices[0], vertexBuffer, 0, 0,
+    //    VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, graphicsQueue.handle, commandBuffer, {}))
+    //    setUp = false;
 
     if (setUp)
     {

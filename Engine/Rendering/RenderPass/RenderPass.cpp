@@ -743,6 +743,17 @@ namespace SmolderingEngine
         vkCmdSetScissor(_commandBuffer, _firstScissor, static_cast<uint32_t>(_scissors.size()), _scissors.data());
     }
 
+    bool CreateUniformBuffer(VkPhysicalDevice _physicalDevice, VkDevice _logicalDevice, VkDeviceSize _size, VkBufferUsageFlags _usage, VkBuffer& _uniformBuffer, VkDeviceMemory& _memoryObject)
+    {
+        if (!CreateBuffer(_logicalDevice, _size, _usage | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, _uniformBuffer))
+            return false;
+
+        if (!AllocateAndBindMemoryObjectToBuffer(_physicalDevice, _logicalDevice, _uniformBuffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _memoryObject))
+            return false;
+
+        return true;
+    }
+
     void SetImageMemoryBarrier(VkCommandBuffer _commandBuffer, VkPipelineStageFlags _generatingStages, VkPipelineStageFlags _consumingStages, std::vector<ImageTransition> _imageTransitions)
     {
 
