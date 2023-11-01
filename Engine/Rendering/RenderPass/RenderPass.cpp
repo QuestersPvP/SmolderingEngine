@@ -503,7 +503,7 @@ namespace SmolderingEngine
 
     bool CreateShaderModule(VkDevice _logicalDevice, std::vector<unsigned char> const& _sourceCode, VkShaderModule& _shaderModule)
     {
-        VkShaderModuleCreateInfo shader_module_create_info = 
+        VkShaderModuleCreateInfo shaderModuleCreateInfo = 
         {
             VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,                // VkStructureType              sType
             nullptr,                                                    // const void                 * pNext
@@ -512,7 +512,7 @@ namespace SmolderingEngine
             reinterpret_cast<uint32_t const*>(_sourceCode.data())       // const uint32_t             * pCode
         };
 
-        if (vkCreateShaderModule(_logicalDevice, &shader_module_create_info, nullptr, &_shaderModule) != VK_SUCCESS)
+        if (vkCreateShaderModule(_logicalDevice, &shaderModuleCreateInfo, nullptr, &_shaderModule) != VK_SUCCESS)
         {
             std::cout << "Could not create a shader module." << std::endl;
             return false;
@@ -754,6 +754,28 @@ namespace SmolderingEngine
         return true;
     }
 
+    bool UpdateUniformBuffer(SwapchainParameters _swapchain, VkPhysicalDevice _physicalDevice, VkDevice _logicalDevice, VkBuffer _uniformBuffer,
+        QueueParameters _graphicsQueue, std::vector<FrameResources> const& _framesResources)
+    {
+        Matrix4x4 rotation_matrix = PrepareRotationMatrix(40.0f, { 0.0f, -1.0f, 0.0f });
+        Matrix4x4 translation_matrix = PrepareTranslationMatrix(0.0f, 0.0f, -3.0f);
+        Matrix4x4 model_view_matrix = translation_matrix * rotation_matrix;
+        Matrix4x4 perspective_matrix = PreparePerspectiveProjectionMatrix(static_cast<float>(_swapchain.size.width) / static_cast<float>(_swapchain.size.height),
+            50.0f, 1.0f, 2.6f);
+
+        if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(_physicalDevice, _logicalDevice, sizeof(model_view_matrix[0]) * model_view_matrix.size(),
+            &model_view_matrix[0], _uniformBuffer, 0, 0, VK_ACCESS_UNIFORM_READ_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+            _graphicsQueue.handle, _framesResources.front().commandBuffer, {}))
+            return false;
+
+        if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(_physicalDevice, _logicalDevice, sizeof(perspective_matrix[0]) * perspective_matrix.size(),
+            &perspective_matrix[0], _uniformBuffer, 16 * sizeof(float), 0, VK_ACCESS_UNIFORM_READ_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+            _graphicsQueue.handle, _framesResources.front().commandBuffer, {}))
+            return false;
+
+        return true;
+    }
+
     void SetImageMemoryBarrier(VkCommandBuffer _commandBuffer, VkPipelineStageFlags _generatingStages, VkPipelineStageFlags _consumingStages, std::vector<ImageTransition> _imageTransitions)
     {
 
@@ -825,5 +847,161 @@ namespace SmolderingEngine
         }
 
         return true;
+    }
+
+    bool CreateDescriptorSetLayout(VkDevice _logicalDevice, std::vector<VkDescriptorSetLayoutBinding> const& _bindings, VkDescriptorSetLayout& _descriptorSetLayout)
+    {
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = 
+        {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,  // VkStructureType                      sType
+            nullptr,                                              // const void                         * pNext
+            0,                                                    // VkDescriptorSetLayoutCreateFlags     flags
+            static_cast<uint32_t>(_bindings.size()),               // uint32_t                             bindingCount
+            _bindings.data()                                       // const VkDescriptorSetLayoutBinding * pBindings
+        };
+
+        if (vkCreateDescriptorSetLayout(_logicalDevice, &descriptorSetLayoutCreateInfo, nullptr, &_descriptorSetLayout) != VK_SUCCESS)
+        {
+            std::cout << "Could not create a layout for descriptor sets." << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    bool CreateDescriptorPool(VkDevice _logicalDevice, bool _freeIndividualSets, uint32_t _maxSetsCount, std::vector<VkDescriptorPoolSize> const& _descriptorTypes, VkDescriptorPool& _descriptorPool)
+    {
+        VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = 
+        {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,                  // VkStructureType                sType
+            nullptr,                                                        // const void                   * pNext
+            _freeIndividualSets ?                                           // VkDescriptorPoolCreateFlags    flags
+              VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT : 0u,
+            _maxSetsCount,                                                  // uint32_t                       maxSets
+            static_cast<uint32_t>(_descriptorTypes.size()),                 // uint32_t                       poolSizeCount
+            _descriptorTypes.data()                                         // const VkDescriptorPoolSize   * pPoolSizes
+        };
+
+        if (vkCreateDescriptorPool(_logicalDevice, &descriptorPoolCreateInfo, nullptr, &_descriptorPool) != VK_SUCCESS)
+        {
+            std::cout << "Could not create a descriptor pool." << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    bool AllocateDescriptorSets(VkDevice _logicalDevice, VkDescriptorPool _descriptorPool, std::vector<VkDescriptorSetLayout> const& _descriptorSetLayout, std::vector<VkDescriptorSet>& _descriptorSets)
+    {
+        if (_descriptorSetLayout.size() > 0) 
+        {
+            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = 
+            {
+                VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,         // VkStructureType                  sType
+                nullptr,                                                // const void                     * pNext
+                _descriptorPool,                                        // VkDescriptorPool                 descriptorPool
+                static_cast<uint32_t>(_descriptorSetLayout.size()),     // uint32_t                         descriptorSetCount
+                _descriptorSetLayout.data()                             // const VkDescriptorSetLayout    * pSetLayouts
+            };
+
+            _descriptorSets.resize(_descriptorSetLayout.size());
+
+            if (vkAllocateDescriptorSets(_logicalDevice, &descriptorSetAllocateInfo, _descriptorSets.data()) != VK_SUCCESS)
+            {
+                std::cout << "Could not allocate descriptor sets." << std::endl;
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    void UpdateDescriptorSets(VkDevice _logicalDevice, std::vector<ImageDescriptorInfo> const& _imageDescriptorInfos, std::vector<BufferDescriptorInfo> const& _bufferDescriptorInfos,
+        std::vector<TexelBufferDescriptorInfo> const& _texelBufferDescriptorInfos, std::vector<CopyDescriptorInfo> const& _copyDescriptorOnfos)
+    {
+        std::vector<VkWriteDescriptorSet> writeDescriptors;
+        std::vector<VkCopyDescriptorSet> copyDescriptors;
+
+        // image descriptors
+        for (auto& imageDescriptor : _imageDescriptorInfos) 
+        {
+            writeDescriptors.push_back
+            ({
+                VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,                                 // VkStructureType                  sType
+                nullptr,                                                                // const void                     * pNext
+                imageDescriptor.targetDescriptorSet,                                    // VkDescriptorSet                  dstSet
+                imageDescriptor.targetDescriptorBinding,                                // uint32_t                         dstBinding
+                imageDescriptor.targetArrayElement,                                     // uint32_t                         dstArrayElement
+                static_cast<uint32_t>(imageDescriptor.imageInfos.size()),               // uint32_t                         descriptorCount
+                imageDescriptor.targetDescriptorType,                                   // VkDescriptorType                 descriptorType
+                imageDescriptor.imageInfos.data(),                                      // const VkDescriptorImageInfo    * pImageInfo
+                nullptr,                                                                // const VkDescriptorBufferInfo   * pBufferInfo
+                nullptr                                                                 // const VkBufferView             * pTexelBufferView
+            });
+        }
+
+        // buffer descriptors
+        for (auto& bufferDescriptor : _bufferDescriptorInfos) 
+        {
+            writeDescriptors.push_back
+            ({
+                VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,                                 // VkStructureType                  sType
+                nullptr,                                                                // const void                     * pNext
+                bufferDescriptor.targetDescriptorSet,                                   // VkDescriptorSet                  dstSet
+                bufferDescriptor.targetDescriptorBinding,                               // uint32_t                         dstBinding
+                bufferDescriptor.targetArrayElement,                                    // uint32_t                         dstArrayElement
+                static_cast<uint32_t>(bufferDescriptor.bufferInfos.size()),             // uint32_t                         descriptorCount
+                bufferDescriptor.targetDescriptorType,                                  // VkDescriptorType                 descriptorType
+                nullptr,                                                                // const VkDescriptorImageInfo    * pImageInfo
+                bufferDescriptor.bufferInfos.data(),                                    // const VkDescriptorBufferInfo   * pBufferInfo
+                nullptr                                                                 // const VkBufferView             * pTexelBufferView
+            });
+        }
+
+        // texel buffer descriptors
+        for (auto& texelBufferDescriptor : _texelBufferDescriptorInfos) 
+        {
+            writeDescriptors.push_back
+            ({
+              VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,                                   // VkStructureType                  sType
+              nullptr,                                                                  // const void                     * pNext
+              texelBufferDescriptor.targetDescriptorSet,                                // VkDescriptorSet                  dstSet
+              texelBufferDescriptor.targetDescriptorBinding,                            // uint32_t                         dstBinding
+              texelBufferDescriptor.targetArrayElement,                                 // uint32_t                         dstArrayElement
+              static_cast<uint32_t>(texelBufferDescriptor.texelBufferViews.size()),     // uint32_t                         descriptorCount
+              texelBufferDescriptor.targetDescriptorType,                               // VkDescriptorType                 descriptorType
+              nullptr,                                                                  // const VkDescriptorImageInfo    * pImageInfo
+              nullptr,                                                                  // const VkDescriptorBufferInfo   * pBufferInfo
+              texelBufferDescriptor.texelBufferViews.data()                             // const VkBufferView             * pTexelBufferView
+            });
+        }
+
+        // copy descriptors
+        for (auto& copyDescriptor : _copyDescriptorOnfos) 
+        {
+            copyDescriptors.push_back
+            ({
+                VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET,                                  // VkStructureType    sType
+                nullptr,                                                                // const void       * pNext
+                copyDescriptor.sourceDescriptorSet,                                    // VkDescriptorSet    srcSet
+                copyDescriptor.sourceDescriptorBinding,                                // uint32_t           srcBinding
+                copyDescriptor.sourceArrayElement,                                     // uint32_t           srcArrayElement
+                copyDescriptor.targetDescriptorSet,                                    // VkDescriptorSet    dstSet
+                copyDescriptor.targetDescriptorBinding,                                // uint32_t           dstBinding
+                copyDescriptor.targetArrayElement,                                     // uint32_t           dstArrayElement
+                copyDescriptor.descriptorCount                                         // uint32_t           descriptorCount
+            });
+        }
+
+        vkUpdateDescriptorSets(_logicalDevice, static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), static_cast<uint32_t>(copyDescriptors.size()), copyDescriptors.data());
+    }
+    void BindDescriptorSets(VkCommandBuffer _commandBuffer, VkPipelineBindPoint _pipelineType, VkPipelineLayout _pipelineLayout, uint32_t _indexForFirstSet,
+        std::vector<VkDescriptorSet> const& _descriptorSets, std::vector<uint32_t> const& _dynamicOffsets)
+    {
+        vkCmdBindDescriptorSets(_commandBuffer, _pipelineType, _pipelineLayout, _indexForFirstSet,
+            static_cast<uint32_t>(_descriptorSets.size()), _descriptorSets.data(),
+            static_cast<uint32_t>(_dynamicOffsets.size()), _dynamicOffsets.data());
     }
 };

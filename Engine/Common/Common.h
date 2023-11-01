@@ -130,6 +130,44 @@ namespace SmolderingEngine
         std::vector<Part>   parts;
     };
 
+    struct ImageDescriptorInfo 
+    {
+        VkDescriptorSet                     targetDescriptorSet;
+        uint32_t                            targetDescriptorBinding;
+        uint32_t                            targetArrayElement;
+        VkDescriptorType                    targetDescriptorType;
+        std::vector<VkDescriptorImageInfo>  imageInfos;
+    };
+
+    struct BufferDescriptorInfo 
+    {
+        VkDescriptorSet                     targetDescriptorSet;
+        uint32_t                            targetDescriptorBinding;
+        uint32_t                            targetArrayElement;
+        VkDescriptorType                    targetDescriptorType;
+        std::vector<VkDescriptorBufferInfo> bufferInfos;
+    };
+
+    struct TexelBufferDescriptorInfo 
+    {
+        VkDescriptorSet             targetDescriptorSet;
+        uint32_t                    targetDescriptorBinding;
+        uint32_t                    targetArrayElement;
+        VkDescriptorType            targetDescriptorType;
+        std::vector<VkBufferView>   texelBufferViews;
+    };
+
+    struct CopyDescriptorInfo 
+    {
+        VkDescriptorSet targetDescriptorSet;
+        uint32_t        targetDescriptorBinding;
+        uint32_t        targetArrayElement;
+        VkDescriptorSet sourceDescriptorSet;
+        uint32_t        sourceDescriptorBinding;
+        uint32_t        sourceArrayElement;
+        uint32_t        descriptorCount;
+    };
+
     struct FrameResources 
     {
         VkCommandBuffer commandBuffer;
@@ -188,6 +226,19 @@ namespace SmolderingEngine
         uint32_t           FamilyIndex;
         std::vector<float> Priorities;
     };
+
+    //TODO: Math library
+    using Vector3 = std::array<float, 3>;
+
+    using Matrix4x4 = std::array<float, 16>;
+    Matrix4x4 operator* (Matrix4x4 const& _left, Matrix4x4 const& _right);
+
+    float Deg2Rad(float _value);
+    Vector3 Normalize(Vector3 const& _vector);
+
+    Matrix4x4 PrepareRotationMatrix(float _angle, Vector3 const& _axis, float _normalizeAxis = false);
+    Matrix4x4 PrepareTranslationMatrix(float _x, float _y, float _z);  
+    Matrix4x4 PreparePerspectiveProjectionMatrix(float _aspectRatio, float _fieldOfView, float _nearPlane, float _farPlane);
 
     // Extension availability check
     bool IsExtensionSupported(std::vector<VkExtensionProperties> const& _availableExtensions, char const* const _extension);

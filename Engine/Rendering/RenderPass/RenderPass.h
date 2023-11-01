@@ -79,4 +79,14 @@ namespace SmolderingEngine
 
 
     bool CreateUniformBuffer(VkPhysicalDevice _physicalDevice, VkDevice _logicalDevice, VkDeviceSize _size, VkBufferUsageFlags _usage, VkBuffer& _uniformBuffer, VkDeviceMemory& _memoryObject);
+    bool UpdateUniformBuffer(SwapchainParameters _swapchain, VkPhysicalDevice _physicalDevice, VkDevice _logicalDevice, VkBuffer _uniformBuffer,
+        QueueParameters _graphicsQueue, std::vector<FrameResources> const& _framesResources);
+
+    bool CreateDescriptorSetLayout(VkDevice _logicalDevice, std::vector<VkDescriptorSetLayoutBinding> const& _bindings, VkDescriptorSetLayout& _descriptorSetLayout);  
+    bool CreateDescriptorPool(VkDevice _logicalDevice, bool _freeIndividualSets, uint32_t _maxSetsCount, std::vector<VkDescriptorPoolSize> const& _descriptorTypes, VkDescriptorPool& _descriptorPool);
+    bool AllocateDescriptorSets(VkDevice _logicalDevice, VkDescriptorPool _descriptorPool, std::vector<VkDescriptorSetLayout> const& _descriptorSetLayout, std::vector<VkDescriptorSet>& _descriptorSets);
+    void UpdateDescriptorSets(VkDevice _logicalDevice, std::vector<ImageDescriptorInfo> const& _imageDescriptorInfos, std::vector<BufferDescriptorInfo> const& _bufferDescriptorInfos,
+        std::vector<TexelBufferDescriptorInfo> const& _texelBufferDescriptorInfos, std::vector<CopyDescriptorInfo> const& _copyDescriptorOnfos);
+    void BindDescriptorSets(VkCommandBuffer _commandBuffer, VkPipelineBindPoint _pipelineType, VkPipelineLayout _pipelineLayout, uint32_t _indexForFirstSet,
+        std::vector<VkDescriptorSet> const& _descriptorSets, std::vector<uint32_t> const& _dynamicOffsets);
 };

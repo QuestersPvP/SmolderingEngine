@@ -59,6 +59,8 @@ DEVICE_LEVEL_VULKAN_FUNCTION(vkDestroyDevice)
 DEVICE_LEVEL_VULKAN_FUNCTION(vkCreateBuffer)
 DEVICE_LEVEL_VULKAN_FUNCTION(vkGetBufferMemoryRequirements)
 
+DEVICE_LEVEL_VULKAN_FUNCTION(vkCmdBindDescriptorSets)
+
 #undef DEVICE_LEVEL_VULKAN_FUNCTION 
 // ---------------------------------------------------------------------- //
 #ifndef DEVICE_LEVEL_VULKAN_FUNCTION_FROM_EXTENSION 
