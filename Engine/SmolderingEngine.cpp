@@ -442,7 +442,7 @@ int main()
     SpecifyPipelineVertexInputState(vertexInputBindingDescriptions, vertexAttributeDescriptions, vertexInputStateCreateInfo);
     
     VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo;
-    SpecifyPipelineInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, false, inputAssemblyStateCreateInfo);
+    SpecifyPipelineInputAssemblyState(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, false, inputAssemblyStateCreateInfo);
     
     ViewportInfo viewportInfos = 
     {

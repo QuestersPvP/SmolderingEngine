@@ -219,9 +219,9 @@ namespace SmolderingEngine
 
             for (auto& index : shape.mesh.indices) 
             {
+                _mesh.data.emplace_back(attribs.vertices[3 * index.vertex_index + 0]);
                 _mesh.data.emplace_back(attribs.vertices[3 * index.vertex_index + 1]);
                 _mesh.data.emplace_back(attribs.vertices[3 * index.vertex_index + 2]);
-                _mesh.data.emplace_back(attribs.vertices[3 * index.vertex_index + 0]);
                 ++offset;
 
                 if (_loadNormals) 
