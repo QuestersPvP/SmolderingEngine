@@ -1004,4 +1004,67 @@ namespace SmolderingEngine
             static_cast<uint32_t>(_descriptorSets.size()), _descriptorSets.data(),
             static_cast<uint32_t>(_dynamicOffsets.size()), _dynamicOffsets.data());
     }
+
+    void DestroyBuffer(VkDevice _logicalDevice, VkBuffer& _buffer)
+    {
+        if (_buffer != VK_NULL_HANDLE)
+        {
+            vkDestroyBuffer(_logicalDevice, _buffer, nullptr);
+            _buffer = VK_NULL_HANDLE;
+        }
+    }
+
+    void FreeMemoryObject(VkDevice _logicalDevice, VkDeviceMemory& _memoryObject)
+    {
+        if (_memoryObject != VK_NULL_HANDLE)
+        {
+            vkFreeMemory(_logicalDevice, _memoryObject, nullptr);
+            _memoryObject = VK_NULL_HANDLE;
+        }
+    }
+
+    void DestroyBufferView(VkDevice _logicalDevice, VkBufferView& _bufferView)
+    {
+        if (_bufferView != VK_NULL_HANDLE)
+        {
+            vkDestroyBufferView(_logicalDevice, _bufferView, nullptr);
+            _bufferView = VK_NULL_HANDLE;
+        }
+    }
+
+    void DestroyImage(VkDevice _logicalDevice, VkImage& _image)
+    {
+        if (_image != VK_NULL_HANDLE)
+        {
+            vkDestroyImage(_logicalDevice, _image, nullptr);
+            _image = VK_NULL_HANDLE;
+        }
+    }
+
+    void DestroyImageView(VkDevice _logicalDevice, VkImageView& _imageView)
+    {
+        if (_imageView != VK_NULL_HANDLE)
+        {
+            vkDestroyImageView(_logicalDevice, _imageView, nullptr);
+            _imageView = VK_NULL_HANDLE;
+        }
+    }
+
+    void DestroyRenderPass(VkDevice _logicalDevice, VkRenderPass& _renderPass)
+    {
+        if (_renderPass != VK_NULL_HANDLE)
+        {
+            vkDestroyRenderPass(_logicalDevice, _renderPass, nullptr);
+            _renderPass = VK_NULL_HANDLE;
+        }
+    }
+
+    void DestroyFramebuffer(VkDevice _logicalDevice, VkFramebuffer& _framebuffer)
+    {
+        if (_framebuffer != VK_NULL_HANDLE)
+        {
+            vkDestroyFramebuffer(_logicalDevice, _framebuffer, nullptr);
+            _framebuffer = VK_NULL_HANDLE;
+        }
+    }
 };

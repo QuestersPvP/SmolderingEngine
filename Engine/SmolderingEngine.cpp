@@ -557,7 +557,7 @@ int main()
         UpdateWindow(windowParams.HWnd);
 
         MSG message;
-        while (setUp)
+        while (setUp /* && frame_index < 2*/)
         {
             if (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) 
             {
@@ -569,21 +569,17 @@ int main()
             else
             {
                 // Rendering
-
-                ///////////////////////IncreasePerformanceThroughIncreasingTheNumberOfSeparatelyRenderedFrames/////////////////////////////////////
                 if (!WaitForFences(logicalDevice, { framesResources[frame_index].drawingFinishedFence }, false, 2000000000)) {
                     return false;
                 }
+
                 if (!ResetFences(logicalDevice, { framesResources[frame_index].drawingFinishedFence })) {
                     return false;
                 }
 
-                /////////////////IncreasePerformanceThroughIncreasingTheNumberOfSeparatelyRenderedFrames/////////////////////////////////
-                ////////////////////////////////////////////////////////////////////////////////
-                /////////////////////////PrepareSingleFrameOfAnimation////////////////////////////////
-
                 uint32_t image_index;
-                if (!AcquireSwapchainImage(logicalDevice, swapchain.handle, framesResources[frame_index].imageAcquiredSemaphore, VK_NULL_HANDLE, image_index)) {
+                if (!AcquireSwapchainImage(logicalDevice, swapchain.handle, framesResources[frame_index].imageAcquiredSemaphore, VK_NULL_HANDLE, image_index)) 
+                {
                     return false;
                 }
 
@@ -592,29 +588,29 @@ int main()
                 {
                     attachments.push_back(framesResources[frame_index].depthAttachment);
                 }
+
                 if (!CreateFramebuffer(logicalDevice, renderPass, attachments, swapchain.size.width, swapchain.size.height, 1, framesResources[frame_index].framebuffer))
                 {
                     return false;
                 }
 
-                ///////////////////////PrepareSingleFrameOfAnimation//////////////////////////////
-                ////////////////////////////////////////////////////////////////////////////////
-                //////////////////////prepare_frame////////////////////////////
-
-                if (!BeginCommandBufferRecordingOperation(framesResources[frame_index].commandBuffer, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, nullptr)) {
+                if (!BeginCommandBufferRecordingOperation(framesResources[frame_index].commandBuffer, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, nullptr)) 
+                {
                     return false;
                 }
 
-                if (presentQueue.familyIndex != graphicsQueue.familyIndex) {
-                    ImageTransition image_transition_before_drawing = {
-                      swapchain.images[image_index],  // VkImage              Image
-                      VK_ACCESS_MEMORY_READ_BIT,                // VkAccessFlags        CurrentAccess
-                      VK_ACCESS_MEMORY_READ_BIT,                // VkAccessFlags        NewAccess
-                      VK_IMAGE_LAYOUT_UNDEFINED,                // VkImageLayout        CurrentLayout
-                      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, // VkImageLayout        NewLayout
-                      presentQueue.familyIndex,                 // uint32_t             CurrentQueueFamily
-                      graphicsQueue.familyIndex,                // uint32_t             NewQueueFamily
-                      VK_IMAGE_ASPECT_COLOR_BIT                 // VkImageAspectFlags   Aspect
+                if (presentQueue.familyIndex != graphicsQueue.familyIndex) 
+                {
+                    ImageTransition image_transition_before_drawing = 
+                    {
+                        swapchain.images[image_index],              // VkImage              Image
+                        VK_ACCESS_MEMORY_READ_BIT,                  // VkAccessFlags        CurrentAccess
+                        VK_ACCESS_MEMORY_READ_BIT,                  // VkAccessFlags        NewAccess
+                        VK_IMAGE_LAYOUT_UNDEFINED,                  // VkImageLayout        CurrentLayout
+                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,   // VkImageLayout        NewLayout
+                        presentQueue.familyIndex,                   // uint32_t             CurrentQueueFamily
+                        graphicsQueue.familyIndex,                  // uint32_t             NewQueueFamily
+                        VK_IMAGE_ASPECT_COLOR_BIT                   // VkImageAspectFlags   Aspect
                     };
                     SetImageMemoryBarrier(framesResources[frame_index].commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, { image_transition_before_drawing });
                 }
@@ -622,7 +618,8 @@ int main()
                 // Drawing
                 BeginRenderPass(framesResources[frame_index].commandBuffer, renderPass, framesResources[frame_index].framebuffer, { { 0, 0 }, swapchain.size }, { { 0.1f, 0.2f, 0.3f, 1.0f } }, VK_SUBPASS_CONTENTS_INLINE);
 
-                VkViewport viewport = {
+                VkViewport viewport = 
+                {
                   0.0f,                                       // float    x
                   0.0f,                                       // float    y
                   static_cast<float>(swapchain.size.width),   // float    width
@@ -632,7 +629,8 @@ int main()
                 };
                 SetViewportStateDynamically(framesResources[frame_index].commandBuffer, 0, { viewport });
                 
-                VkRect2D scissor = {
+                VkRect2D scissor = 
+                {
                   {                                           // VkOffset2D     offset
                     0,                                          // int32_t        x
                     0                                           // int32_t        y
@@ -642,6 +640,7 @@ int main()
                     swapchain.size.height                       // uint32_t       height
                   }
                 };
+
                 SetScissorStateDynamically(framesResources[frame_index].commandBuffer, 0, { scissor });
                 
                 BindVertexBuffers(framesResources[frame_index].commandBuffer, 0, { { vertexBuffer, 0 } });
@@ -650,20 +649,17 @@ int main()
                 
                 BindPipelineObject(framesResources[frame_index].commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, modelPipeline);
                 
-                for (size_t i = 0; i < model.parts.size(); ++i) {
+                for (size_t i = 0; i < model.parts.size(); ++i) 
+                {
                     DrawGeometry(framesResources[frame_index].commandBuffer, model.parts[i].vertexCount, 1, model.parts[i].vertexOffset, 0);
                 }
                 
-                //BindPipelineObject( command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, *NormalsPipeline );
-                
-                //for( size_t i = 0; i < Model.Parts.size(); ++i ) {
-                //  DrawGeometry( command_buffer, Model.Parts[i].VertexCount, 1, Model.Parts[i].VertexOffset, 0 );
-                //}
-                
                 EndRenderPass(framesResources[frame_index].commandBuffer);
                 
-                if (presentQueue.familyIndex != graphicsQueue.familyIndex) {
-                    ImageTransition image_transition_before_present = {
+                if (presentQueue.familyIndex != graphicsQueue.familyIndex) 
+                {
+                    ImageTransition image_transition_before_present = 
+                    {
                       swapchain.images[image_index],  // VkImage              Image
                       VK_ACCESS_MEMORY_READ_BIT,                // VkAccessFlags        CurrentAccess
                       VK_ACCESS_MEMORY_READ_BIT,                // VkAccessFlags        NewAccess
@@ -676,35 +672,43 @@ int main()
                     SetImageMemoryBarrier(framesResources[frame_index].commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, { image_transition_before_present });
                 }
                 
-                if (!EndCommandBufferRecordingOperation(framesResources[frame_index].commandBuffer)) {
+                if (!EndCommandBufferRecordingOperation(framesResources[frame_index].commandBuffer)) 
+                {
                     return false;
                 }
-                
-                ////////////////////////prepare_frame////////////////////////////
-                ////////////////////////////////////////////////////////////////////////////////////////
-                ////////////////////////PrepareSingleFrameOfAnimation////////////////////////////
                 
                 std::vector<WaitSemaphoreInfo> wait_semaphore_infos = {};
                 wait_semaphore_infos.push_back({
-                  framesResources[frame_index].imageAcquiredSemaphore,                     // VkSemaphore            Semaphore
-                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT // VkPipelineStageFlags   WaitingStage
+                  framesResources[frame_index].imageAcquiredSemaphore,  // VkSemaphore            Semaphore
+                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT      ,  // VkPipelineStageFlags   WaitingStage
                     });
-                if (!SubmitCommandBuffersToQueue(graphicsQueue.handle, wait_semaphore_infos, { framesResources[frame_index].commandBuffer }, { framesResources[frame_index].readyToPresentSemaphore }, framesResources[frame_index].drawingFinishedFence)) {
+                
+                if (!SubmitCommandBuffersToQueue(graphicsQueue.handle, wait_semaphore_infos, { framesResources[frame_index].commandBuffer }, { framesResources[frame_index].readyToPresentSemaphore }, framesResources[frame_index].drawingFinishedFence))
+                {
                     return false;
                 }
                 
-                PresentInfo present_info = {
-                  swapchain.handle,                                    // VkSwapchainKHR         Swapchain
-                  image_index                                   // uint32_t               ImageIndex
+                PresentInfo present_info = 
+                {
+                  swapchain.handle,             // VkSwapchainKHR         Swapchain
+                  image_index                   // uint32_t               ImageIndex
                 };
-                if (!PresentImage(presentQueue.handle, { framesResources[frame_index].readyToPresentSemaphore }, { present_info })) {
+
+                if (!PresentImage(presentQueue.handle, { framesResources[frame_index].readyToPresentSemaphore }, { present_info })) 
+                {
                     return false;
                 }
-                
+
+                // Destroy the Frame buffer or else the program will run out of memory eventually!
+                DestroyFramebuffer(logicalDevice, framesResources[frame_index].framebuffer);
+
                 frame_index = (frame_index + 1) % framesResources.size();
             }
         }
     }
+
+    DestroyPresentationSurface(instance, presentationSurface);
+    DestroyVulkanInstance(instance);
 
     return 0;
 }

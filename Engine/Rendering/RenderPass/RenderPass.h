@@ -89,4 +89,12 @@ namespace SmolderingEngine
         std::vector<TexelBufferDescriptorInfo> const& _texelBufferDescriptorInfos, std::vector<CopyDescriptorInfo> const& _copyDescriptorOnfos);
     void BindDescriptorSets(VkCommandBuffer _commandBuffer, VkPipelineBindPoint _pipelineType, VkPipelineLayout _pipelineLayout, uint32_t _indexForFirstSet,
         std::vector<VkDescriptorSet> const& _descriptorSets, std::vector<uint32_t> const& _dynamicOffsets);
+
+    void DestroyBuffer(VkDevice _logicalDevice, VkBuffer& _buffer);
+    void FreeMemoryObject(VkDevice _logicalDevice, VkDeviceMemory& _memoryObject);
+    void DestroyBufferView(VkDevice _logicalDevice, VkBufferView& _bufferView);
+    void DestroyImage(VkDevice _logicalDevice, VkImage& _image);
+    void DestroyImageView(VkDevice _logicalDevice, VkImageView& _imageView);
+    void DestroyRenderPass(VkDevice _logicalDevice, VkRenderPass& _renderPass);
+    void DestroyFramebuffer(VkDevice _logicalDevice, VkFramebuffer& _framebuffer);
 };
