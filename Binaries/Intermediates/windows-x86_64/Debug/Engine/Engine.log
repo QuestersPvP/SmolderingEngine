@@ -1,2 +1,13 @@
-﻿  Renderer.cpp
+﻿  Common.cpp
+  VulkanFunctions.cpp
+  WindowCreation.cpp
+  CommandBufferAndPool.cpp
+S:\SmoulderingEngine\Engine\Source\Rendering\BuffersAndPools\CommandBufferAndPool.cpp(209,13): warning C4838: conversion from 'int' to 'VkFenceCreateFlags' requires a narrowing conversion
+  SwapChain.cpp
+  InstancesAndDevices.cpp
+  RenderPass.cpp
+  Renderer.cpp
+  SmolderingEngine.cpp
+  WindowManager.cpp
+  Generating Code...
   Engine.vcxproj -> S:\SmoulderingEngine\Binaries\windows-x86_64\Debug\Engine\Engine.exe

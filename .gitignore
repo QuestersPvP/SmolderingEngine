@@ -1,9 +1,13 @@
+# Visual Studios stuff
 /.vs
 /x64
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
 *.sln
+
+# Ignore the Binaries folder as well
+/Binaries
 
 # Prerequisites
 *.d
@@ -34,6 +38,6 @@
 *.lib
 
 # Executables
-*.exe
+#*.exe
 *.out
 *.app
