@@ -1,8 +1,9 @@
 /.vs
 /x64
-#*.vcxproj
+*.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
+*.sln
 
 # Prerequisites
 *.d
