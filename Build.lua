@@ -11,7 +11,15 @@ workspace "Smoldering Engine"
 OutputDir = "%{cfg.system}-%{cfg.architecture}/%{cfg.buildcfg}"
 
 group "Engine"
-	include "Engine/Build-Engine.lua"
+
+	group "Engine/Renderer"
+		include "Engine/Renderer/Build-Renderer.lua"
+	group ""
+	
+	group "Engine/GUI"
+		include "Engine/GUI/Build-GUI.lua"
+	group ""
+	--include "Engine/Build-Engine.lua"
 group ""
 
 --include "App/Build-App.lua"

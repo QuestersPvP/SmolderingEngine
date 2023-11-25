@@ -4,7 +4,7 @@
 #include <iostream>
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#include "../../Dependencies/tiny_obj_loader.h"
+#include "../../../Dependencies/tiny_obj_loader.h"
 
 
 namespace SmolderingEngine

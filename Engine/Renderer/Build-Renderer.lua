@@ -1,4 +1,4 @@
-project "Engine"
+project "Renderer"
    kind "ConsoleApp"
    language "C++"
    cppdialect "C++20"
@@ -15,20 +15,20 @@ project "Engine"
    includedirs
    {
       "Source",
-      "../Dependencies/Vulkan/Include"
+      "../../Dependencies/Vulkan/Include"
    }
 
    -- Needed to include a different solution
    links
    {
-      "../Dependencies/Vulkan/Lib/vulkan-1.lib"
+      "../../Dependencies/Vulkan/Lib/vulkan-1.lib"
       --"Core"
    }
 
    defines { "VK_PROTOTYPES", "VK_USE_PLATFORM_WIN32_KHR" }
 
-   targetdir ("../Binaries/" .. OutputDir .. "/%{prj.name}")
-   objdir ("../Binaries/Intermediates/" .. OutputDir .. "/%{prj.name}")
+   targetdir ("../../Binaries/" .. OutputDir .. "/%{prj.name}")
+   objdir ("../../Binaries/Intermediates/" .. OutputDir .. "/%{prj.name}")
 
    filter "system:windows"
        systemversion "latest"

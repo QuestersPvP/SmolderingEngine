@@ -108,7 +108,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     /* NEW STUFF */
 
     // 3D model 
-    if (!Load3DModelFromObjFile("S:/SmoulderingEngine/Engine/Source/Other/Models/cube.obj", true, false, false, true, model))
+    if (!Load3DModelFromObjFile("S:/SmoulderingEngine/Engine/Renderer/Source/Other/Models/cube.obj", true, false, false, true, model))
         return false;
 
     if (!CreateBuffer(logicalDevice, sizeof(model.data[0]) * model.data.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBuffer))
@@ -232,7 +232,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
 
     // Graphics pipeline
     std::vector<unsigned char> vertexShaderSpirv;
-    if (!GetBinaryFileContents("S:/SmoulderingEngine/Engine/Source/Other/Shaders/model.vert.spv", vertexShaderSpirv))
+    if (!GetBinaryFileContents("S:/SmoulderingEngine/Engine/Renderer/Source/Other/Shaders/model.vert.spv", vertexShaderSpirv))
         return false;
 
     VkShaderModule vertexShaderModule;
@@ -240,7 +240,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
         return false;
 
     std::vector<unsigned char> fragmentShaderSpirv;
-    if (!GetBinaryFileContents("S:/SmoulderingEngine/Engine/Source/Other/Shaders/model.frag.spv", fragmentShaderSpirv))
+    if (!GetBinaryFileContents("S:/SmoulderingEngine/Engine/Renderer/Source/Other/Shaders/model.frag.spv", fragmentShaderSpirv))
         return false;
 
     VkShaderModule fragmentShaderModule;
