@@ -42,6 +42,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
         framesResources.emplace_back(_commandBuffer[0], image_acquired_semaphore, ready_to_present_semaphore, drawing_finished_fence, depth_attachment, tempIdea);
     }
 
+//TODO: MAKE THIS A FUNCTION
 #pragma region Swapchain Creation
 
     swapchain.ImageViewsRaw.clear();
@@ -105,10 +106,8 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     }
 #pragma endregion
 
-    /* NEW STUFF */
-
     // 3D model 
-    if (!Load3DModelFromObjFile("S:/SmoulderingEngine/Engine/Renderer/Source/Other/Models/cube.obj", true, false, false, true, model))
+    if (!Load3DModelFromObjFile("S:/SmoulderingEngine/Engine/Application/Source/Other/Models/cube.obj", true, false, false, true, model))
         return false;
 
     if (!CreateBuffer(logicalDevice, sizeof(model.data[0]) * model.data.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertexBuffer))
@@ -232,7 +231,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
 
     // Graphics pipeline
     std::vector<unsigned char> vertexShaderSpirv;
-    if (!GetBinaryFileContents("S:/SmoulderingEngine/Engine/Renderer/Source/Other/Shaders/model.vert.spv", vertexShaderSpirv))
+    if (!GetBinaryFileContents("S:/SmoulderingEngine/Engine/Application/Source/Other/Shaders/model.vert.spv", vertexShaderSpirv))
         return false;
 
     VkShaderModule vertexShaderModule;
@@ -240,7 +239,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
         return false;
 
     std::vector<unsigned char> fragmentShaderSpirv;
-    if (!GetBinaryFileContents("S:/SmoulderingEngine/Engine/Renderer/Source/Other/Shaders/model.frag.spv", fragmentShaderSpirv))
+    if (!GetBinaryFileContents("S:/SmoulderingEngine/Engine/Application/Source/Other/Shaders/model.frag.spv", fragmentShaderSpirv))
         return false;
 
     VkShaderModule fragmentShaderModule;
@@ -539,4 +538,77 @@ bool Renderer::UpdateRendererClass()
 void Renderer::ShutdownRendererClass()
 {
     // TODO: Handle memory
+}
+
+
+bool Renderer::ResizeWindow()
+{
+    WaitForAllSubmittedCommandsToBeFinished(logicalDevice);
+
+    swapchain.ImageViewsRaw.clear();
+    swapchain.imageViews.clear();
+    swapchain.images.clear();
+    bool skip = false;
+
+    oldSwapchain = std::move(swapchain.handle);
+
+    // Choose presentation mode VK_PRESENT_MODE_MAILBOX_KHR is our preference to avoid screen tearing. 
+    VkPresentModeKHR desiredPresentMode;
+    if (!SelectDesiredPresentationMode(physicalDevice, presentationSurface, VK_PRESENT_MODE_MAILBOX_KHR, desiredPresentMode))
+        return false;
+
+    // Get capabilities.
+    VkSurfaceCapabilitiesKHR surfaceCapabilities;
+    if (!GetCapabilitiesOfPresentationSurface(physicalDevice, presentationSurface, surfaceCapabilities))
+        return false;
+
+    uint32_t numberOfImages;
+    if (!SelectNumberOfSwapchainImages(surfaceCapabilities, numberOfImages))
+        return false;
+
+    if (!ChooseSizeOfSwapchainImages(surfaceCapabilities, swapchain.size))
+        return false;
+
+    if ((0 == swapchain.size.width) || (0 == swapchain.size.height))
+        skip = true;
+
+    if (!skip)
+    {
+        VkImageUsageFlags imageUsage;
+        if (!SelectDesiredUsageScenariosOfSwapchainImages(surfaceCapabilities, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageUsage))
+            return false;
+
+
+        VkSurfaceTransformFlagBitsKHR surfaceTransform;
+        if (!SelectTransformationOfSwapchainImagesInSwapChain(surfaceCapabilities, VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR, surfaceTransform))
+            return false;
+
+
+        VkColorSpaceKHR imageColorSpace;                                        /* VK_FORMAT_R8G8B8A8_UNORM */
+        if (!SelectFormatOfSwapchainImages(physicalDevice, presentationSurface, { VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR }, swapchain.format, imageColorSpace))
+            return false;
+
+        if (!CreateSwapchain(logicalDevice, presentationSurface, numberOfImages, { swapchain.format, imageColorSpace }, swapchain.size, imageUsage, surfaceTransform, desiredPresentMode, oldSwapchain, swapchain.handle))
+            return false;
+
+
+        if (!GetHandlesOfSwapchainImages(logicalDevice, swapchain.handle, swapchain.images))
+            return false;
+    }
+
+    for (size_t i = 0; i < swapchain.images.size(); ++i)
+    {
+        VkImageView* imageView = new VkImageView;
+        swapchain.imageViews.emplace_back(imageView);
+        if (!CreateImageView(logicalDevice, swapchain.images[i], VK_IMAGE_VIEW_TYPE_2D, swapchain.format, VK_IMAGE_ASPECT_COLOR_BIT, *swapchain.imageViews.back()))
+        {
+            return false;
+        }
+        swapchain.ImageViewsRaw.push_back(*swapchain.imageViews.back());
+    }
+
+    if (!UpdateUniformBuffer(swapchain, physicalDevice, logicalDevice, uniformBuffer, graphicsQueue, framesResources))
+        return false;
+
+    return true;
 }

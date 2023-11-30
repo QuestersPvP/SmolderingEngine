@@ -1,4 +1,4 @@
-project "GUI"
+project "Application"
    kind "ConsoleApp"
    language "C++"
    cppdialect "C++20"
@@ -25,7 +25,7 @@ project "GUI"
       --"Core"
    }
 
-   defines { "VK_PROTOTYPES", "VK_USE_PLATFORM_WIN32_KHR" }
+   --defines { "VK_PROTOTYPES", "VK_USE_PLATFORM_WIN32_KHR" }
 
    targetdir ("../../Binaries/" .. OutputDir .. "/%{prj.name}")
    objdir ("../../Binaries/Intermediates/" .. OutputDir .. "/%{prj.name}")

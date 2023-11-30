@@ -5,37 +5,42 @@
 
 namespace SmolderingEngine
 {
-    LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-        switch (message) {
-        case WM_LBUTTONDOWN:
-            PostMessage(hWnd, USER_MESSAGE_MOUSE_CLICK, 0, 1);
-            break;
-        case WM_LBUTTONUP:
-            PostMessage(hWnd, USER_MESSAGE_MOUSE_CLICK, 0, 0);
-            break;
-        case WM_RBUTTONDOWN:
-            PostMessage(hWnd, USER_MESSAGE_MOUSE_CLICK, 1, 1);
-            break;
-        case WM_RBUTTONUP:
-            PostMessage(hWnd, USER_MESSAGE_MOUSE_CLICK, 1, 0);
-            break;
-        case WM_MOUSEMOVE:
-            PostMessage(hWnd, USER_MESSAGE_MOUSE_MOVE, LOWORD(lParam), HIWORD(lParam));
-            break;
-        case WM_MOUSEWHEEL:
-            PostMessage(hWnd, USER_MESSAGE_MOUSE_WHEEL, HIWORD(wParam), 0);
-            break;
+    LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
+    {
+        switch (message) 
+        {
         case WM_SIZE:
         case WM_EXITSIZEMOVE:
-            PostMessage(hWnd, USER_MESSAGE_RESIZE, wParam, lParam);
+            PostMessage(hWnd, USERMESSAGE_RESIZE, wParam, lParam);
             break;
         case WM_KEYDOWN:
-            if (VK_ESCAPE == wParam) {
-                PostMessage(hWnd, USER_MESSAGE_QUIT, wParam, lParam);
+            switch (wParam)
+            {
+            case 'W':
+                PostMessage(hWnd, KEYDOWN_W, 0, 0);
+                break;
+            case 'A':
+                PostMessage(hWnd, KEYDOWN_A, 0, 0);
+                break;
+            case 'S':
+                PostMessage(hWnd, KEYDOWN_S, 0, 0);
+                break;
+            case 'D':
+                PostMessage(hWnd, KEYDOWN_D, 0, 0);
+                break;
+            case VK_ESCAPE:
+                PostMessage(hWnd, KEYDOWN_ESC, 0, 0);
+                break;
+            default:
+                return DefWindowProc(hWnd, message, wParam, lParam);
+                break;
             }
             break;
+        case WM_KEYUP:
+            PostMessage(hWnd, USERMESSAGE_KEYUP, wParam, lParam);
+            break;
         case WM_CLOSE:
-            PostMessage(hWnd, USER_MESSAGE_QUIT, wParam, lParam);
+            PostMessage(hWnd, USERMESSAGE_QUIT, wParam, lParam);
             break;
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
@@ -56,7 +61,7 @@ namespace SmolderingEngine
             WindowProcedure,                    // WNDPROC      lpfnWndProc
             0,                                  // int          cbClsExtra
             0,                                  // int          cbWndExtra
-            windowParams.HInstance,            // HINSTANCE    hInstance
+            windowParams.HInstance,             // HINSTANCE    hInstance
             nullptr,                            // HICON        hIcon
             LoadCursor(nullptr, IDC_ARROW),     // HCURSOR      hCursor
             (HBRUSH)(COLOR_WINDOW + 1),         // HBRUSH       hbrBackground
@@ -69,22 +74,6 @@ namespace SmolderingEngine
         {
             std::cout << "Error Registering Class" << std::endl;
         }
-
-        //HWND windowHandle = CreateWindow
-        //(
-        //    WINDOW_NAME,
-        //    WINDOW_TITLE,
-        //    WS_OVERLAPPEDWINDOW,
-        //    CW_USEDEFAULT,
-        //    CW_USEDEFAULT,
-        //    1280,
-        //    720,
-        //    NULL,
-        //    NULL,
-        //    GetModuleHandle(NULL),
-        //    NULL
-        //);
-
         windowParams.HWnd = CreateWindow(WINDOW_NAME, WINDOW_TITLE, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, nullptr, nullptr, windowParams.HInstance, nullptr);
         if (!windowParams.HWnd)
         {

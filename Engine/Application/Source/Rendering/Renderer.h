@@ -56,5 +56,7 @@ public:
 	bool InitRendererClass(const WindowParameters& _window);
 	bool UpdateRendererClass();
     void ShutdownRendererClass();
+
+    bool ResizeWindow();
 };
 

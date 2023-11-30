@@ -23,6 +23,7 @@
 
 #include "../Common/VulkanFunctions.h"
 
+// TODO: remove the common.h / .cpp
 // TODO: Make file to store all headers in one location
 //#include "../Rendering/Instances/InstancesAndDevices.h"
 
@@ -225,6 +226,22 @@ namespace SmolderingEngine
     {
         uint32_t           FamilyIndex;
         std::vector<float> Priorities;
+    };
+
+    // Define key codes
+    enum KeyCode
+    {
+        wButton = 'W',
+        sButton = 'S',
+        escButton = VK_ESCAPE,
+        rightMouseButton = VK_RBUTTON
+    };
+
+    // Define key event structure
+    struct KeyEvent 
+    {
+        KeyCode key;
+        bool pressed;
     };
 
     //TODO: Math library

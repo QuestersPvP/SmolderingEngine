@@ -1,15 +1,14 @@
-#include "WindowManager.h"
+#include "ApplicationWindow.h"
 
-bool WindowManager::InitWindowClass()
+bool ApplicationWindow::InitWindowClass()
 {
-	// TODO: MOVE WINDOW CREATING TO ANOTHER CLASS
 	windowParams = GenerateApplicationWindowParameters();
 
 	return true;
 }
 
-bool WindowManager::UpdateWindowClass()
-{    
+bool ApplicationWindow::UpdateWindowClass()
+{
 	// Show the window (assuming windows OS)
 	ShowWindow(windowParams.HWnd, SW_SHOWNORMAL);
 	UpdateWindow(windowParams.HWnd);

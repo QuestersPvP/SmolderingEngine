@@ -9,10 +9,6 @@ This is done through macro definitions to increase performance.
 #define VULKAN_FUNCTIONS
 
 #include "vulkan/vulkan.h"
-//#include "vulkan/vulkan_win32.h"
-
-// Explicitly declare Vulkan function pointer types
-//typedef VkResult(VKAPI_PTR* PFN_vkCreateWin32SurfaceKHR)(VkInstance instance, const VkWin32SurfaceCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface);
 
 namespace SmolderingEngine
 {

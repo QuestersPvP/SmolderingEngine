@@ -6,12 +6,27 @@ namespace SmolderingEngine
 {
     enum UserMessage 
     {
-        USER_MESSAGE_RESIZE = WM_USER + 1,
-        USER_MESSAGE_QUIT,
-        USER_MESSAGE_MOUSE_CLICK,
-        USER_MESSAGE_MOUSE_MOVE,
-        USER_MESSAGE_MOUSE_WHEEL
+        // Application events
+        USERMESSAGE_RESIZE = WM_USER + 1,
+        USERMESSAGE_KEYDOWN,
+        USERMESSAGE_KEYUP,
+        USERMESSAGE_QUIT,
+
+        // Keydown events
+        KEYDOWN_W,
+        KEYDOWN_A,
+        KEYDOWN_S,
+        KEYDOWN_D,
+        KEYDOWN_ESC,
+
+        // Keyup events
+        KEYUP_W,
+        KEYUP_A,
+        KEYUP_S,
+        KEYUP_D,
+        KEYUP_ESC
     };
+
 
 
     WindowParameters GenerateApplicationWindowParameters();

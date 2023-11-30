@@ -9,18 +9,18 @@ running this project on a Windows based platform.
 
 int main()
 {
-    Renderer engineRenderer;
-    WindowManager window;
+    WindowManager window;       // Handles the window.
+    Renderer engineRenderer;    // Handles rendering stuff.
 
     // Initialization 
     window.InitWindowClass();
     engineRenderer.InitRendererClass(window.GetWindow());
 
     // Update the application
-    while (true)
+    while (window.GetApplicationRunStatus())
     {
-        window.UpdateWindowClass();
-        engineRenderer.UpdateRendererClass();
+        if (window.UpdateWindowClass(engineRenderer))
+            engineRenderer.UpdateRendererClass();
     }
 
     // Clean-up
