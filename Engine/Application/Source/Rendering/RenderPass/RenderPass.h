@@ -80,7 +80,7 @@ namespace SmolderingEngine
 
     bool CreateUniformBuffer(VkPhysicalDevice _physicalDevice, VkDevice _logicalDevice, VkDeviceSize _size, VkBufferUsageFlags _usage, VkBuffer& _uniformBuffer, VkDeviceMemory& _memoryObject);
     bool UpdateUniformBuffer(SwapchainParameters _swapchain, VkPhysicalDevice _physicalDevice, VkDevice _logicalDevice, VkBuffer _uniformBuffer,
-        QueueParameters _graphicsQueue, std::vector<FrameResources> const& _framesResources);
+        QueueParameters _graphicsQueue, std::vector<FrameResources> const& _framesResources, Mesh& _model);
 
     bool CreateDescriptorSetLayout(VkDevice _logicalDevice, std::vector<VkDescriptorSetLayoutBinding> const& _bindings, VkDescriptorSetLayout& _descriptorSetLayout);  
     bool CreateDescriptorPool(VkDevice _logicalDevice, bool _freeIndividualSets, uint32_t _maxSetsCount, std::vector<VkDescriptorPoolSize> const& _descriptorTypes, VkDescriptorPool& _descriptorPool);

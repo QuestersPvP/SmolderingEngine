@@ -37,7 +37,28 @@ namespace SmolderingEngine
             }
             break;
         case WM_KEYUP:
-            PostMessage(hWnd, USERMESSAGE_KEYUP, wParam, lParam);
+            switch (wParam)
+            {
+            case 'W':
+                PostMessage(hWnd, KEYUP_W, 0, 0);
+                break;
+            case 'A':
+                PostMessage(hWnd, KEYUP_A, 0, 0);
+                break;
+            case 'S':
+                PostMessage(hWnd, KEYUP_S, 0, 0);
+                break;
+            case 'D':
+                PostMessage(hWnd, KEYUP_D, 0, 0);
+                break;
+            case VK_ESCAPE:
+                PostMessage(hWnd, KEYUP_ESC, 0, 0);
+                break;
+            default:
+                return DefWindowProc(hWnd, message, wParam, lParam);
+                break;
+            }
+            break;
             break;
         case WM_CLOSE:
             PostMessage(hWnd, USERMESSAGE_QUIT, wParam, lParam);

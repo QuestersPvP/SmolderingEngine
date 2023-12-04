@@ -755,21 +755,15 @@ namespace SmolderingEngine
     }
 
     bool UpdateUniformBuffer(SwapchainParameters _swapchain, VkPhysicalDevice _physicalDevice, VkDevice _logicalDevice, VkBuffer _uniformBuffer,
-        QueueParameters _graphicsQueue, std::vector<FrameResources> const& _framesResources)
+        QueueParameters _graphicsQueue, std::vector<FrameResources> const& _framesResources, Mesh& _model)
     {
-        Matrix4x4 rotation_matrix = PrepareRotationMatrix(40.0f, { 0.0f, -1.0f, 0.0f });
-        Matrix4x4 translation_matrix = PrepareTranslationMatrix(0.0f, 0.0f, -3.0f);
-        Matrix4x4 model_view_matrix = translation_matrix * rotation_matrix;
-        Matrix4x4 perspective_matrix = PreparePerspectiveProjectionMatrix(static_cast<float>(_swapchain.size.width) / static_cast<float>(_swapchain.size.height),
-            50.0f, 1.0f, 2.6f);
-
-        if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(_physicalDevice, _logicalDevice, sizeof(model_view_matrix[0]) * model_view_matrix.size(),
-            &model_view_matrix[0], _uniformBuffer, 0, 0, VK_ACCESS_UNIFORM_READ_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+        if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(_physicalDevice, _logicalDevice, sizeof(_model.modelViewMatrix[0]) * _model.modelViewMatrix.size(),
+            &_model.modelViewMatrix[0], _uniformBuffer, 0, 0, VK_ACCESS_UNIFORM_READ_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
             _graphicsQueue.handle, _framesResources.front().commandBuffer, {}))
             return false;
 
-        if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(_physicalDevice, _logicalDevice, sizeof(perspective_matrix[0]) * perspective_matrix.size(),
-            &perspective_matrix[0], _uniformBuffer, 16 * sizeof(float), 0, VK_ACCESS_UNIFORM_READ_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+        if (!UseStagingBufferToUpdateBufferWithDeviceLocalMemoryBound(_physicalDevice, _logicalDevice, sizeof(_model.perspectiveMatrix[0]) * _model.perspectiveMatrix.size(),
+            &_model.perspectiveMatrix[0], _uniformBuffer, 16 * sizeof(float), 0, VK_ACCESS_UNIFORM_READ_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
             _graphicsQueue.handle, _framesResources.front().commandBuffer, {}))
             return false;
 

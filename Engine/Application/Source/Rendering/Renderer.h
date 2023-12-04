@@ -50,6 +50,12 @@ public:
     //TODO: FIX INDEX
     uint32_t frame_index = 0;
 
+private:
+    bool applicationReadyToRender = true;
+    float translationXValue = 0.0f;
+    float translationYValue = 0.0f;
+    float translationZValue = -3.0f;
+
     /* Functions */
 
 public:
@@ -58,5 +64,23 @@ public:
     void ShutdownRendererClass();
 
     bool ResizeWindow();
+
+    const bool GetApplicationReadyToRender() { return applicationReadyToRender; }
+    const void SetApplicationReadyToRender(bool _shouldRender) { applicationReadyToRender = _shouldRender; }
+
+    const float GetTranslattionXValue() { return translationXValue; }
+    const void SetTranslationXValue(float _setValue) { translationXValue = _setValue; }
+    const void AddToTranslationXValue(float _addValue) { translationXValue += _addValue; }
+
+    const float GetTranslattionYValue() { return translationYValue; }
+    const void SetTranslationYValue(float _setValue) { translationYValue = _setValue; }
+    const void AddToTranslationYValue(float _addValue) { translationYValue += _addValue; }
+
+    const float GetTranslattionZValue() { return translationZValue; }
+    const void SetTranslationZValue(float _setValue) { translationZValue = _setValue; }
+    const void AddToTranslationZValue(float _addValue) { translationZValue += _addValue; }
+
+private:
+    void UpdateModelPositions();
 };
 

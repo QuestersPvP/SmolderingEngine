@@ -29,6 +29,19 @@
 
 namespace SmolderingEngine
 {
+    //TODO: Math library
+    using Vector3 = std::array<float, 3>;
+
+    using Matrix4x4 = std::array<float, 16>;
+    Matrix4x4 operator* (Matrix4x4 const& _left, Matrix4x4 const& _right);
+
+    float Deg2Rad(float _value);
+    Vector3 Normalize(Vector3 const& _vector);
+
+    Matrix4x4 PrepareRotationMatrix(float _angle, Vector3 const& _axis, float _normalizeAxis = false);
+    Matrix4x4 PrepareTranslationMatrix(float _x, float _y, float _z);
+    Matrix4x4 PreparePerspectiveProjectionMatrix(float _aspectRatio, float _fieldOfView, float _nearPlane, float _farPlane);
+
     // TODO: make a place to store all structs
     // Struct for Windows platform application windows
     struct WindowParameters
@@ -118,16 +131,20 @@ namespace SmolderingEngine
         std::vector<VkRect2D>     scissors;
     };
 
+    struct Part
+    {
+        uint32_t        vertexOffset;
+        uint32_t        vertexCount;
+    };
+
     struct Mesh 
     {
+        Matrix4x4 rotationMatrix;
+        Matrix4x4 translationMatrix;
+        Matrix4x4 modelViewMatrix;
+        Matrix4x4 perspectiveMatrix;
+
         std::vector<float>  data;
-
-        struct Part 
-        {
-            uint32_t        vertexOffset;
-            uint32_t        vertexCount;
-        };
-
         std::vector<Part>   parts;
     };
 
@@ -227,35 +244,6 @@ namespace SmolderingEngine
         uint32_t           FamilyIndex;
         std::vector<float> Priorities;
     };
-
-    // Define key codes
-    enum KeyCode
-    {
-        wButton = 'W',
-        sButton = 'S',
-        escButton = VK_ESCAPE,
-        rightMouseButton = VK_RBUTTON
-    };
-
-    // Define key event structure
-    struct KeyEvent 
-    {
-        KeyCode key;
-        bool pressed;
-    };
-
-    //TODO: Math library
-    using Vector3 = std::array<float, 3>;
-
-    using Matrix4x4 = std::array<float, 16>;
-    Matrix4x4 operator* (Matrix4x4 const& _left, Matrix4x4 const& _right);
-
-    float Deg2Rad(float _value);
-    Vector3 Normalize(Vector3 const& _vector);
-
-    Matrix4x4 PrepareRotationMatrix(float _angle, Vector3 const& _axis, float _normalizeAxis = false);
-    Matrix4x4 PrepareTranslationMatrix(float _x, float _y, float _z);  
-    Matrix4x4 PreparePerspectiveProjectionMatrix(float _aspectRatio, float _fieldOfView, float _nearPlane, float _farPlane);
 
     // Extension availability check
     bool IsExtensionSupported(std::vector<VkExtensionProperties> const& _availableExtensions, char const* const _extension);

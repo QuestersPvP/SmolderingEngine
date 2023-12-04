@@ -16,6 +16,10 @@ public:
 
 private:
 	bool applicationShouldRun = true;
+	bool wButtonDown = false;
+	bool aButtonDown = false;
+	bool sButtonDown = false;
+	bool dButtonDown = false;
 
 	/* Functions */
 
@@ -30,6 +34,7 @@ public:
 
 private:
 	void ApplicationShutdown();
+	void ProcessInput(Renderer& _renderer);
 
 };
 

@@ -19,8 +19,10 @@ int main()
     // Update the application
     while (window.GetApplicationRunStatus())
     {
-        if (window.UpdateWindowClass(engineRenderer))
+        if (window.UpdateWindowClass(engineRenderer) && engineRenderer.GetApplicationReadyToRender())
+        {
             engineRenderer.UpdateRendererClass();
+        }
     }
 
     // Clean-up
