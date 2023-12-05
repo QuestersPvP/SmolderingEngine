@@ -32,7 +32,7 @@ namespace SmolderingEngine
         std::vector<VkSubpassDescription> subpassDescriptions;
         SpecifySubpassDescriptions(_subpassParameters, subpassDescriptions);
 
-        VkRenderPassCreateInfo render_pass_create_info = 
+        VkRenderPassCreateInfo renderPassCreateInfo = 
         {
             VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,                // VkStructureType                    sType
             nullptr,                                                  // const void                       * pNext
@@ -45,7 +45,7 @@ namespace SmolderingEngine
             _subpassDependencies.data()                               // const VkSubpassDependency        * pDependencies
         };
 
-        if (vkCreateRenderPass(_logicalDevice, &render_pass_create_info, nullptr, &_renderPass) != VK_SUCCESS)
+        if (vkCreateRenderPass(_logicalDevice, &renderPassCreateInfo, nullptr, &_renderPass) != VK_SUCCESS)
         {
             std::cout << "Could not create a render pass." << std::endl;
             return false;

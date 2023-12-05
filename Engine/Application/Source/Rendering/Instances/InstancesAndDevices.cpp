@@ -489,6 +489,9 @@ namespace SmolderingEngine
         if (!EnumerateAvailablePhysicalDevices(_instance, _physicalDevices))
             return false;
 
+        // TODO: vkGetPhysicalDeviceProperties, vkGetPhysicalDeviceFeatures, vkGetPhysicalDeviceMemoryProperties, etc.
+        // TODO: Need to enable more extensions for wireframe views (fill mode non-solid & widelines)
+
         // Basically just loop through physical devices to see what one is best.
         for (auto& physicalDevice : _physicalDevices)
         {

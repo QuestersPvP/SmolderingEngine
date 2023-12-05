@@ -16,6 +16,11 @@ class Renderer
 public:
     LIBRARY_TYPE vulkanLibrary;
 
+    /* Vulkan */
+    VkSubmitInfo submitInfo = {};
+    VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkPipelineCache pipelineCache;
+
     VkInstance instance = VK_NULL_HANDLE;
     VkDevice logicalDevice = VK_NULL_HANDLE;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -36,10 +41,19 @@ public:
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkPipeline modelPipeline = VK_NULL_HANDLE;
 	
+    /* Vectors */
+    std::vector<VkCommandBuffer> drawCommandBuffers;
+    std::vector<VkFence> waitFences;
+    std::vector<VkFramebuffer> frameBuffers;
+
     std::vector<char const*> instanceExtensions;
     std::vector<VkDescriptorSet> descriptorSets;
     std::vector<FrameResources> framesResources;
     std::vector<VkPhysicalDevice> physicalDevices;
+
+    /* Struct section */
+    Semaphores semaphores;
+    DepthStencil depthStencil;
 
     QueueParameters graphicsQueue;
     QueueParameters computeQueue;

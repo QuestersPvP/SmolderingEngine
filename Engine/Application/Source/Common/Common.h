@@ -70,14 +70,48 @@ namespace SmolderingEngine
         uint32_t  familyIndex;
     };
 
+    struct DepthStencil
+    {
+        VkImage         image;
+        VkDeviceMemory  memory;
+        VkImageView     view;
+    };
+
+    struct SwapChainBuffer
+    {
+        VkImage         image;
+        VkImageView     view;
+    };
+
     struct SwapchainParameters 
     {
-        VkSwapchainKHR              handle;
-        VkFormat                    format;
-        VkExtent2D                  size;
-        std::vector<VkImage>        images;
-        std::vector<VkImageView*>   imageViews;
-        std::vector<VkImageView>    ImageViewsRaw;
+        //VkSwapchainKHR              handle;
+        //VkFormat                    format;
+        //VkExtent2D                  size;
+        //std::vector<VkImage>        images;
+        //std::vector<VkImageView*>   imageViews;
+        //std::vector<VkImageView>    ImageViewsRaw;
+
+        VkInstance                      instance;
+        VkDevice                        logicalDevice;
+        VkPhysicalDevice                physicalDevice;
+        //VkSurfaceKHR                    surface;
+
+        VkFormat                        colorFormat;
+        VkColorSpaceKHR                 colorSpace;
+        VkSwapchainKHR                  handle;
+        VkExtent2D                      size;
+
+        std::vector<SwapChainBuffer>    buffers;
+        std::vector<VkImage>            images;
+    };
+
+    struct Semaphores
+    {
+        // Swap chain image presentation
+        VkSemaphore presentComplete;
+        // Command buffer submission and execution
+        VkSemaphore renderComplete;
     };
 
     struct SubpassParameters 

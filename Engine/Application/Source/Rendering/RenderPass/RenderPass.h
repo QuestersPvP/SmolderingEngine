@@ -15,7 +15,6 @@ namespace SmolderingEngine
     bool CreateFramebuffer(VkDevice _logicalDevice, VkRenderPass _renderPass, std::vector<VkImageView> const& _attachments, uint32_t _width, uint32_t _height,
         uint32_t _layers, VkFramebuffer& _framebuffer);
 
-
     bool CreateImage(VkDevice _logicalDevice, VkImageType _type, VkFormat _format, VkExtent3D _size, uint32_t _numMipmaps, uint32_t _numLayers, VkSampleCountFlagBits _samples,
         VkImageUsageFlags _usageScenarios, bool _cubemap, VkImage& _image);
     bool CreateImageView(VkDevice _logicalDevice, VkImage _image, VkImageViewType _viewType, VkFormat _format, VkImageAspectFlags _aspect, VkImageView& _imageView);
