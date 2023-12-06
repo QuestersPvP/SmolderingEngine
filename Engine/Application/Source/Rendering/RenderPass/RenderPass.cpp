@@ -999,6 +999,174 @@ namespace SmolderingEngine
             static_cast<uint32_t>(_dynamicOffsets.size()), _dynamicOffsets.data());
     }
 
+    uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkPhysicalDeviceMemoryProperties& memoryProperties, VkBool32* memTypeFound)
+    {
+        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+        {
+            if ((typeBits & 1) == 1)
+            {
+                if ((memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+                {
+                    if (memTypeFound)
+                    {
+                        *memTypeFound = true;
+                    }
+                    return i;
+                }
+            }
+            typeBits >>= 1;
+        }
+
+        if (memTypeFound)
+        {
+            *memTypeFound = false;
+            return 0;
+        }
+        else
+        {
+            throw std::runtime_error("Could not find a matching memory type");
+        }
+    }
+
+    bool AllocateMemory(VkDevice _logicalDevice, Buffer& _buffer, uint32_t _size, uint32_t _type)
+    {
+        VkMemoryRequirements memoryRequirements;
+        vkGetBufferMemoryRequirements(_logicalDevice, _buffer.buffer, &memoryRequirements);
+
+        VkMemoryAllocateInfo imageMemoryAllocateInfo =
+        {
+          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,   // VkStructureType    sType
+          nullptr,                                  // const void       * pNext
+          memoryRequirements.size,                  // VkDeviceSize       allocationSize
+          _type                                     // uint32_t           memoryTypeIndex
+        };
+
+        if (vkAllocateMemory(_logicalDevice, &imageMemoryAllocateInfo, nullptr, &_buffer.memory) == VK_SUCCESS)
+            return false;
+
+        _buffer.alignment = memoryRequirements.alignment;
+        _buffer.size = _size;
+        _buffer.usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        _buffer.memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+        return true;
+    }
+
+    bool CreateGraphicsPipeline(VkDevice _logicalDevice, VkPipelineCache _pipelineCache, VkPipelineLayout _pipelineLayout, VkRenderPass _renderPass, VkPipeline& _pipeline)
+    {
+        VkPipelineInputAssemblyStateCreateInfo inputAssemblyState;
+        inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inputAssemblyState.flags = 0;
+        inputAssemblyState.primitiveRestartEnable = VK_FALSE;
+
+        VkPipelineRasterizationStateCreateInfo rasterizationState;
+        rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rasterizationState.flags = 0;
+        rasterizationState.depthClampEnable = VK_FALSE;
+        rasterizationState.lineWidth = 1.0f;
+
+        VkPipelineColorBlendAttachmentState blendAttachmentState;
+        blendAttachmentState.colorWriteMask = 0xf;
+        blendAttachmentState.blendEnable = VK_FALSE;
+
+        VkPipelineColorBlendStateCreateInfo colorBlendState;
+        colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        colorBlendState.attachmentCount = 1;
+        colorBlendState.pAttachments = &blendAttachmentState;
+
+        VkPipelineDepthStencilStateCreateInfo depthStencilState;
+        depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        depthStencilState.depthTestEnable = VK_TRUE;
+        depthStencilState.depthWriteEnable = VK_TRUE;
+        depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+        depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
+
+        VkPipelineViewportStateCreateInfo viewportState;
+        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewportState.viewportCount = 1;
+        viewportState.scissorCount = 1;
+        viewportState.flags = 0;
+
+        VkPipelineMultisampleStateCreateInfo multisampleState;
+        multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        multisampleState.flags = 0;
+
+        std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, };
+        VkPipelineDynamicStateCreateInfo dynamicState;
+        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.pDynamicStates = dynamicStateEnables.data();
+        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
+        dynamicState.flags = 0;
+
+        std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions =
+        {
+            {
+              0,                            // uint32_t                     binding
+              6 * sizeof(float),            // uint32_t                     stride
+              VK_VERTEX_INPUT_RATE_VERTEX   // VkVertexInputRate            inputRate
+            }
+        };
+
+        std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions =
+        {
+          {
+            0,                                                                        // uint32_t   location
+            0,                                                                        // uint32_t   binding
+            VK_FORMAT_R32G32B32_SFLOAT,                                               // VkFormat   format
+            0                                                                         // uint32_t   offset
+          },
+          {
+            1,                                                                        // uint32_t   location
+            0,                                                                        // uint32_t   binding
+            VK_FORMAT_R32G32B32_SFLOAT,                                               // VkFormat   format
+            3 * sizeof(float)                                                         // uint32_t   offset
+          }
+        };
+
+        VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo;
+        SpecifyPipelineVertexInputState(vertexInputBindingDescriptions, vertexAttributeDescriptions, vertexInputStateCreateInfo);
+
+        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+
+        VkGraphicsPipelineCreateInfo pipelineCI;
+        pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineCI.layout = _pipelineLayout;
+        pipelineCI.renderPass = _renderPass;
+        pipelineCI.flags = 0;
+        pipelineCI.basePipelineIndex = -1;
+        pipelineCI.basePipelineHandle = VK_NULL_HANDLE;
+        pipelineCI.pInputAssemblyState = &inputAssemblyState;
+        pipelineCI.pRasterizationState = &rasterizationState;
+        pipelineCI.pColorBlendState = &colorBlendState;
+        pipelineCI.pMultisampleState = &multisampleState;
+        pipelineCI.pViewportState = &viewportState;
+        pipelineCI.pDepthStencilState = &depthStencilState;
+        pipelineCI.pDynamicState = &dynamicState;
+        pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+        pipelineCI.pStages = shaderStages.data();
+        pipelineCI.pVertexInputState = &vertexInputStateCreateInfo;
+
+        // Create the graphics pipeline state objects
+
+        // We are using this pipeline as the base for the other pipelines (derivatives)
+        // Pipeline derivatives can be used for pipelines that share most of their state
+        // Depending on the implementation this may result in better performance for pipeline
+        // switching and faster creation time
+        pipelineCI.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
+
+        if (vkCreateGraphicsPipelines(_logicalDevice, _pipelineCache, 1, &pipelineCI, nullptr, &_pipeline) != VK_SUCCESS)
+        {
+            std::cout << "Error while creating graphics pipeline!" << std::endl;
+            return false;
+        }
+        return true;
+    }
+
     void DestroyBuffer(VkDevice _logicalDevice, VkBuffer& _buffer)
     {
         if (_buffer != VK_NULL_HANDLE)

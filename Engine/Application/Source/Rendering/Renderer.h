@@ -20,6 +20,7 @@ public:
     VkSubmitInfo submitInfo = {};
     VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     VkPipelineCache pipelineCache;
+    VkPhysicalDeviceMemoryProperties memoryProperties;
 
     VkInstance instance = VK_NULL_HANDLE;
     VkDevice logicalDevice = VK_NULL_HANDLE;
@@ -35,7 +36,7 @@ public:
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
     VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
-    VkBuffer uniformBuffer = VK_NULL_HANDLE;
+    //VkBuffer uniformBuffer = VK_NULL_HANDLE;
     VkDeviceMemory uniformBufferMemory = VK_NULL_HANDLE;
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
@@ -45,6 +46,7 @@ public:
     std::vector<VkCommandBuffer> drawCommandBuffers;
     std::vector<VkFence> waitFences;
     std::vector<VkFramebuffer> frameBuffers;
+    std::vector<VkShaderModule> shaderModules;
 
     std::vector<char const*> instanceExtensions;
     std::vector<VkDescriptorSet> descriptorSets;
@@ -54,6 +56,7 @@ public:
     /* Struct section */
     Semaphores semaphores;
     DepthStencil depthStencil;
+    Buffer uniformBuffer;
 
     QueueParameters graphicsQueue;
     QueueParameters computeQueue;

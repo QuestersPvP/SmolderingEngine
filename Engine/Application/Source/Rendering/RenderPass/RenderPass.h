@@ -89,6 +89,10 @@ namespace SmolderingEngine
     void BindDescriptorSets(VkCommandBuffer _commandBuffer, VkPipelineBindPoint _pipelineType, VkPipelineLayout _pipelineLayout, uint32_t _indexForFirstSet,
         std::vector<VkDescriptorSet> const& _descriptorSets, std::vector<uint32_t> const& _dynamicOffsets);
 
+    uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties, VkPhysicalDeviceMemoryProperties& memoryProperties, VkBool32* memTypeFound = nullptr);
+    bool AllocateMemory(VkDevice _logicalDevice, Buffer& _buffer, uint32_t _size, uint32_t _type);
+    bool CreateGraphicsPipeline(VkDevice _logicalDevice, VkPipelineCache _pipelineCache, VkPipelineLayout _pipelineLayout, VkRenderPass _renderPass, VkPipeline& _pipeline);
+
     void DestroyBuffer(VkDevice _logicalDevice, VkBuffer& _buffer);
     void FreeMemoryObject(VkDevice _logicalDevice, VkDeviceMemory& _memoryObject);
     void DestroyBufferView(VkDevice _logicalDevice, VkBufferView& _bufferView);
