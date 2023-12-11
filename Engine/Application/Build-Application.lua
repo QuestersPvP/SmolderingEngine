@@ -15,7 +15,8 @@ project "Application"
    includedirs
    {
       "Source",
-      "../../Dependencies/Vulkan/Include"
+      "../../Dependencies/Vulkan/Include",
+      "../../Dependencies/ktx/include"
    }
 
    -- Needed to include a different solution

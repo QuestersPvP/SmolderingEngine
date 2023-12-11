@@ -346,7 +346,7 @@ namespace SmolderingEngine
     bool CreateLogicalDevice(VkPhysicalDevice _physicalDevice, std::vector<QueueInfo> _queueInfo, std::vector<char const*>& _desiredExtensions, VkPhysicalDeviceFeatures* _desiredFeatures, VkDevice& _logicalDevice)
     {
         _desiredExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-
+      
         // First get all the extensions supported by this physical device
         std::vector<VkExtensionProperties> availableExtensions;
         if (!CheckAvailableDeviceExtensions(_physicalDevice, availableExtensions))

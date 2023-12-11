@@ -186,6 +186,20 @@ namespace SmolderingEngine
         uint32_t        vertexCount;
     };
 
+    struct Vertices
+    {
+        int             count;
+        VkBuffer        buffer;
+        VkDeviceMemory  memory;
+    };
+
+    struct Indices
+    {
+        int             count;
+        VkBuffer        buffer;
+        VkDeviceMemory  memory;
+    };
+
     struct Mesh 
     {
         Matrix4x4 rotationMatrix;
@@ -193,8 +207,10 @@ namespace SmolderingEngine
         Matrix4x4 modelViewMatrix;
         Matrix4x4 perspectiveMatrix;
 
-        std::vector<float>  data;
-        std::vector<Part>   parts;
+        std::vector<Vertices> vertices;
+        std::vector<Indices> indices;
+        //std::vector<float>  data;
+        //std::vector<Part>   parts;
     };
 
     struct ImageDescriptorInfo 
@@ -296,6 +312,9 @@ namespace SmolderingEngine
 
     // Extension availability check
     bool IsExtensionSupported(std::vector<VkExtensionProperties> const& _availableExtensions, char const* const _extension);
+
     bool GetBinaryFileContents(std::string const& _filename, std::vector<unsigned char>& _contents);
+    VkShaderModule loadShader(const char* fileName, VkDevice device);
+
     bool Load3DModelFromObjFile(char const* _filename, bool _loadNormals, bool _loadTexcoords, bool _generateTangentSpaceVectors, bool _unify, Mesh& _mesh, uint32_t* _vertexStride = nullptr);
 };

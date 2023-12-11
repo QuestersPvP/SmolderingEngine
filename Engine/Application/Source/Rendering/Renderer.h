@@ -21,6 +21,8 @@ public:
     VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     VkPipelineCache pipelineCache;
     VkPhysicalDeviceMemoryProperties memoryProperties;
+    VkFormat depthFormat;
+    VkDescriptorSet descriptorSet;
 
     VkInstance instance = VK_NULL_HANDLE;
     VkDevice logicalDevice = VK_NULL_HANDLE;
@@ -57,6 +59,8 @@ public:
     Semaphores semaphores;
     DepthStencil depthStencil;
     Buffer uniformBuffer;
+    Indices modelIndicies;
+    Vertices modelVerticies;
 
     QueueParameters graphicsQueue;
     QueueParameters computeQueue;

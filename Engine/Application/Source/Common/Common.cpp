@@ -175,6 +175,44 @@ namespace SmolderingEngine
         return true;
     }
 
+    VkShaderModule loadShader(const char* fileName, VkDevice device)
+    {
+        std::ifstream is(fileName, std::ios::binary | std::ios::in | std::ios::ate);
+
+        if (is.is_open())
+        {
+            size_t size = is.tellg();
+            is.seekg(0, std::ios::beg);
+            char* shaderCode = new char[size];
+            is.read(shaderCode, size);
+            is.close();
+
+            assert(size > 0);
+
+            VkShaderModule shaderModule;
+            VkShaderModuleCreateInfo moduleCreateInfo{};
+            moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            moduleCreateInfo.codeSize = size;
+            moduleCreateInfo.pCode = (uint32_t*)shaderCode;
+
+            if (vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderModule) != VK_SUCCESS)
+            {
+                std::cout << "Error creating shader module" << std::endl;
+                delete[] shaderCode;
+                return VK_NULL_HANDLE;
+            }
+
+            delete[] shaderCode;
+
+            return shaderModule;
+        }
+        else
+        {
+            std::cout << "Error: Could not open shader file" << std::endl;
+            return VK_NULL_HANDLE;
+        }
+    }
+
     bool Load3DModelFromObjFile(char const* _filename, bool _loadNormals, bool _loadTexcoords, bool _generateTangentSpaceVectors, bool _unify, Mesh& _mesh, uint32_t* _vertexStride)
     {
         // Load model
@@ -196,136 +234,148 @@ namespace SmolderingEngine
             return false;
         }
 
-        // Normal vectors and texture coordinates are required to generate tangent and bitangent vectors
-        if (!_loadNormals || !_loadTexcoords) 
-        {
-            _generateTangentSpaceVectors = false;
-        }
+        // TODO: LOAD MATERIALS
 
-        // Load model data and unify (normalize) its size and position
-        float minX = attribs.vertices[0];
-        float maxX = attribs.vertices[0];
-        float minY = attribs.vertices[1];
-        float maxY = attribs.vertices[1];
-        float minZ = attribs.vertices[2];
-        float maxZ = attribs.vertices[2];
-
-        _mesh = {};
-        uint32_t offset = 0;
-        for (auto& shape : shapes) 
-        {
-            uint32_t partOffset = offset;
-
-            for (auto& index : shape.mesh.indices) 
-            {
-                _mesh.data.emplace_back(attribs.vertices[3 * index.vertex_index + 0]);
-                _mesh.data.emplace_back(attribs.vertices[3 * index.vertex_index + 1]);
-                _mesh.data.emplace_back(attribs.vertices[3 * index.vertex_index + 2]);
-                ++offset;
-
-                if (_loadNormals) 
-                {
-                    if (attribs.normals.size() == 0)
-                    {
-                        std::cout << "Could not load normal vectors data in the '" << _filename << "' file.";
-                        return false;
-                    }
-                    else 
-                    {
-                        _mesh.data.emplace_back(attribs.normals[3 * index.normal_index + 0]);
-                        _mesh.data.emplace_back(attribs.normals[3 * index.normal_index + 1]);
-                        _mesh.data.emplace_back(attribs.normals[3 * index.normal_index + 2]);
-                    }
-                }
-
-                if (_loadTexcoords) 
-                {
-                    if (attribs.texcoords.size() == 0) 
-                    {
-                        std::cout << "Could not load texture coordinates data in the '" << _filename << "' file.";
-                        return false;
-                    }
-                    else 
-                    {
-                        _mesh.data.emplace_back(attribs.texcoords[2 * index.texcoord_index + 0]);
-                        _mesh.data.emplace_back(attribs.texcoords[2 * index.texcoord_index + 1]);
-                    }
-                }
-
-                if (_generateTangentSpaceVectors) 
-                {
-                    // Insert temporary tangent space vectors data
-                    for (int i = 0; i < 6; ++i) 
-                    {
-                        _mesh.data.emplace_back(0.0f);
-                    }
-                }
-
-                if (_unify) 
-                {
-                    if (attribs.vertices[3 * index.vertex_index + 0] < minX) 
-                    {
-                        minX = attribs.vertices[3 * index.vertex_index + 0];
-                    }
-                    if (attribs.vertices[3 * index.vertex_index + 0] > maxX) 
-                    {
-                        maxX = attribs.vertices[3 * index.vertex_index + 0];
-                    }
-                    if (attribs.vertices[3 * index.vertex_index + 1] < minY) 
-                    {
-                        minY = attribs.vertices[3 * index.vertex_index + 1];
-                    }
-                    if (attribs.vertices[3 * index.vertex_index + 1] > maxY) 
-                    {
-                        maxY = attribs.vertices[3 * index.vertex_index + 1];
-                    }
-                    if (attribs.vertices[3 * index.vertex_index + 2] < minZ) 
-                    {
-                        minZ = attribs.vertices[3 * index.vertex_index + 2];
-                    }
-                    if (attribs.vertices[3 * index.vertex_index + 2] > maxZ) 
-                    {
-                        maxZ = attribs.vertices[3 * index.vertex_index + 2];
-                    }
-                }
-            }
-
-            uint32_t partVertexCount = offset - partOffset;
-            if (0 < partVertexCount)
-            {
-                _mesh.parts.push_back({ partOffset, partVertexCount });
-            }
-        }
-
-        uint32_t stride = 3 + (_loadNormals ? 3 : 0) + (_loadTexcoords ? 2 : 0) + (_generateTangentSpaceVectors ? 6 : 0);
-        if (_vertexStride) 
-        {
-            *_vertexStride = stride * sizeof(float);
-        }
-
-        //if (_generateTangentSpaceVectors)
+        //for (auto& shape : shapes)
         //{
-        //    GenerateTangentSpaceVectors(_mesh);
+        //    shape
+        //    for (size_t i = 0; i < scene.nodes.size(); i++)
+        //    {
+        //        const tinygltf::Node node = gltfModel.nodes[scene.nodes[i]];
+        //        loadNode(nullptr, node, scene.nodes[i], gltfModel, indexBuffer, vertexBuffer, scale);
+        //    }
         //}
 
-        if (_unify) 
-        {
-            float offsetX = 0.5f * (minX + maxX);
-            float offsetY = 0.5f * (minY + maxY);
-            float offsetZ = 0.5f * (minZ + maxZ);
-            float scaleX = abs(minX - offsetX) > abs(maxX - offsetX) ? abs(minX - offsetX) : abs(maxX - offsetX);
-            float scaleY = abs(minY - offsetY) > abs(maxY - offsetY) ? abs(minY - offsetY) : abs(maxY - offsetY);
-            float scaleZ = abs(minZ - offsetZ) > abs(maxZ - offsetZ) ? abs(minZ - offsetZ) : abs(maxZ - offsetZ);
-            float scale = scaleX > scaleY ? scaleX : scaleY;
-            scale = scaleZ > scale ? 1.0f / scaleZ : 1.0f / scale;
+        //// Normal vectors and texture coordinates are required to generate tangent and bitangent vectors
+        //if (!_loadNormals || !_loadTexcoords) 
+        //{
+        //    _generateTangentSpaceVectors = false;
+        //}
 
-            for (size_t i = 0; i < _mesh.data.size() - 2; i += stride) 
-            {
-                _mesh.data[i + 0] = scale * (_mesh.data[i + 0] - offsetX);
-                _mesh.data[i + 1] = scale * (_mesh.data[i + 1] - offsetY);
-                _mesh.data[i + 2] = scale * (_mesh.data[i + 2] - offsetZ);
-            }
-        }
+        //// Load model data and unify (normalize) its size and position
+        //float minX = attribs.vertices[0];
+        //float maxX = attribs.vertices[0];
+        //float minY = attribs.vertices[1];
+        //float maxY = attribs.vertices[1];
+        //float minZ = attribs.vertices[2];
+        //float maxZ = attribs.vertices[2];
+
+        //_mesh = {};
+        //uint32_t offset = 0;
+        //for (auto& shape : shapes) 
+        //{
+        //    uint32_t partOffset = offset;
+
+        //    for (auto& index : shape.mesh.indices) 
+        //    {
+        //        _mesh.data.emplace_back(attribs.vertices[3 * index.vertex_index + 0]);
+        //        _mesh.data.emplace_back(attribs.vertices[3 * index.vertex_index + 1]);
+        //        _mesh.data.emplace_back(attribs.vertices[3 * index.vertex_index + 2]);
+        //        ++offset;
+
+        //        if (_loadNormals) 
+        //        {
+        //            if (attribs.normals.size() == 0)
+        //            {
+        //                std::cout << "Could not load normal vectors data in the '" << _filename << "' file.";
+        //                return false;
+        //            }
+        //            else 
+        //            {
+        //                _mesh.data.emplace_back(attribs.normals[3 * index.normal_index + 0]);
+        //                _mesh.data.emplace_back(attribs.normals[3 * index.normal_index + 1]);
+        //                _mesh.data.emplace_back(attribs.normals[3 * index.normal_index + 2]);
+        //            }
+        //        }
+
+        //        if (_loadTexcoords) 
+        //        {
+        //            if (attribs.texcoords.size() == 0) 
+        //            {
+        //                std::cout << "Could not load texture coordinates data in the '" << _filename << "' file.";
+        //                return false;
+        //            }
+        //            else 
+        //            {
+        //                _mesh.data.emplace_back(attribs.texcoords[2 * index.texcoord_index + 0]);
+        //                _mesh.data.emplace_back(attribs.texcoords[2 * index.texcoord_index + 1]);
+        //            }
+        //        }
+
+        //        if (_generateTangentSpaceVectors) 
+        //        {
+        //            // Insert temporary tangent space vectors data
+        //            for (int i = 0; i < 6; ++i) 
+        //            {
+        //                _mesh.data.emplace_back(0.0f);
+        //            }
+        //        }
+
+        //        if (_unify) 
+        //        {
+        //            if (attribs.vertices[3 * index.vertex_index + 0] < minX) 
+        //            {
+        //                minX = attribs.vertices[3 * index.vertex_index + 0];
+        //            }
+        //            if (attribs.vertices[3 * index.vertex_index + 0] > maxX) 
+        //            {
+        //                maxX = attribs.vertices[3 * index.vertex_index + 0];
+        //            }
+        //            if (attribs.vertices[3 * index.vertex_index + 1] < minY) 
+        //            {
+        //                minY = attribs.vertices[3 * index.vertex_index + 1];
+        //            }
+        //            if (attribs.vertices[3 * index.vertex_index + 1] > maxY) 
+        //            {
+        //                maxY = attribs.vertices[3 * index.vertex_index + 1];
+        //            }
+        //            if (attribs.vertices[3 * index.vertex_index + 2] < minZ) 
+        //            {
+        //                minZ = attribs.vertices[3 * index.vertex_index + 2];
+        //            }
+        //            if (attribs.vertices[3 * index.vertex_index + 2] > maxZ) 
+        //            {
+        //                maxZ = attribs.vertices[3 * index.vertex_index + 2];
+        //            }
+        //        }
+        //    }
+
+        //    uint32_t partVertexCount = offset - partOffset;
+        //    if (0 < partVertexCount)
+        //    {
+        //        _mesh.parts.push_back({ partOffset, partVertexCount });
+        //    }
+        //}
+
+        //uint32_t stride = 3 + (_loadNormals ? 3 : 0) + (_loadTexcoords ? 2 : 0) + (_generateTangentSpaceVectors ? 6 : 0);
+        //if (_vertexStride) 
+        //{
+        //    *_vertexStride = stride * sizeof(float);
+        //}
+
+        ////if (_generateTangentSpaceVectors)
+        ////{
+        ////    GenerateTangentSpaceVectors(_mesh);
+        ////}
+
+        //if (_unify) 
+        //{
+        //    float offsetX = 0.5f * (minX + maxX);
+        //    float offsetY = 0.5f * (minY + maxY);
+        //    float offsetZ = 0.5f * (minZ + maxZ);
+        //    float scaleX = abs(minX - offsetX) > abs(maxX - offsetX) ? abs(minX - offsetX) : abs(maxX - offsetX);
+        //    float scaleY = abs(minY - offsetY) > abs(maxY - offsetY) ? abs(minY - offsetY) : abs(maxY - offsetY);
+        //    float scaleZ = abs(minZ - offsetZ) > abs(maxZ - offsetZ) ? abs(minZ - offsetZ) : abs(maxZ - offsetZ);
+        //    float scale = scaleX > scaleY ? scaleX : scaleY;
+        //    scale = scaleZ > scale ? 1.0f / scaleZ : 1.0f / scale;
+
+        //    for (size_t i = 0; i < _mesh.data.size() - 2; i += stride) 
+        //    {
+        //        _mesh.data[i + 0] = scale * (_mesh.data[i + 0] - offsetX);
+        //        _mesh.data[i + 1] = scale * (_mesh.data[i + 1] - offsetY);
+        //        _mesh.data[i + 2] = scale * (_mesh.data[i + 2] - offsetZ);
+        //    }
+        //}
 
         return true;
     }

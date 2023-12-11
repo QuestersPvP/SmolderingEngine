@@ -1054,54 +1054,110 @@ namespace SmolderingEngine
 
     bool CreateGraphicsPipeline(VkDevice _logicalDevice, VkPipelineCache _pipelineCache, VkPipelineLayout _pipelineLayout, VkRenderPass _renderPass, VkPipeline& _pipeline)
     {
-        VkPipelineInputAssemblyStateCreateInfo inputAssemblyState;
-        inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        inputAssemblyState.flags = 0;
-        inputAssemblyState.primitiveRestartEnable = VK_FALSE;
+        //VkPipelineInputAssemblyStateCreateInfo inputAssemblyState;
+        //inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        //inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        //inputAssemblyState.flags = 0;
+        //inputAssemblyState.primitiveRestartEnable = VK_FALSE;
 
-        VkPipelineRasterizationStateCreateInfo rasterizationState;
-        rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        rasterizationState.flags = 0;
-        rasterizationState.depthClampEnable = VK_FALSE;
-        rasterizationState.lineWidth = 1.0f;
+        //VkPipelineRasterizationStateCreateInfo rasterizationState;
+        //rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        //rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+        //rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+        //rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        //rasterizationState.flags = 0;
+        //rasterizationState.depthClampEnable = VK_FALSE;
+        //rasterizationState.lineWidth = 1.0f;
 
-        VkPipelineColorBlendAttachmentState blendAttachmentState;
-        blendAttachmentState.colorWriteMask = 0xf;
-        blendAttachmentState.blendEnable = VK_FALSE;
+        //VkPipelineColorBlendAttachmentState blendAttachmentState;
+        //blendAttachmentState.colorWriteMask = 0xf;
+        //blendAttachmentState.blendEnable = VK_FALSE;
 
-        VkPipelineColorBlendStateCreateInfo colorBlendState;
-        colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        colorBlendState.attachmentCount = 1;
-        colorBlendState.pAttachments = &blendAttachmentState;
+        //VkPipelineColorBlendStateCreateInfo colorBlendState;
+        //colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        //colorBlendState.attachmentCount = 1;
+        //colorBlendState.pAttachments = &blendAttachmentState;
 
-        VkPipelineDepthStencilStateCreateInfo depthStencilState;
-        depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencilState.depthTestEnable = VK_TRUE;
-        depthStencilState.depthWriteEnable = VK_TRUE;
-        depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-        depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
+        //VkPipelineDepthStencilStateCreateInfo depthStencilState;
+        //depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        //depthStencilState.depthTestEnable = VK_TRUE;
+        //depthStencilState.depthWriteEnable = VK_TRUE;
+        //depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+        //depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
 
-        VkPipelineViewportStateCreateInfo viewportState;
-        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportState.viewportCount = 1;
-        viewportState.scissorCount = 1;
-        viewportState.flags = 0;
+        //VkPipelineViewportStateCreateInfo viewportState;
+        //viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        //viewportState.viewportCount = 1;
+        //viewportState.scissorCount = 1;
+        //viewportState.flags = 0;
 
-        VkPipelineMultisampleStateCreateInfo multisampleState;
-        multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-        multisampleState.flags = 0;
+        //VkPipelineMultisampleStateCreateInfo multisampleState;
+        //multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        //multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        //multisampleState.flags = 0;
 
-        std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, };
-        VkPipelineDynamicStateCreateInfo dynamicState;
-        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.pDynamicStates = dynamicStateEnables.data();
-        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
-        dynamicState.flags = 0;
+        //std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, };
+        //VkPipelineDynamicStateCreateInfo dynamicState;
+        //dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        //dynamicState.pDynamicStates = dynamicStateEnables.data();
+        //dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
+        //dynamicState.flags = 0;
+
+        //std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions =
+        //{
+        //    {
+        //      0,                            // uint32_t                     binding
+        //      6 * sizeof(float),            // uint32_t                     stride
+        //      VK_VERTEX_INPUT_RATE_VERTEX   // VkVertexInputRate            inputRate
+        //    }
+        //};
+
+        //std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions =
+        //{
+        //  {
+        //    0,                                                                        // uint32_t   location
+        //    0,                                                                        // uint32_t   binding
+        //    VK_FORMAT_R32G32B32_SFLOAT,                                               // VkFormat   format
+        //    0                                                                         // uint32_t   offset
+        //  },
+        //  {
+        //    1,                                                                        // uint32_t   location
+        //    0,                                                                        // uint32_t   binding
+        //    VK_FORMAT_R32G32B32_SFLOAT,                                               // VkFormat   format
+        //    3 * sizeof(float)                                                         // uint32_t   offset
+        //  }
+        //};
+
+        //VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo;
+        //SpecifyPipelineVertexInputState(vertexInputBindingDescriptions, vertexAttributeDescriptions, vertexInputStateCreateInfo);
+
+        //std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
+
+        //VkGraphicsPipelineCreateInfo pipelineCI;
+        //pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        //pipelineCI.layout = _pipelineLayout;
+        //pipelineCI.renderPass = _renderPass;
+        //pipelineCI.flags = 0;
+        //pipelineCI.basePipelineIndex = -1;
+        //pipelineCI.basePipelineHandle = VK_NULL_HANDLE;
+        //pipelineCI.pInputAssemblyState = &inputAssemblyState;
+        //pipelineCI.pRasterizationState = &rasterizationState;
+        //pipelineCI.pColorBlendState = &colorBlendState;
+        //pipelineCI.pMultisampleState = &multisampleState;
+        //pipelineCI.pViewportState = &viewportState;
+        //pipelineCI.pDepthStencilState = &depthStencilState;
+        //pipelineCI.pDynamicState = &dynamicState;
+        //pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+        //pipelineCI.pStages = shaderStages.data();
+        //pipelineCI.pVertexInputState = &vertexInputStateCreateInfo;
+
+        //// Create the graphics pipeline state objects
+
+        //// We are using this pipeline as the base for the other pipelines (derivatives)
+        //// Pipeline derivatives can be used for pipelines that share most of their state
+        //// Depending on the implementation this may result in better performance for pipeline
+        //// switching and faster creation time
+        //pipelineCI.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
 
         std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions =
         {
@@ -1111,7 +1167,7 @@ namespace SmolderingEngine
               VK_VERTEX_INPUT_RATE_VERTEX   // VkVertexInputRate            inputRate
             }
         };
-
+        
         std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions =
         {
           {
@@ -1127,19 +1183,24 @@ namespace SmolderingEngine
             3 * sizeof(float)                                                         // uint32_t   offset
           }
         };
-
+        
         VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo;
         SpecifyPipelineVertexInputState(vertexInputBindingDescriptions, vertexAttributeDescriptions, vertexInputStateCreateInfo);
-
+        
+        VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
+        VkPipelineRasterizationStateCreateInfo rasterizationState = pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
+        VkPipelineColorBlendAttachmentState blendAttachmentState = pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+        VkPipelineColorBlendStateCreateInfo colorBlendState = pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+        VkPipelineDepthStencilStateCreateInfo depthStencilState = pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+        VkPipelineViewportStateCreateInfo viewportState = pipelineViewportStateCreateInfo(1, 1, 0);
+        VkPipelineMultisampleStateCreateInfo multisampleState = pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
+        std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH, };
+        VkPipelineDynamicStateCreateInfo dynamicState = pipelineDynamicStateCreateInfo(dynamicStateEnables);
+        
+        VkGraphicsPipelineCreateInfo pipelineCI = pipelineCreateInfo(_pipelineLayout, _renderPass);
+        
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-        VkGraphicsPipelineCreateInfo pipelineCI;
-        pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineCI.layout = _pipelineLayout;
-        pipelineCI.renderPass = _renderPass;
-        pipelineCI.flags = 0;
-        pipelineCI.basePipelineIndex = -1;
-        pipelineCI.basePipelineHandle = VK_NULL_HANDLE;
+        
         pipelineCI.pInputAssemblyState = &inputAssemblyState;
         pipelineCI.pRasterizationState = &rasterizationState;
         pipelineCI.pColorBlendState = &colorBlendState;
@@ -1150,14 +1211,21 @@ namespace SmolderingEngine
         pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
         pipelineCI.pStages = shaderStages.data();
         pipelineCI.pVertexInputState = &vertexInputStateCreateInfo;
-
+        
         // Create the graphics pipeline state objects
-
+        
         // We are using this pipeline as the base for the other pipelines (derivatives)
         // Pipeline derivatives can be used for pipelines that share most of their state
         // Depending on the implementation this may result in better performance for pipeline
         // switching and faster creation time
         pipelineCI.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
+        
+        
+        shaderStages[0] = LoadShader("S:/SmoulderingEngine/Engine/Application/Source/Other/Shaders/model.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, _logicalDevice);
+        shaderStages[1] = LoadShader("S:/SmoulderingEngine/Engine/Application/Source/Other/Shaders/model.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, _logicalDevice);
+        
+        //shaderModules.push_back(shaderStages[0].module);
+        //shaderModules.push_back(shaderStages[1].module);
 
         if (vkCreateGraphicsPipelines(_logicalDevice, _pipelineCache, 1, &pipelineCI, nullptr, &_pipeline) != VK_SUCCESS)
         {
@@ -1165,6 +1233,42 @@ namespace SmolderingEngine
             return false;
         }
         return true;
+    }
+
+    VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage, VkDevice _logicalDevice)
+    {
+        VkPipelineShaderStageCreateInfo shaderStage = {};
+        shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStage.stage = stage;
+        shaderStage.module = loadShader(fileName.c_str(), _logicalDevice);
+        shaderStage.pName = "main";
+        return shaderStage;
+    }
+
+    VkBool32 GetSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat* depthFormat)
+    {
+        // Since all depth formats may be optional, we need to find a suitable depth format to use
+        // Start with the highest precision packed format
+        std::vector<VkFormat> formatList = {
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D24_UNORM_S8_UINT,
+            VK_FORMAT_D16_UNORM_S8_UINT,
+            VK_FORMAT_D16_UNORM
+        };
+
+        for (auto& format : formatList)
+        {
+            VkFormatProperties formatProps;
+            vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &formatProps);
+            if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+            {
+                *depthFormat = format;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     void DestroyBuffer(VkDevice _logicalDevice, VkBuffer& _buffer)

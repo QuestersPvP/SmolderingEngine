@@ -11,7 +11,13 @@ workspace "SmolderingEngine"
 OutputDir = "%{cfg.system}-%{cfg.architecture}/%{cfg.buildcfg}"
 
 group "Engine"
-	
+
+	files  
+	{
+		"Dependencies/*.cpp",
+		"Dependencies/*.h"
+	}	
+
 	group "Engine/Application"
 		include "Engine/Application/Build-Application.lua"
 	group ""
