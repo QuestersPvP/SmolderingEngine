@@ -202,14 +202,17 @@ namespace SmolderingEngine
 
     bool CreateFence(VkDevice _logicalDevice, bool _signaled, VkFence& _fence)
     {
-        VkFenceCreateInfo fence_create_info = 
-        {
-            VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,            // VkStructureType        sType
-            nullptr,                                        // const void           * pNext
-            _signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0    // VkFenceCreateFlags     flags
-        };
+        //VkFenceCreateInfo fence_create_info = 
+        //{
+        //    VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,            // VkStructureType        sType
+        //    nullptr,                                        // const void           * pNext
+        //    _signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0    // VkFenceCreateFlags     flags
+        //};
+        VkFenceCreateInfo fenceCreateInfo{};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-        if (vkCreateFence(_logicalDevice, &fence_create_info, nullptr, &_fence) != VK_SUCCESS)
+        if (vkCreateFence(_logicalDevice, &fenceCreateInfo, nullptr, &_fence) != VK_SUCCESS)
         {
             std::cout << "Could not create a fence." << std::endl;
             return false;

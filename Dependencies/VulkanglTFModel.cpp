@@ -478,18 +478,27 @@ void vkglTF::Primitive::setDimensions(glm::vec3 min, glm::vec3 max) {
 /*
 	glTF mesh
 */
-vkglTF::Mesh::Mesh(/*vks::VulkanDevice* device,*/ glm::mat4 matrix) {
-//	this->logicalDevice = logicalDevice;
+vkglTF::Mesh::Mesh(VkDevice& logicalDevice, VkPhysicalDeviceMemoryProperties& memoryProperties, glm::mat4 matrix) {
+	//this->logicalDevice = logicalDevice;
 	this->uniformBlock.matrix = matrix;
-//	VK_CHECK_RESULT(device->createBuffer(
-//		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-//		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-//		sizeof(uniformBlock),
-//		&uniformBuffer.buffer,
-//		&uniformBuffer.memory,
-//		&uniformBlock));
-//	VK_CHECK_RESULT(vkMapMemory(device->logicalDevice, uniformBuffer.memory, 0, sizeof(uniformBlock), 0, &uniformBuffer.mapped));
-//	uniformBuffer.descriptor = { uniformBuffer.buffer, 0, sizeof(uniformBlock) };
+
+	createBuffer(
+		logicalDevice,
+		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		memoryProperties,
+		sizeof(uniformBlock),
+		&uniformBuffer.buffer,
+		&uniformBuffer.memory,
+		&uniformBlock);
+
+	if (vkMapMemory(logicalDevice, uniformBuffer.memory, 0, sizeof(uniformBlock), 0, &uniformBuffer.mapped) != VK_SUCCESS)
+	{
+		std::cout << "Error mapping memory" << std::endl;
+		return;
+	}
+
+	uniformBuffer.descriptor = { uniformBuffer.buffer, 0, sizeof(uniformBlock) };
 };
 
 vkglTF::Mesh::~Mesh() {
@@ -607,14 +616,14 @@ VkPipelineVertexInputStateCreateInfo* vkglTF::Vertex::getPipelineVertexInputStat
 	return &pipelineVertexInputStateCreateInfo;
 }
 
-//vkglTF::Texture* vkglTF::Model::getTexture(uint32_t index)
-//{
-//
-//	if (index < textures.size()) {
-//		return &textures[index];
-//	}
-//	return nullptr;
-//}
+vkglTF::Texture* vkglTF::Model::getTexture(uint32_t index)
+{
+
+	if (index < textures.size()) {
+		return &textures[index];
+	}
+	return nullptr;
+}
 
 void vkglTF::Model::createEmptyTexture(VkQueue transferQueue)
 {
@@ -719,7 +728,7 @@ void vkglTF::Model::createEmptyTexture(VkQueue transferQueue)
 	//emptyTexture.descriptor.sampler = emptyTexture.sampler;
 }
 
-VkResult vkglTF::Model::createBuffer(VkDevice logicalDevice, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkPhysicalDeviceMemoryProperties& memoryProperties, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, void* data)
+VkResult vkglTF::createBuffer(VkDevice logicalDevice, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkPhysicalDeviceMemoryProperties& memoryProperties, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, void* data)
 {
 	// Create the buffer handle
 	VkBufferCreateInfo bufferCreateInfo = SmolderingEngine::BufferCreateInfo(usageFlags, size);
@@ -808,7 +817,7 @@ vkglTF::Model::~Model()
 	//emptyTexture.destroy();
 }
 
-void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, uint32_t nodeIndex, const tinygltf::Model &model, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale)
+void vkglTF::Model::loadNode(VkDevice& logicalDevice, VkPhysicalDeviceMemoryProperties& memoryProperties, vkglTF::Node *parent, const tinygltf::Node &node, uint32_t nodeIndex, const tinygltf::Model &model, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale)
 {
 	vkglTF::Node *newNode = new Node{};
 	newNode->index = nodeIndex;
@@ -843,14 +852,15 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 	// Node with children
 	if (node.children.size() > 0) {
 		for (auto i = 0; i < node.children.size(); i++) {
-			loadNode(newNode, model.nodes[node.children[i]], node.children[i], model, indexBuffer, vertexBuffer, globalscale);
+			loadNode(logicalDevice, memoryProperties, newNode, model.nodes[node.children[i]], node.children[i], model, indexBuffer, vertexBuffer, globalscale);
 		}
 	}
 
 	// Node contains mesh data
 	if (node.mesh > -1) {
 		const tinygltf::Mesh mesh = model.meshes[node.mesh];
-		Mesh *newMesh = new Mesh(/*device,*/ newNode->matrix);
+		Mesh *newMesh = new Mesh(logicalDevice, memoryProperties, newNode->matrix);
+		//Mesh *newMesh = new Mesh(device, newNode->matrix);
 		newMesh->name = mesh.name;
 		for (size_t j = 0; j < mesh.primitives.size(); j++) {
 			const tinygltf::Primitive &primitive = mesh.primitives[j];
@@ -1053,55 +1063,55 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 //	createEmptyTexture(transferQueue);
 //}
 
-//void vkglTF::Model::loadMaterials(tinygltf::Model &gltfModel)
-//{
-//	for (tinygltf::Material &mat : gltfModel.materials) {
-//		vkglTF::Material material(device);
-//		if (mat.values.find("baseColorTexture") != mat.values.end()) {
-//			material.baseColorTexture = getTexture(gltfModel.textures[mat.values["baseColorTexture"].TextureIndex()].source);
-//		}
-//		// Metallic roughness workflow
-//		if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
-//			material.metallicRoughnessTexture = getTexture(gltfModel.textures[mat.values["metallicRoughnessTexture"].TextureIndex()].source);
-//		}
-//		if (mat.values.find("roughnessFactor") != mat.values.end()) {
-//			material.roughnessFactor = static_cast<float>(mat.values["roughnessFactor"].Factor());
-//		}
-//		if (mat.values.find("metallicFactor") != mat.values.end()) {
-//			material.metallicFactor = static_cast<float>(mat.values["metallicFactor"].Factor());
-//		}
-//		if (mat.values.find("baseColorFactor") != mat.values.end()) {
-//			material.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
-//		}				
-//		if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
-//			material.normalTexture = getTexture(gltfModel.textures[mat.additionalValues["normalTexture"].TextureIndex()].source);
-//		} else {
-//			material.normalTexture = &emptyTexture;
-//		}
-//		if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
-//			material.emissiveTexture = getTexture(gltfModel.textures[mat.additionalValues["emissiveTexture"].TextureIndex()].source);
-//		}
-//		if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end()) {
-//			material.occlusionTexture = getTexture(gltfModel.textures[mat.additionalValues["occlusionTexture"].TextureIndex()].source);
-//		}
-//		if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end()) {
-//			tinygltf::Parameter param = mat.additionalValues["alphaMode"];
-//			if (param.string_value == "BLEND") {
-//				material.alphaMode = Material::ALPHAMODE_BLEND;
-//			}
-//			if (param.string_value == "MASK") {
-//				material.alphaMode = Material::ALPHAMODE_MASK;
-//			}
-//		}
-//		if (mat.additionalValues.find("alphaCutoff") != mat.additionalValues.end()) {
-//			material.alphaCutoff = static_cast<float>(mat.additionalValues["alphaCutoff"].Factor());
-//		}
-//
-//		materials.push_back(material);
-//	}
-//	// Push a default material at the end of the list for meshes with no material assigned
-//	materials.push_back(Material(device));
-//}
+void vkglTF::Model::loadMaterials(tinygltf::Model &gltfModel)
+{
+	for (tinygltf::Material &mat : gltfModel.materials) {
+		vkglTF::Material material = Material();
+		if (mat.values.find("baseColorTexture") != mat.values.end()) {
+			material.baseColorTexture = getTexture(gltfModel.textures[mat.values["baseColorTexture"].TextureIndex()].source);
+		}
+		// Metallic roughness workflow
+		if (mat.values.find("metallicRoughnessTexture") != mat.values.end()) {
+			material.metallicRoughnessTexture = getTexture(gltfModel.textures[mat.values["metallicRoughnessTexture"].TextureIndex()].source);
+		}
+		if (mat.values.find("roughnessFactor") != mat.values.end()) {
+			material.roughnessFactor = static_cast<float>(mat.values["roughnessFactor"].Factor());
+		}
+		if (mat.values.find("metallicFactor") != mat.values.end()) {
+			material.metallicFactor = static_cast<float>(mat.values["metallicFactor"].Factor());
+		}
+		if (mat.values.find("baseColorFactor") != mat.values.end()) {
+			material.baseColorFactor = glm::make_vec4(mat.values["baseColorFactor"].ColorFactor().data());
+		}				
+		if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end()) {
+			material.normalTexture = getTexture(gltfModel.textures[mat.additionalValues["normalTexture"].TextureIndex()].source);
+		} else {
+			material.normalTexture = &emptyTexture;
+		}
+		if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end()) {
+			material.emissiveTexture = getTexture(gltfModel.textures[mat.additionalValues["emissiveTexture"].TextureIndex()].source);
+		}
+		if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end()) {
+			material.occlusionTexture = getTexture(gltfModel.textures[mat.additionalValues["occlusionTexture"].TextureIndex()].source);
+		}
+		if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end()) {
+			tinygltf::Parameter param = mat.additionalValues["alphaMode"];
+			if (param.string_value == "BLEND") {
+				material.alphaMode = Material::ALPHAMODE_BLEND;
+			}
+			if (param.string_value == "MASK") {
+				material.alphaMode = Material::ALPHAMODE_MASK;
+			}
+		}
+		if (mat.additionalValues.find("alphaCutoff") != mat.additionalValues.end()) {
+			material.alphaCutoff = static_cast<float>(mat.additionalValues["alphaCutoff"].Factor());
+		}
+
+		materials.push_back(material);
+	}
+	// Push a default material at the end of the list for meshes with no material assigned
+	materials.push_back(Material());
+}
 
 //void vkglTF::Model::loadAnimations(tinygltf::Model &gltfModel)
 //{
@@ -1217,7 +1227,7 @@ void vkglTF::Model::loadNode(vkglTF::Node *parent, const tinygltf::Node &node, u
 //	}
 //}
 
-void vkglTF::Model::loadFromFile(std::string filename, VkDevice logicalDevice, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue transferQueue, VkPhysicalDeviceMemoryProperties& memoryProperties, uint32_t fileLoadingFlags, float scale)
+void vkglTF::Model::loadFromFile(std::string filename, VkDevice& logicalDevice, VkCommandPool& commandPool, VkQueue& transferQueue, VkPhysicalDeviceMemoryProperties& memoryProperties, uint32_t fileLoadingFlags, float scale)
 {
 	tinygltf::Model gltfModel;
 	tinygltf::TinyGLTF gltfContext;
@@ -1252,11 +1262,11 @@ void vkglTF::Model::loadFromFile(std::string filename, VkDevice logicalDevice, V
 		//if (!(fileLoadingFlags & FileLoadingFlags::DontLoadImages)) {
 		//	loadImages(gltfModel, device, transferQueue);
 		//}
-		//loadMaterials(gltfModel);
+		loadMaterials(gltfModel);
 		const tinygltf::Scene &scene = gltfModel.scenes[gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0];
 		for (size_t i = 0; i < scene.nodes.size(); i++) {
 			const tinygltf::Node node = gltfModel.nodes[scene.nodes[i]];
-			loadNode(nullptr, node, scene.nodes[i], gltfModel, indexBuffer, vertexBuffer, scale);
+			loadNode(logicalDevice, memoryProperties, nullptr, node, scene.nodes[i], gltfModel, indexBuffer, vertexBuffer, scale);
 		}
 		//if (gltfModel.animations.size() > 0) {
 		//	loadAnimations(gltfModel);
@@ -1408,9 +1418,9 @@ void vkglTF::Model::loadFromFile(std::string filename, VkDevice logicalDevice, V
 		return;
 	}
 
-	VkSubmitInfo submitInfo = SmolderingEngine::submitInfo();
+	VkSubmitInfo submitInfo = SmolderingEngine::SubmitInfo();
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
+	submitInfo.pCommandBuffers = &copyCmd;
 	// Create fence to ensure that the command buffer has finished executing
 	VkFenceCreateInfo fenceInfo = SmolderingEngine::fenceCreateInfo(0);
 	VkFence fence;
@@ -1432,7 +1442,7 @@ void vkglTF::Model::loadFromFile(std::string filename, VkDevice logicalDevice, V
 		return;
 	}
 	vkDestroyFence(logicalDevice, fence, nullptr);
-	vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
+	vkFreeCommandBuffers(logicalDevice, commandPool, 1, &copyCmd);
 
 	vkDestroyBuffer(logicalDevice, vertexStaging.buffer, nullptr);
 	vkFreeMemory(logicalDevice, vertexStaging.memory, nullptr);
@@ -1527,7 +1537,7 @@ void vkglTF::Model::loadFromFile(std::string filename, VkDevice logicalDevice, V
 	}
 }
 
-void vkglTF::Model::bindBuffers(VkCommandBuffer commandBuffer)
+void vkglTF::Model::bindBuffers(VkCommandBuffer& commandBuffer)
 {
 	const VkDeviceSize offsets[1] = {0};
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertices.buffer, offsets);
@@ -1535,7 +1545,7 @@ void vkglTF::Model::bindBuffers(VkCommandBuffer commandBuffer)
 	buffersBound = true;
 }
 
-void vkglTF::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t renderFlags, VkPipelineLayout pipelineLayout, uint32_t bindImageSet)
+void vkglTF::Model::drawNode(Node *node, VkCommandBuffer& commandBuffer, uint32_t renderFlags, VkPipelineLayout pipelineLayout, uint32_t bindImageSet)
 {
 	if (node->mesh) {
 		for (Primitive* primitive : node->mesh->primitives) {
@@ -1563,7 +1573,7 @@ void vkglTF::Model::drawNode(Node *node, VkCommandBuffer commandBuffer, uint32_t
 	}
 }
 
-void vkglTF::Model::draw(VkCommandBuffer commandBuffer, uint32_t renderFlags, VkPipelineLayout pipelineLayout, uint32_t bindImageSet)
+void vkglTF::Model::draw(VkCommandBuffer& commandBuffer, uint32_t renderFlags, VkPipelineLayout pipelineLayout, uint32_t bindImageSet)
 {
 	if (!buffersBound) {
 		const VkDeviceSize offsets[1] = {0};

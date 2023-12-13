@@ -5,9 +5,9 @@
 	bool WindowManager::InitWindowClass()
 	{
 		windowParams = GenerateApplicationWindowParameters();
-		
+
 		// Show the window (assuming windows OS)
-		ShowWindow(windowParams.HWnd, SW_SHOWNORMAL);
+		ShowWindow(windowParams.HWnd, SW_SHOW);
 		UpdateWindow(windowParams.HWnd);
 
 		return true;

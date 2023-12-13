@@ -94,6 +94,7 @@ namespace SmolderingEngine
 	bool CreateGraphicsPipeline(VkDevice _logicalDevice, VkPipelineCache _pipelineCache, VkPipelineLayout _pipelineLayout, VkRenderPass _renderPass, VkPipeline& _pipeline);
 	VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage, VkDevice _logicalDevice);
 	VkBool32 GetSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat* depthFormat);
+	uint32_t GetQueueFamilyIndex(VkQueueFlags queueFlags, std::vector<VkQueueFamilyProperties>& queueFamilyProperties);
 
     void DestroyBuffer(VkDevice _logicalDevice, VkBuffer& _buffer);
     void FreeMemoryObject(VkDevice _logicalDevice, VkDeviceMemory& _memoryObject);
@@ -416,7 +417,7 @@ namespace SmolderingEngine
 		return commandBufferAllocateInfo;
 	}
 
-	inline VkSubmitInfo submitInfo()
+	inline VkSubmitInfo SubmitInfo()
 	{
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -429,5 +430,12 @@ namespace SmolderingEngine
 		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceCreateInfo.flags = flags;
 		return fenceCreateInfo;
+	}
+
+	inline VkSemaphoreCreateInfo SemaphoreCreateInfo()
+	{
+		VkSemaphoreCreateInfo semaphoreCreateInfo{};
+		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		return semaphoreCreateInfo;
 	}
 };
