@@ -2,6 +2,12 @@
 
 bool Renderer::InitRendererClass(const WindowParameters& _window)
 {
+    camera.type = Camera::CameraType::lookat;
+    camera.SetPosition(glm::vec3(0.0f, 0.0f, -10.5f));
+    camera.SetRotation(glm::vec3(-25.0f, 15.0f, 0.0f));
+    camera.SetRotationSpeed(0.5f);
+    camera.SetPerspective(60.0f, (float)(width/* / 3.0f*/) / (float)height, 0.1f, 256.0f);
+
     /*
     NOTES:
 
@@ -64,9 +70,9 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
         std::vector<VkExtensionProperties> extensions(extCount);
         if (vkEnumerateInstanceExtensionProperties(nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
         {
-            for (VkExtensionProperties extension : extensions)
+            for (VkExtensionProperties _extension : extensions)
             {
-                supportedInstanceExtensions.push_back(extension.extensionName);
+                supportedInstanceExtensions.push_back(_extension.extensionName);
             }
         }
     }
@@ -89,6 +95,10 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pNext = NULL;
     instanceCreateInfo.pApplicationInfo = &appInfo;
+
+    // TODO: MAYBE?
+    //instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
     if (instanceExtensions.size() > 0)
     {
         instanceCreateInfo.enabledExtensionCount = (uint32_t)instanceExtensions.size();
@@ -125,6 +135,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     }
 
     // GPU selection
+    // TODO: RE-WORK DEVICE SELECTION
     uint32_t selectedDevice = 0;
 
     physicalDevice = physicalDevices[selectedDevice];
@@ -169,9 +180,9 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
         std::vector<VkExtensionProperties> extensions(extCount);
         if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, &extensions.front()) == VK_SUCCESS)
         {
-            for (auto ext : extensions)
+            for (auto _ext : extensions)
             {
-                supportedExtensions.push_back(ext.extensionName);
+                supportedExtensions.push_back(_ext.extensionName);
             }
         }
     }
@@ -186,7 +197,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     const float defaultQueuePriority(0.0f);
 
     // Graphics queue
-    if ((VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT) & VK_QUEUE_GRAPHICS_BIT)
+    if (requestedQueueTypes & VK_QUEUE_GRAPHICS_BIT)
     {
         queueFamilyIndices.graphics = GetQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT, queueFamilyProperties);
         VkDeviceQueueCreateInfo queueInfo{};
@@ -202,7 +213,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     }
 
     // Dedicated compute queue
-    if ((VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT) & VK_QUEUE_COMPUTE_BIT)
+    if (requestedQueueTypes & VK_QUEUE_COMPUTE_BIT)
     {
         queueFamilyIndices.compute = GetQueueFamilyIndex(VK_QUEUE_COMPUTE_BIT, queueFamilyProperties);
         if (queueFamilyIndices.compute != queueFamilyIndices.graphics)
@@ -223,7 +234,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     }
 
     // Dedicated transfer queue
-    if ((VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT) & VK_QUEUE_TRANSFER_BIT)
+    if (requestedQueueTypes & VK_QUEUE_TRANSFER_BIT)
     {
         queueFamilyIndices.transfer = GetQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT, queueFamilyProperties);
         if ((queueFamilyIndices.transfer != queueFamilyIndices.graphics) && (queueFamilyIndices.transfer != queueFamilyIndices.compute))
@@ -279,14 +290,13 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
         deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
     }
 
-    VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
-    if (result != VK_SUCCESS)
+    if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice) != VK_SUCCESS)
     {
-        return result;
+        std::cout << "Error creating logical device!" << std::endl;
+        return false;
     }
 
     // Create a default command pool for graphics command buffers
-    //commandPool = createCommandPool(queueFamilyIndices.graphics);
     VkCommandPoolCreateInfo cmdPoolInfo = {};
     cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     cmdPoolInfo.queueFamilyIndex = queueFamilyIndices.graphics;
@@ -333,6 +343,8 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     submitInfo.pSignalSemaphores = &semaphores.renderComplete;
     /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
+    //TODO: HERE IS WHERE WINDOW IS SETUP
+
     /* Prepare for rendering */
 
     /* Init Swapchain */
@@ -348,7 +360,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.hinstance = _window.HInstance;
     surfaceCreateInfo.hwnd = _window.HWnd;
-    if (vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface))
+    if (vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface) != VK_SUCCESS)
     {
         std::cout << "Error creating presentation surface" << std::endl;
         return false;
@@ -357,6 +369,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     // Get available queue family properties
     uint32_t queueCount;
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, NULL);
+
     assert(queueCount >= 1);
 
     std::vector<VkQueueFamilyProperties> queueProps(queueCount);
@@ -465,11 +478,15 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     //if (!CreateCommandPool(logicalDevice, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, graphicsQueue.familyIndex, commandPool))
     //    return false;
 
-    cmdPoolInfo = {};
-    cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    cmdPoolInfo.queueFamilyIndex = queueNodeIndex;
-    cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    if (vkCreateCommandPool(logicalDevice, &cmdPoolInfo, nullptr, &cmdPool))
+    // TODO: MAYBE NEED TO RE-VISIT THIS?
+    /*
+    12/14 - The issue I noticed is I am re-defining the CommandPool. Inside of the Init function it is already being created
+    */
+    VkCommandPoolCreateInfo cmdPoolInfoOther = {};
+    cmdPoolInfoOther.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    cmdPoolInfoOther.queueFamilyIndex = queueNodeIndex;
+    cmdPoolInfoOther.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    if (vkCreateCommandPool(logicalDevice, &cmdPoolInfoOther, nullptr, &commandPool_OTHER) != VK_SUCCESS)
     {
         std::cout << "Error creating command pool" << std::endl;
         return false;
@@ -756,17 +773,43 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
 
     /* Create Command Buffers */
 
-    if (!AllocateCommandBuffers(logicalDevice, commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, imageCount, drawCmdBuffers))
+    //if (!AllocateCommandBuffers(logicalDevice, commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, imageCount, drawCmdBuffers))
+    //    return false;
+
+    drawCmdBuffers.resize(imageCount);
+
+    VkCommandBufferAllocateInfo cmdBufAllocateInfo =
+        commandBufferAllocateInfo(
+            commandPool_OTHER,
+            VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            static_cast<uint32_t>(drawCmdBuffers.size()));
+
+    if (vkAllocateCommandBuffers(logicalDevice, &cmdBufAllocateInfo, drawCmdBuffers.data()) != VK_SUCCESS)
+    {
+        std::cout << "Error creating command buffers" << std::endl;
         return false;
+    }
 
     /* Synchronization Primatives */
 
-    waitFences.resize(drawCmdBuffers.size());
+    //waitFences.resize(drawCmdBuffers.size());
+    //
+    //for (auto& _fence : waitFences)
+    //{
+    //    if (!CreateFence(logicalDevice, true, _fence))
+    //        return false;
+    //}
 
-    for (auto& _fence : waitFences)
+    // Wait fences to sync command buffer access
+    VkFenceCreateInfo fenceCreateInfo = FenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+    waitFences.resize(drawCmdBuffers.size());
+    for (auto& fence : waitFences) 
     {
-        if (!CreateFence(logicalDevice, true, _fence))
+        if (vkCreateFence(logicalDevice, &fenceCreateInfo, nullptr, &fence) != VK_SUCCESS)
+        {
+            std::cout << "Error creating a fence" << std::endl;
             return false;
+        }
     }
 
     /* Depth Stencil */
@@ -794,7 +837,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     VkMemoryAllocateInfo memAllloc{};
     memAllloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memAllloc.allocationSize = memReqs.size;
-    memAllloc.memoryTypeIndex = 1;
+    memAllloc.memoryTypeIndex = GetMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryProperties);
 
     if (vkAllocateMemory(logicalDevice, &memAllloc, nullptr, &depthStencil.mem) != VK_SUCCESS)
     {
@@ -1040,7 +1083,8 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     //    return false;
 
     const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-    model.loadFromFile("S:/SmoulderingEngine/Engine/Application/Source/Other/Models/sphere.gltf", logicalDevice, commandPool, queue, memoryProperties, glTFLoadingFlags);
+    //model.loadFromFile("S:/SmoulderingEngine/Engine/Application/Source/Other/Models/sphere.gltf", logicalDevice, commandPool, queue, memoryProperties, glTFLoadingFlags);
+    model.loadFromFile("S:/vulkan-tutorials/Vulkan/assets/models/treasure_smooth.gltf", logicalDevice, commandPool, queue, memoryProperties, glTFLoadingFlags);
 
     //model.rotationMatrix = PrepareRotationMatrix(40.0f, { 0.0f, -1.0f, 0.0f });
     //model.translationMatrix = PrepareTranslationMatrix(0.0f, 0.0f, -3.0f);
@@ -1141,6 +1185,10 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
 			VkDeviceSize size, = sizeof(uboVS),
             void *data = nullptr
     */
+    
+    usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    size = sizeof(uboVS);
 
     // Create the buffer handle
     VkBufferCreateInfo bufferCreateInfo = BufferCreateInfo(usageFlags, size);
@@ -1151,12 +1199,12 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     }
 
     // Create the memory backing up the buffer handle
-    memReqs;
+    VkMemoryRequirements memReqsNew; 
     VkMemoryAllocateInfo memAlloc = memoryAllocateInfo();
-    vkGetBufferMemoryRequirements(logicalDevice, buffer, &memReqs);
-    memAlloc.allocationSize = memReqs.size;
+    vkGetBufferMemoryRequirements(logicalDevice, buffer, &memReqsNew);
+    memAlloc.allocationSize = memReqsNew.size;
     // Find a memory type index that fits the properties of the buffer
-    memAlloc.memoryTypeIndex = GetMemoryType(memReqs.memoryTypeBits, (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT), memoryProperties);
+    memAlloc.memoryTypeIndex = GetMemoryType(memReqsNew.memoryTypeBits, (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT), memoryProperties);
     // If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
     VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
     if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
@@ -1170,7 +1218,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
         return false;
     }
 
-    alignment = memReqs.alignment;
+    alignment = memReqsNew.alignment;
     size = size;
     usageFlags = usageFlags;
     memoryPropertyFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -1193,10 +1241,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
         return false;
     }
 
-    // TODO: CAMERA
-    //uboVS.projection = camera.matrices.perspective;
-    //uboVS.modelView = camera.matrices.view;
-    memcpy(mapped, &uboVS, sizeof(uboVS));
+    UpdateModelPositions();
 
     /* Descriptor Set Layout */
 
@@ -1415,8 +1460,8 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     renderPassBeginInfo.renderPass = renderPass;
     renderPassBeginInfo.renderArea.offset.x = 0;
     renderPassBeginInfo.renderArea.offset.y = 0;
-    renderPassBeginInfo.renderArea.extent.width = 1280;
-    renderPassBeginInfo.renderArea.extent.height = 720;
+    renderPassBeginInfo.renderArea.extent.width = width;
+    renderPassBeginInfo.renderArea.extent.height = height;
     renderPassBeginInfo.clearValueCount = 2;
     renderPassBeginInfo.pClearValues = clearValues;
 
@@ -1442,9 +1487,9 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
         vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
         model.bindBuffers(drawCmdBuffers[i]);
 
-        //const VkDeviceSize offsets[1] = { 0 };
-        //vkCmdBindVertexBuffers(drawCommandBuffers[i], 0, 1, &modelVerticies.buffer, offsets);
-        //vkCmdBindIndexBuffer(drawCommandBuffers[i], modelIndicies.buffer, 0, VK_INDEX_TYPE_UINT32);
+        const VkDeviceSize offsets[1] = { 0 };
+        vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &model.vertices.buffer, offsets);
+        vkCmdBindIndexBuffer(drawCmdBuffers[i], model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
         //buffersBound = true;
 
         viewport.width = (float)width;
@@ -1868,6 +1913,7 @@ bool Renderer::UpdateRendererClass()
 
     if (vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
     {
+        std::cout << "Error Submitting queue" << std::endl;
         return false;
     }
 
@@ -2154,6 +2200,10 @@ bool Renderer::ResizeWindow()
 
 void Renderer::UpdateModelPositions()
 {
+    uboVS.projection = camera.matrices.perspective;
+    uboVS.modelView = camera.matrices.view;
+    memcpy(mapped, &uboVS, sizeof(uboVS));
+
     //model.rotationMatrix = PrepareRotationMatrix(40.0f, { 0.0f, -1.0f, 0.0f });
     //model.translationMatrix = PrepareTranslationMatrix(GetTranslattionXValue(), 0.0f, GetTranslattionZValue());
     //model.modelViewMatrix = model.translationMatrix * model.rotationMatrix;

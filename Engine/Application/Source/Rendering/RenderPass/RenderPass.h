@@ -438,4 +438,12 @@ namespace SmolderingEngine
 		semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 		return semaphoreCreateInfo;
 	}
+
+	inline VkFenceCreateInfo FenceCreateInfo(VkFenceCreateFlags flags = 0)
+	{
+		VkFenceCreateInfo fenceCreateInfo{};
+		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceCreateInfo.flags = flags;
+		return fenceCreateInfo;
+	}
 };

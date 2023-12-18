@@ -7,6 +7,7 @@
 #include "../Rendering/BuffersAndPools/CommandBufferAndPool.h"
 #include "../Rendering/RenderPass/RenderPass.h"
 #include "../../VulkanglTFModel.h"
+#include "Camera/Camera.h"
 
 #include "vulkan/vulkan.h"
 
@@ -79,6 +80,10 @@ public:
     VkDescriptorSet descriptorSet;
     VkDescriptorSetLayout descriptorSetLayout;
 
+    Camera camera;
+
+    VkQueueFlags requestedQueueTypes = (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
+
     VkSurfaceKHR surface;
     // Vulkan instance, stores all per-application states
     VkInstance instance;
@@ -101,7 +106,7 @@ public:
     // Depth buffer format (selected during Vulkan initialization)
     VkFormat depthFormat;
     // Command buffer pool
-    VkCommandPool cmdPool;
+    VkCommandPool commandPool_OTHER;
     /** @brief Pipeline stages used to wait at for graphics queue submissions */
     VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     // Contains command buffers and semaphores to be presented to the queue
@@ -165,8 +170,6 @@ public:
     } queueFamilyIndices;
 
     VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
-
-    // TODO: Camera camera;
 
     struct {
         VkImage image;
