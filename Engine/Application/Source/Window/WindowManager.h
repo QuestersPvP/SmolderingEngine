@@ -11,8 +11,7 @@ class WindowManager
 	/* Variables */
 
 public:
-	WindowParameters windowParams; // TODO: MOVE WINDOW CREATING TO ANOTHER CLASS
-	//InputManager windowInput;
+	WindowParameters windowParams;
 
 private:
 	bool applicationShouldRun = true;

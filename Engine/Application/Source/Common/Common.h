@@ -9,19 +9,22 @@
 #define WINDOW_TITLE L"Smoldering Engine"
 
 // OS include
-#include <Windows.h>
+//#include <Windows.h>
+//
+//#include <iostream>
+//#include <vector>
+//#include <array>
+//#include <string>
+//#include <cstring>
+//#include <thread>
+//#include <cmath>
+//#include <functional>
+//#include <memory>
+//#include <cassert>
+//
+//#include "../Common/VulkanFunctions.h"
 
-#include <iostream>
-#include <vector>
-#include <array>
-#include <string>
-#include <cstring>
-#include <thread>
-#include <cmath>
-#include <functional>
-#include <memory>
-
-#include "../Common/VulkanFunctions.h"
+#include "Utilities/Includes/ApplicationIncludes.h"
 
 // TODO: remove the common.h / .cpp
 // TODO: Make file to store all headers in one location
@@ -43,12 +46,6 @@ namespace SmolderingEngine
     Matrix4x4 PreparePerspectiveProjectionMatrix(float _aspectRatio, float _fieldOfView, float _nearPlane, float _farPlane);
 
     // TODO: make a place to store all structs
-    // Struct for Windows platform application windows
-    struct WindowParameters
-    {
-        HINSTANCE           HInstance;
-        HWND                HWnd;
-    };
 
     // Defines a swapchain from which we want to present an image.
     struct PresentInfo 
@@ -70,18 +67,18 @@ namespace SmolderingEngine
         uint32_t  familyIndex;
     };
 
-    struct DepthStencil
-    {
-        VkImage         image;
-        VkDeviceMemory  memory;
-        VkImageView     view;
-    };
+    //struct DepthStencil
+    //{
+    //    VkImage         image;
+    //    VkDeviceMemory  memory;
+    //    VkImageView     view;
+    //};
 
-    struct SwapChainBuffer
-    {
-        VkImage         image;
-        VkImageView     view;
-    };
+    //struct SwapChainBuffer
+    //{
+    //    VkImage         image;
+    //    VkImageView     view;
+    //};
 
     struct Buffer
     {
@@ -314,7 +311,4 @@ namespace SmolderingEngine
     bool IsExtensionSupported(std::vector<VkExtensionProperties> const& _availableExtensions, char const* const _extension);
 
     bool GetBinaryFileContents(std::string const& _filename, std::vector<unsigned char>& _contents);
-    VkShaderModule loadShader(const char* fileName, VkDevice device);
-
-    bool Load3DModelFromObjFile(char const* _filename, bool _loadNormals, bool _loadTexcoords, bool _generateTangentSpaceVectors, bool _unify, Mesh& _mesh, uint32_t* _vertexStride = nullptr);
 };

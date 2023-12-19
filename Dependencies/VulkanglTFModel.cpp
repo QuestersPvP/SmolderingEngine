@@ -731,7 +731,7 @@ void vkglTF::Model::createEmptyTexture(VkQueue transferQueue)
 VkResult vkglTF::createBuffer(VkDevice logicalDevice, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkPhysicalDeviceMemoryProperties& memoryProperties, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, void* data)
 {
 	// Create the buffer handle
-	VkBufferCreateInfo bufferCreateInfo = SmolderingEngine::BufferCreateInfo(usageFlags, size);
+	VkBufferCreateInfo bufferCreateInfo = SE_Renderer::BufferCreateInfo(usageFlags, size);
 	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	if (vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, buffer) != VK_SUCCESS)
 	{
@@ -740,11 +740,11 @@ VkResult vkglTF::createBuffer(VkDevice logicalDevice, VkBufferUsageFlags usageFl
 
 	// Create the memory backing up the buffer handle
 	VkMemoryRequirements memReqs;
-	VkMemoryAllocateInfo memAlloc = SmolderingEngine::memoryAllocateInfo();
+	VkMemoryAllocateInfo memAlloc = SE_Renderer::memoryAllocateInfo();
 	vkGetBufferMemoryRequirements(logicalDevice, *buffer, &memReqs);
 	memAlloc.allocationSize = memReqs.size;
 	// Find a memory type index that fits the properties of the buffer
-	memAlloc.memoryTypeIndex = SmolderingEngine::GetMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags, memoryProperties);
+	memAlloc.memoryTypeIndex = SE_Renderer::GetMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags, memoryProperties);
 	// If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
 	VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
 	if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
@@ -769,7 +769,7 @@ VkResult vkglTF::createBuffer(VkDevice logicalDevice, VkBufferUsageFlags usageFl
 		// If host coherency hasn't been requested, do a manual flush to make writes visible
 		if ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
 		{
-			VkMappedMemoryRange mappedRange = SmolderingEngine::mappedMemoryRange();
+			VkMappedMemoryRange mappedRange = SE_Renderer::mappedMemoryRange();
 			mappedRange.memory = *memory;
 			mappedRange.offset = 0;
 			mappedRange.size = size;
@@ -1384,7 +1384,7 @@ void vkglTF::Model::loadFromFile(std::string filename, VkDevice& logicalDevice, 
 
 	// Copy from staging buffers
 
-	VkCommandBufferAllocateInfo cmdBufAllocateInfo = SmolderingEngine::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+	VkCommandBufferAllocateInfo cmdBufAllocateInfo = SE_Renderer::commandBufferAllocateInfo(commandPool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
 	VkCommandBuffer copyCmd;
 
 	if (vkAllocateCommandBuffers(logicalDevice, &cmdBufAllocateInfo, &copyCmd) != VK_SUCCESS)
@@ -1393,7 +1393,7 @@ void vkglTF::Model::loadFromFile(std::string filename, VkDevice& logicalDevice, 
 		return;
 	}
 
-	VkCommandBufferBeginInfo cmdBufInfo = SmolderingEngine::commandBufferBeginInfo();
+	VkCommandBufferBeginInfo cmdBufInfo = SE_Renderer::commandBufferBeginInfo();
 	if (vkBeginCommandBuffer(copyCmd, &cmdBufInfo) != VK_SUCCESS)
 	{
 		std::cout << "Failed to begin command buffer, model not loaded" << std::endl;
@@ -1418,11 +1418,11 @@ void vkglTF::Model::loadFromFile(std::string filename, VkDevice& logicalDevice, 
 		return;
 	}
 
-	VkSubmitInfo submitInfo = SmolderingEngine::SubmitInfo();
+	VkSubmitInfo submitInfo = SE_Renderer::SubmitInfo();
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &copyCmd;
 	// Create fence to ensure that the command buffer has finished executing
-	VkFenceCreateInfo fenceInfo = SmolderingEngine::fenceCreateInfo(0);
+	VkFenceCreateInfo fenceInfo = SE_Renderer::fenceCreateInfo(0);
 	VkFence fence;
 	if (vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence) != VK_SUCCESS)
 	{
@@ -1491,7 +1491,7 @@ void vkglTF::Model::loadFromFile(std::string filename, VkDevice& logicalDevice, 
 		// Layout is global, so only create if it hasn't already been created before
 		if (descriptorSetLayoutUbo == VK_NULL_HANDLE) {
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-				SmolderingEngine::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+				SE_Renderer::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
 			descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -1514,10 +1514,10 @@ void vkglTF::Model::loadFromFile(std::string filename, VkDevice& logicalDevice, 
 		if (descriptorSetLayoutImage == VK_NULL_HANDLE) {
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
 			if (descriptorBindingFlags & DescriptorBindingFlags::ImageBaseColor) {
-				setLayoutBindings.push_back(SmolderingEngine::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, static_cast<uint32_t>(setLayoutBindings.size())));
+				setLayoutBindings.push_back(SE_Renderer::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, static_cast<uint32_t>(setLayoutBindings.size())));
 			}
 			if (descriptorBindingFlags & DescriptorBindingFlags::ImageNormalMap) {
-				setLayoutBindings.push_back(SmolderingEngine::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, static_cast<uint32_t>(setLayoutBindings.size())));
+				setLayoutBindings.push_back(SE_Renderer::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, static_cast<uint32_t>(setLayoutBindings.size())));
 			}
 			VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
 			descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;

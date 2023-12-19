@@ -1,24 +1,25 @@
 #pragma once
 
-#include "../Common/Common.h"
-#include "../Rendering/Instances/InstancesAndDevices.h"
-#include "../Rendering/Application/WindowCreation.h"
-#include "../Rendering/ImagePresentation/SwapChain.h"
-#include "../Rendering/BuffersAndPools/CommandBufferAndPool.h"
-#include "../Rendering/RenderPass/RenderPass.h"
-#include "../../VulkanglTFModel.h"
-#include "Camera/Camera.h"
+//#include "../Common/Common.h"
+//#include "../Rendering/Instances/InstancesAndDevices.h"
+//#include "../Rendering/Application/WindowCreation.h"
+//#include "../Rendering/ImagePresentation/SwapChain.h"
+//#include "../Rendering/BuffersAndPools/CommandBufferAndPool.h"
+//#include "../Rendering/RenderPass/RenderPass.h"
+//#include "../../VulkanglTFModel.h"
+//#include "Camera/Camera.h"
+//#include "vulkan/vulkan.h"
 
-#include "vulkan/vulkan.h"
+#include "../Utilities/Includes/ApplicationIncludes.h"
 
-using namespace SmolderingEngine;
+using namespace SE_Renderer;
 
 class Renderer
 {
 	/* Variables */
 
 public:
-    LIBRARY_TYPE vulkanLibrary;
+    //LIBRARY_TYPE vulkanLibrary;
 
     /* Vulkan */
     //VkSubmitInfo submitInfo = {};
@@ -74,39 +75,35 @@ public:
 
     std::string title = "Smoldering Engine";
     std::string name = "Smoldering Engine";
-
     VkPipeline graphicsPipeline;
     VkPipelineLayout pipelineLayout;
     VkDescriptorSet descriptorSet;
     VkDescriptorSetLayout descriptorSetLayout;
-
     Camera camera;
-
     VkQueueFlags requestedQueueTypes = (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
-
     VkSurfaceKHR surface;
     // Vulkan instance, stores all per-application states
     VkInstance instance;
     std::vector<std::string> supportedInstanceExtensions;
     // Stores physical device properties (for e.g. checking device limits)
-    VkPhysicalDeviceProperties deviceProperties;
+    //VkPhysicalDeviceProperties deviceProperties;
     // Stores the features available on the selected physical device (for e.g. checking if a feature is available)
-    VkPhysicalDeviceFeatures deviceFeatures;
+    //VkPhysicalDeviceFeatures deviceFeatures;
     // Stores all available memory (type) properties for the physical device
-    VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
+    //VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
     /** @brief Set of physical device features to be enabled for this example (must be set in the derived constructor) */
     VkPhysicalDeviceFeatures enabledFeatures{};
     /** @brief Set of device extensions to be enabled for this example (must be set in the derived constructor) */
-    std::vector<const char*> enabledDeviceExtensions;
-    std::vector<const char*> enabledInstanceExtensions;
+    //std::vector<const char*> enabledDeviceExtensions;
+    //std::vector<const char*> enabledInstanceExtensions;
     /** @brief Optional pNext structure for passing extension structures to device creation */
-    void* deviceCreatepNextChain = nullptr;
+    //void* deviceCreatepNextChain = nullptr;
     // Handle to the device graphics queue that command buffers are submitted to
     VkQueue queue;
     // Depth buffer format (selected during Vulkan initialization)
     VkFormat depthFormat;
     // Command buffer pool
-    VkCommandPool commandPool_OTHER;
+    VkCommandPool commandBufferCommandPool;
     /** @brief Pipeline stages used to wait at for graphics queue submissions */
     VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     // Contains command buffers and semaphores to be presented to the queue
@@ -133,18 +130,10 @@ public:
     std::vector<VkImage> images;
     std::vector<SwapChainBuffer> buffers;
     uint32_t queueNodeIndex = UINT32_MAX;
-    // Synchronization semaphores
-    struct {
-        // Swap chain image presentation
-        VkSemaphore presentComplete;
-        // Command buffer submission and execution
-        VkSemaphore renderComplete;
-    } semaphores;
+    SynchronizationSemaphores semaphores;
     std::vector<VkFence> waitFences;
-
     uint32_t width = 1280;
     uint32_t height = 720;
-
     /** @brief Physical device representation */
     VkPhysicalDevice physicalDevice;
     /** @brief Logical device representation (application's view of the device) */
@@ -160,23 +149,11 @@ public:
     /** @brief List of extensions supported by the device */
     std::vector<std::string> supportedExtensions;
     /** @brief Default command pool for the graphics queue family index */
-    VkCommandPool commandPool = VK_NULL_HANDLE;
+    VkCommandPool graphicsCommandPool = VK_NULL_HANDLE;
     /** @brief Contains queue family indices */
-    struct
-    {
-        uint32_t graphics;
-        uint32_t compute;
-        uint32_t transfer;
-    } queueFamilyIndices;
-
+    QueueFamilyIndices queueFamilyIndices;
     VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
-
-    struct {
-        VkImage image;
-        VkDeviceMemory mem;
-        VkImageView view;
-    } depthStencil;
-
+    DepthStencil depthStencil;
     VkBuffer buffer = VK_NULL_HANDLE;
     VkDeviceMemory memory = VK_NULL_HANDLE;
     VkDescriptorBufferInfo descriptor;
@@ -188,22 +165,14 @@ public:
     /** @brief Memory property flags to be filled by external source at buffer creation (to query at some later point) */
     VkMemoryPropertyFlags memoryPropertyFlags;
     vkglTF::Model model;
-
-    // Same uniform buffer layout as shader
-    struct UBOVS {
-        glm::mat4 projection;
-        glm::mat4 modelView;
-        glm::vec4 lightPos = glm::vec4(0.0f, 2.0f, 1.0f, 0.0f);
-    } uboVS;
-
-    //TODO: FIX INDEX
+    UBOVS uboVS;
     uint32_t frame_index = 0;
 
 private:
     bool applicationReadyToRender = true;
-    float translationXValue = 0.0f;
-    float translationYValue = 0.0f;
-    float translationZValue = -3.0f;
+    //float translationXValue = 0.0f;
+    //float translationYValue = 0.0f;
+    //float translationZValue = -3.0f;
 
     /* Functions */
 
@@ -217,17 +186,17 @@ public:
     const bool GetApplicationReadyToRender() { return applicationReadyToRender; }
     const void SetApplicationReadyToRender(bool _shouldRender) { applicationReadyToRender = _shouldRender; }
 
-    const float GetTranslattionXValue() { return translationXValue; }
-    const void SetTranslationXValue(float _setValue) { translationXValue = _setValue; }
-    const void AddToTranslationXValue(float _addValue) { translationXValue += _addValue; }
+    //const float GetTranslattionXValue() { return translationXValue; }
+    //const void SetTranslationXValue(float _setValue) { translationXValue = _setValue; }
+    //const void AddToTranslationXValue(float _addValue) { translationXValue += _addValue; }
 
-    const float GetTranslattionYValue() { return translationYValue; }
-    const void SetTranslationYValue(float _setValue) { translationYValue = _setValue; }
-    const void AddToTranslationYValue(float _addValue) { translationYValue += _addValue; }
+    //const float GetTranslattionYValue() { return translationYValue; }
+    //const void SetTranslationYValue(float _setValue) { translationYValue = _setValue; }
+    //const void AddToTranslationYValue(float _addValue) { translationYValue += _addValue; }
 
-    const float GetTranslattionZValue() { return translationZValue; }
-    const void SetTranslationZValue(float _setValue) { translationZValue = _setValue; }
-    const void AddToTranslationZValue(float _addValue) { translationZValue += _addValue; }
+    //const float GetTranslattionZValue() { return translationZValue; }
+    //const void SetTranslationZValue(float _setValue) { translationZValue = _setValue; }
+    //const void AddToTranslationZValue(float _addValue) { translationZValue += _addValue; }
 
 private:
     void UpdateModelPositions();

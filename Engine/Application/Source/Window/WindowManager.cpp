@@ -18,7 +18,6 @@
 		MSG message;
 		if (PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
 		{
-			// TODO: add event handeling (e.g. x button clicked, resized, etc.)
 			switch (message.message)
 			{
 				// Application Events
@@ -82,19 +81,19 @@
 	{
 		if (wButtonDown)
 		{
-			_renderer.AddToTranslationZValue(0.01f);
+			//_renderer.AddToTranslationZValue(0.01f);
 		}
 		else if (aButtonDown)
 		{
-			_renderer.AddToTranslationXValue(-0.01f);
+			//_renderer.AddToTranslationXValue(-0.01f);
 		}
 		else if (sButtonDown)
 		{
-			_renderer.AddToTranslationZValue(-0.01f);
+			//_renderer.AddToTranslationZValue(-0.01f);
 		}
 		else if (dButtonDown)
 		{
-			_renderer.AddToTranslationXValue(0.01f);
+			//_renderer.AddToTranslationXValue(0.01f);
 		}
 	}
 

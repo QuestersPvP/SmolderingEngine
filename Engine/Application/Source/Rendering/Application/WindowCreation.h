@@ -1,5 +1,7 @@
 #pragma once
 
+// TODO: MOVE THIS WHOLE CLASS INTO WINDOW
+
 #include "../../Common/Common.h"
 
 namespace SmolderingEngine
