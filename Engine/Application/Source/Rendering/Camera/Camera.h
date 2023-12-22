@@ -1,10 +1,6 @@
 #pragma once
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include "Utilities/Includes/ApplicationIncludes.h"
 
 class Camera
 {
@@ -17,21 +13,20 @@ public:
 	glm::vec4 viewPos = glm::vec4();
 	float rotationSpeed = 1.0f;
 	float movementSpeed = 1.0f;
-	struct
-	{
-		glm::mat4 perspective;
-		glm::mat4 view;
-	} matrices;
+	CameraMatrices matrices;
 
-	void SetPosition(glm::vec3 position);
-	void SetRotation(glm::vec3 rotation);
-	void SetPerspective(float fov, float aspect, float znear, float zfar);
-	void SetRotationSpeed(float rotationSpeed);
+	void SetRotationSpeed(float _rotationSpeed);
+	
+	void SetPosition(glm::vec3 _position);
+	void SetRotation(glm::vec3 _rotation);
+
+	void SetPerspective(float _fov, float _aspectRatio, float _zNear, float _zFar);
+	void UpdateAspectRatio(float _aspectRatio);
 
 private:
 	float fov;
-	float znear;
-	float zfar;
+	float zNear;
+	float zFar;
 
 	void UpdateViewMatrix();
 };

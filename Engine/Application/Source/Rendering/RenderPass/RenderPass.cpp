@@ -1489,6 +1489,320 @@ namespace SE_Renderer
         return true;
     }
 
+    bool CreateSwapchain(VkSwapchainKHR& _swapChain, VkPhysicalDevice _physicalDevice, VkSurfaceKHR _presentationSurface, uint32_t _width, uint32_t _height, uint32_t& _imageCount,
+                         std::vector<VkImage>& _swapchainImages, std::vector<SwapChainBuffer>& _swapchainBuffers, VkDevice _logicalDevice, VkFormat _colorFormat, VkColorSpaceKHR _colorSpace)
+    {
+        // TODO: FIGURE OUT WHY THIS FUNCTION DOES NOT WORK??
+
+        // Store the current swap chain handle so we can use it later on to ease up recreation
+        VkSwapchainKHR oldSwapchain = _swapChain;
+
+        // Get physical device surface properties and formats
+        VkSurfaceCapabilitiesKHR surfCaps;
+        if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_physicalDevice, _presentationSurface, &surfCaps))
+        {
+            std::cout << "Error obtaining surface capabilities" << std::endl;
+            return false;
+        }
+
+        // Get available present modes
+        uint32_t presentModeCount;
+        if (vkGetPhysicalDeviceSurfacePresentModesKHR(_physicalDevice, _presentationSurface, &presentModeCount, NULL))
+        {
+            std::cout << "Error getting presentation modes" << std::endl;
+            return false;
+        }
+        assert(presentModeCount > 0);
+
+        std::vector<VkPresentModeKHR> presentModes(presentModeCount);
+        if (vkGetPhysicalDeviceSurfacePresentModesKHR(_physicalDevice, _presentationSurface, &presentModeCount, presentModes.data()))
+        {
+            std::cout << "Error getting presentation modes" << std::endl;
+            return false;
+        }
+
+        VkExtent2D swapchainExtent = {};
+        // If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
+        if (surfCaps.currentExtent.width == (uint32_t)-1)
+        {
+            // If the surface size is undefined, the size is set to
+            // the size of the images requested.
+            swapchainExtent.width = _width;
+            swapchainExtent.height = _height;
+        }
+        else
+        {
+            // If the surface size is defined, the swap chain size must match
+            swapchainExtent = surfCaps.currentExtent;
+            _width = surfCaps.currentExtent.width;
+            _height = surfCaps.currentExtent.height;
+        }
+
+        // Select a present mode for the swapchain
+        // The VK_PRESENT_MODE_FIFO_KHR mode must always be present as per spec
+        // This mode waits for the vertical blank ("v-sync")
+        VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+        for (size_t i = 0; i < presentModeCount; i++)
+        {
+            if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+            {
+                swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+                break;
+            }
+            if (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR)
+            {
+                swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            }
+        }
+
+        // Determine the number of images
+        uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 1;
+
+        if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
+        {
+            desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
+        }
+
+        // Find the transformation of the surface
+        VkSurfaceTransformFlagsKHR preTransform;
+        if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+        {
+            // We prefer a non-rotated transform
+            preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+        }
+        else
+        {
+            preTransform = surfCaps.currentTransform;
+        }
+
+        // Find a supported composite alpha format (not all devices support alpha opaque)
+        VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        // Simply select the first composite alpha format available
+        std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags =
+        {
+            VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+            VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
+            VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+        };
+        for (auto& compositeAlphaFlag : compositeAlphaFlags)
+        {
+            if (surfCaps.supportedCompositeAlpha & compositeAlphaFlag)
+            {
+                compositeAlpha = compositeAlphaFlag;
+                break;
+            };
+        }
+
+        VkSwapchainCreateInfoKHR swapchainCI = {};
+        swapchainCI.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        swapchainCI.surface = _presentationSurface;
+        swapchainCI.minImageCount = desiredNumberOfSwapchainImages;
+        swapchainCI.imageFormat = _colorFormat;
+        swapchainCI.imageColorSpace = _colorSpace;
+        swapchainCI.imageExtent = { swapchainExtent.width, swapchainExtent.height };
+        swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        swapchainCI.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
+        swapchainCI.imageArrayLayers = 1;
+        swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        swapchainCI.queueFamilyIndexCount = 0;
+        swapchainCI.presentMode = swapchainPresentMode;
+        // Setting oldSwapChain to the saved handle of the previous swapchain aids in resource reuse and makes sure that we can still present already acquired images
+        swapchainCI.oldSwapchain = oldSwapchain;
+        // Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
+        swapchainCI.clipped = VK_TRUE;
+        swapchainCI.compositeAlpha = compositeAlpha;
+
+        // Enable transfer source on swap chain images if supported
+        if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
+            swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        }
+
+        // Enable transfer destination on swap chain images if supported
+        if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+            swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        }
+
+        if (vkCreateSwapchainKHR(_logicalDevice, &swapchainCI, nullptr, &_swapChain) != VK_SUCCESS)
+        {
+            std::cout << "Error creating swapchain" << std::endl;
+            return false;
+        }
+
+        // If an existing swap chain is re-created, destroy the old swap chain
+        // This also cleans up all the presentable images
+        if (oldSwapchain != VK_NULL_HANDLE)
+        {
+            for (uint32_t i = 0; i < _imageCount; i++)
+            {
+                vkDestroyImageView(_logicalDevice, _swapchainBuffers[i].view, nullptr);
+            }
+            vkDestroySwapchainKHR(_logicalDevice, oldSwapchain, nullptr);
+        }
+        if (vkGetSwapchainImagesKHR(_logicalDevice, _swapChain, &_imageCount, NULL))
+        {
+            std::cout << "Error getting swapchain images" << std::endl;
+            return false;
+        }
+
+        // Get the swap chain images
+        _swapchainImages.resize(_imageCount);
+        if (vkGetSwapchainImagesKHR(_logicalDevice, _swapChain, &_imageCount, _swapchainImages.data()))
+        {
+            std::cout << "Error getting swapchain images" << std::endl;
+            return false;
+        }
+
+        // Get the swap chain buffers containing the image and imageview
+        _swapchainBuffers.resize(_imageCount);
+        for (uint32_t i = 0; i < _imageCount; i++)
+        {
+            VkImageViewCreateInfo colorAttachmentView = {};
+            colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            colorAttachmentView.pNext = NULL;
+            colorAttachmentView.format = _colorFormat;
+            colorAttachmentView.components = {
+                VK_COMPONENT_SWIZZLE_R,
+                VK_COMPONENT_SWIZZLE_G,
+                VK_COMPONENT_SWIZZLE_B,
+                VK_COMPONENT_SWIZZLE_A
+            };
+            colorAttachmentView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            colorAttachmentView.subresourceRange.baseMipLevel = 0;
+            colorAttachmentView.subresourceRange.levelCount = 1;
+            colorAttachmentView.subresourceRange.baseArrayLayer = 0;
+            colorAttachmentView.subresourceRange.layerCount = 1;
+            colorAttachmentView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            colorAttachmentView.flags = 0;
+
+            _swapchainBuffers[i].image = _swapchainImages[i];
+
+            colorAttachmentView.image = _swapchainBuffers[i].image;
+
+            if (vkCreateImageView(_logicalDevice, &colorAttachmentView, nullptr, &_swapchainBuffers[i].view))
+            {
+                std::cout << "Error creating image views" << std::endl;
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool CreateDepthStencil(uint32_t _width, uint32_t _height, VkDevice _logicalDevice, DepthStencil* _depthStencil, VkPhysicalDeviceMemoryProperties* _memoryProperties, VkFormat* _depthFormat)
+    {
+        VkImageCreateInfo imageCreateInfo{};
+        imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageCreateInfo.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
+        imageCreateInfo.extent = { _width, _height, 1 };
+        imageCreateInfo.mipLevels = 1;
+        imageCreateInfo.arrayLayers = 1;
+        imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+        if (vkCreateImage(_logicalDevice, &imageCreateInfo, nullptr, &_depthStencil->image) != VK_SUCCESS)
+        {
+            std::cout << "Could not create an image." << std::endl;
+            return false;
+        }
+
+        VkMemoryRequirements memReqs{};
+        vkGetImageMemoryRequirements(_logicalDevice, _depthStencil->image, &memReqs);
+
+        VkMemoryAllocateInfo memAllloc{};
+        memAllloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        memAllloc.allocationSize = memReqs.size;
+        memAllloc.memoryTypeIndex = GetMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, *_memoryProperties);
+
+        if (vkAllocateMemory(_logicalDevice, &memAllloc, nullptr, &_depthStencil->mem) != VK_SUCCESS)
+        {
+            std::cout << "Could not allocate memory!" << std::endl;
+            return false;
+        }
+        if (vkBindImageMemory(_logicalDevice, _depthStencil->image, _depthStencil->mem, 0) != VK_SUCCESS)
+        {
+            std::cout << "Could not bind memory object to an image." << std::endl;
+            return false;
+        }
+
+        VkImageViewCreateInfo imageViewCreateInfo{};
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.image = _depthStencil->image;
+        imageViewCreateInfo.format = VK_FORMAT_D32_SFLOAT_S8_UINT; // DEPTH FORMAT
+        imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+        imageViewCreateInfo.subresourceRange.levelCount = 1;
+        imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        imageViewCreateInfo.subresourceRange.layerCount = 1;
+        imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
+        if (*_depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+            imageViewCreateInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+
+        if (vkCreateImageView(_logicalDevice, &imageViewCreateInfo, nullptr, &_depthStencil->view) != VK_SUCCESS)
+        {
+            std::cout << "Could not create an image view." << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    bool CreateSynchronizationPrimitives(std::vector<VkFence>& _waitFences, std::vector<VkCommandBuffer>& _drawCmdBuffers, VkDevice _logicalDevice)
+    {
+        // Wait fences to sync command buffer access
+        VkFenceCreateInfo fenceCreateInfo = FenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+        _waitFences.resize(_drawCmdBuffers.size());
+        for (auto& fence : _waitFences)
+        {
+            if (vkCreateFence(_logicalDevice, &fenceCreateInfo, nullptr, &fence) != VK_SUCCESS)
+            {
+                std::cout << "Error creating a fence" << std::endl;
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool CreateFrameBuffer()
+    {
+        return false;
+    }
+
+    bool CreateCommandBuffers(std::vector<VkCommandBuffer>& _drawCmdBuffers, VkCommandPool _commandBufferCommandPool, uint32_t _imageCount, VkDevice _logicalDevice)
+    {
+        _drawCmdBuffers.resize(_imageCount);
+
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo =
+            commandBufferAllocateInfo(
+                _commandBufferCommandPool,
+                VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                static_cast<uint32_t>(_drawCmdBuffers.size()));
+
+        if (vkAllocateCommandBuffers(_logicalDevice, &cmdBufAllocateInfo, _drawCmdBuffers.data()) != VK_SUCCESS)
+        {
+            std::cout << "Error creating command buffers" << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    bool BuildCommandBuffers()
+    {
+        return false;
+    }
+
+    bool DestroyCommandBuffers()
+    {
+        return false;
+    }
+
     VkBool32 GetSupportedDepthFormat(VkPhysicalDevice _physicalDevice, VkFormat* _depthFormat)
     {
         // Since all depth formats may be optional, we need to find a suitable depth format to use

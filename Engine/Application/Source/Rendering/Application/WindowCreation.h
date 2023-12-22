@@ -3,6 +3,7 @@
 // TODO: MOVE THIS WHOLE CLASS INTO WINDOW
 
 #include "../../Common/Common.h"
+#include "Window/WindowManager.h"
 
 namespace SmolderingEngine
 {
@@ -28,8 +29,6 @@ namespace SmolderingEngine
         KEYUP_D,
         KEYUP_ESC
     };
-
-
 
     WindowParameters GenerateApplicationWindowParameters();
     bool CreatePresentationSurface(VkInstance _instance, WindowParameters _windowParameters, VkSurfaceKHR& _presentationSurface);

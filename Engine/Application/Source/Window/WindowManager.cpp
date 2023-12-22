@@ -22,7 +22,9 @@
 			{
 				// Application Events
 			case USERMESSAGE_RESIZE:
-				_renderer.ResizeWindow();
+				targetWidth = LOWORD(message.lParam);
+				targetHeight = HIWORD(message.lParam);
+				_renderer.ResizeWindow(targetWidth, targetHeight);
 				break;
 			case USERMESSAGE_QUIT:
 				ApplicationShutdown();

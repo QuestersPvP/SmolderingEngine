@@ -10,7 +10,8 @@ void Camera::UpdateViewMatrix()
 	rotM = glm::rotate(rotM, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	glm::vec3 translation = position;
-	if (flipY) {
+	if (flipY) 
+	{
 		translation.y *= -1.0f;
 	}
 	transM = glm::translate(glm::mat4(1.0f), translation);
@@ -29,30 +30,41 @@ void Camera::UpdateViewMatrix()
 	//updated = true;
 }
 
-void Camera::SetPosition(glm::vec3 position)
+void Camera::SetRotationSpeed(float _rotationSpeed)
 {
-	this->position = position;
+	rotationSpeed = _rotationSpeed;
+}
+
+void Camera::SetPosition(glm::vec3 _position)
+{
+	position = _position;
 	UpdateViewMatrix();
 }
 
-void Camera::SetRotation(glm::vec3 rotation)
+void Camera::SetRotation(glm::vec3 _rotation)
 {
-	this->rotation = rotation;
+	rotation = _rotation;
 	UpdateViewMatrix();
 }
 
-void Camera::SetPerspective(float fov, float aspect, float znear, float zfar)
+void Camera::SetPerspective(float _fov, float _aspectRatio, float _zNear, float _zFar)
 {
-	this->fov = fov;
-	this->znear = znear;
-	this->zfar = zfar;
-	matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
-	if (flipY) {
+	fov = _fov;
+	zNear = _zNear;
+	zFar = _zFar;
+
+	matrices.perspective = glm::perspective(glm::radians(_fov), _aspectRatio, _zNear, _zFar);
+	if (flipY)
+	{
 		matrices.perspective[1][1] *= -1.0f;
 	}
 }
 
-void Camera::SetRotationSpeed(float rotationSpeed)
+void Camera::UpdateAspectRatio(float _aspectRatio)
 {
-	this->rotationSpeed = rotationSpeed;
+	matrices.perspective = glm::perspective(glm::radians(fov), _aspectRatio, zNear, zFar);
+	if (flipY)
+	{
+		matrices.perspective[1][1] *= -1.0f;
+	}
 }

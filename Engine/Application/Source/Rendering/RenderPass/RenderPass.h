@@ -105,6 +105,18 @@ namespace SE_Renderer
 										VkPhysicalDeviceProperties& _deviceProperties, VkPhysicalDeviceFeatures& _deviceFeatures, VkPhysicalDeviceMemoryProperties& _memoryProperties,
 										VkPhysicalDeviceFeatures& _enabledFeatures, std::vector<VkQueueFamilyProperties>& _queueFamilyProperties, std::vector<std::string>& _supportedExtensions,
 										VkQueueFlags& _requestedQueueTypes, QueueFamilyIndices& _queueFamilyIndices, VkDevice& _logicalDevice);
+
+	bool CreateSwapchain(VkSwapchainKHR& _swapChain, VkPhysicalDevice _physicalDevice, VkSurfaceKHR _presentationSurface, uint32_t _width, uint32_t _height, uint32_t& _imageCount,
+						 std::vector<VkImage>& _swapchainImages, std::vector<SwapChainBuffer>& _swapchainBuffers, VkDevice _logicalDevice, VkFormat _colorFormat, VkColorSpaceKHR _colorSpace);
+
+	bool CreateDepthStencil(uint32_t _width, uint32_t _height, VkDevice _logicalDevice, DepthStencil* _depthStencil, VkPhysicalDeviceMemoryProperties* _memoryProperties, VkFormat* _depthFormat);
+
+	bool CreateSynchronizationPrimitives(std::vector<VkFence>& _waitFences, std::vector<VkCommandBuffer>& _drawCmdBuffers, VkDevice _logicalDevice);
+	bool CreateFrameBuffer();
+	
+	bool CreateCommandBuffers(std::vector<VkCommandBuffer>& _drawCmdBuffers, VkCommandPool _commandBufferCommandPool, uint32_t _imageCount, VkDevice _logicalDevice);
+	bool BuildCommandBuffers();
+	bool DestroyCommandBuffers();
 	/*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 	VkBool32 GetSupportedDepthFormat(VkPhysicalDevice _physicalDevice, VkFormat* _depthFormat);
 	uint32_t GetQueueFamilyIndex(VkQueueFlags _queueFlags, std::vector<VkQueueFamilyProperties>& _queueFamilyProperties);

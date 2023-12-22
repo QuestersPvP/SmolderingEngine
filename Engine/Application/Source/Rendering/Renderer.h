@@ -169,7 +169,7 @@ public:
     uint32_t frame_index = 0;
 
 private:
-    bool applicationReadyToRender = true;
+    bool applicationReadyToRender = false;
     //float translationXValue = 0.0f;
     //float translationYValue = 0.0f;
     //float translationZValue = -3.0f;
@@ -181,7 +181,7 @@ public:
 	bool UpdateRendererClass();
     void ShutdownRendererClass();
 
-    bool ResizeWindow();
+    bool ResizeWindow(uint32_t _width, uint32_t _height);
 
     const bool GetApplicationReadyToRender() { return applicationReadyToRender; }
     const void SetApplicationReadyToRender(bool _shouldRender) { applicationReadyToRender = _shouldRender; }

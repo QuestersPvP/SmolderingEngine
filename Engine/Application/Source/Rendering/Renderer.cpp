@@ -198,6 +198,12 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
 
     /* Setup Swapchain */
 
+    //if (!CreateSwapchain(swapChain, physicalDevice, surface, width, height, imageCount, images, buffers, logicalDevice, colorFormat, colorSpace))
+    //{
+    //    std::cout << "Error while creating the swapchain" << std::endl;
+    //    return false;
+    //}
+
     // Store the current swap chain handle so we can use it later on to ease up recreation
     VkSwapchainKHR oldSwapchain = swapChain;
 
@@ -392,15 +398,21 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
 
     /* Create Command Buffers */
 
-    drawCmdBuffers.resize(imageCount);
+    //drawCmdBuffers.resize(imageCount);
 
-    VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-        commandBufferAllocateInfo(
-            commandBufferCommandPool,
-            VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            static_cast<uint32_t>(drawCmdBuffers.size()));
+    //VkCommandBufferAllocateInfo cmdBufAllocateInfo =
+    //    commandBufferAllocateInfo(
+    //        commandBufferCommandPool,
+    //        VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+    //        static_cast<uint32_t>(drawCmdBuffers.size()));
 
-    if (vkAllocateCommandBuffers(logicalDevice, &cmdBufAllocateInfo, drawCmdBuffers.data()) != VK_SUCCESS)
+    //if (vkAllocateCommandBuffers(logicalDevice, &cmdBufAllocateInfo, drawCmdBuffers.data()) != VK_SUCCESS)
+    //{
+    //    std::cout << "Error creating command buffers" << std::endl;
+    //    return false;
+    //}
+
+    if (!CreateCommandBuffers(drawCmdBuffers, commandBufferCommandPool, imageCount, logicalDevice))
     {
         std::cout << "Error creating command buffers" << std::endl;
         return false;
@@ -408,75 +420,17 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
 
     /* Synchronization Primatives */
 
-    // Wait fences to sync command buffer access
-    VkFenceCreateInfo fenceCreateInfo = FenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-    waitFences.resize(drawCmdBuffers.size());
-    for (auto& fence : waitFences) 
+    if (!CreateSynchronizationPrimitives(waitFences, drawCmdBuffers, logicalDevice))
     {
-        if (vkCreateFence(logicalDevice, &fenceCreateInfo, nullptr, &fence) != VK_SUCCESS)
-        {
-            std::cout << "Error creating a fence" << std::endl;
-            return false;
-        }
+        std::cout << "Error creating synchronization primatives!" << std::endl;
+        return false;
     }
 
     /* Depth Stencil */
     
-    VkImageCreateInfo imageCreateInfo{};
-    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageCreateInfo.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
-    imageCreateInfo.extent = { width, height, 1 };
-    imageCreateInfo.mipLevels = 1;
-    imageCreateInfo.arrayLayers = 1;
-    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-    if (vkCreateImage(logicalDevice, &imageCreateInfo, nullptr, &depthStencil.image) != VK_SUCCESS)
+    if (!CreateDepthStencil(width, height, logicalDevice, &depthStencil, &memoryProperties, &depthFormat))
     {
-        std::cout << "Could not create an image." << std::endl;
-        return false;
-    }
-
-    VkMemoryRequirements memReqs{};
-    vkGetImageMemoryRequirements(logicalDevice, depthStencil.image, &memReqs);
-
-    VkMemoryAllocateInfo memAllloc{};
-    memAllloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memAllloc.allocationSize = memReqs.size;
-    memAllloc.memoryTypeIndex = GetMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryProperties);
-
-    if (vkAllocateMemory(logicalDevice, &memAllloc, nullptr, &depthStencil.mem) != VK_SUCCESS)
-    {
-        std::cout << "Could not allocate memory!" << std::endl;
-        return false;
-    }
-    if (vkBindImageMemory(logicalDevice, depthStencil.image, depthStencil.mem, 0) != VK_SUCCESS)
-    {
-        std::cout << "Could not bind memory object to an image." << std::endl;
-        return false;
-    }
-
-    VkImageViewCreateInfo imageViewCreateInfo{};
-    imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    imageViewCreateInfo.image = depthStencil.image;
-    imageViewCreateInfo.format = VK_FORMAT_D32_SFLOAT_S8_UINT; // DEPTH FORMAT
-    imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-    imageViewCreateInfo.subresourceRange.levelCount = 1;
-    imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-    imageViewCreateInfo.subresourceRange.layerCount = 1;
-    imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    
-    // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
-    if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
-        imageViewCreateInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-    }
-
-    if (vkCreateImageView(logicalDevice, &imageViewCreateInfo, nullptr, &depthStencil.view) != VK_SUCCESS)
-    {
-        std::cout << "Could not create an image view." << std::endl;
+        std::cout << "Error creating Depth Stencil!" << std::endl;
         return false;
     }
 
@@ -634,8 +588,8 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     }
 
     alignment = memReqsNew.alignment;
-    size = size;
-    usageFlags = usageFlags;
+    /*size = size;
+    usageFlags = usageFlags;*/
     memoryPropertyFlags = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     // Initialize a default descriptor that covers the whole buffer size
@@ -836,6 +790,9 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
         }
     }
 
+    /* Everything is in place, we can render now */
+    SetApplicationReadyToRender(true);
+
     return true;
 }
 
@@ -852,7 +809,7 @@ bool Renderer::UpdateRendererClass()
             //windowResize();
             return false;
         }
-        //return;
+        return false;
     }
     else 
     {
@@ -896,6 +853,7 @@ bool Renderer::UpdateRendererClass()
         {
             return false;
         }
+        return false;
     }
     else 
     {
@@ -922,7 +880,7 @@ void Renderer::ShutdownRendererClass()
 }
 
 
-bool Renderer::ResizeWindow()
+bool Renderer::ResizeWindow(uint32_t _width, uint32_t _height)
 {
     //WaitForAllSubmittedCommandsToBeFinished(logicalDevice);
     //SetApplicationReadyToRender(false);
@@ -985,7 +943,76 @@ bool Renderer::ResizeWindow()
     //if (!UpdateUniformBuffer(swapchain, physicalDevice, logicalDevice, uniformBuffer, graphicsQueue, framesResources, model))
     //    return false;
 
-    //SetApplicationReadyToRender(true);
+    /*------------------------------------------------------------------------------------*/
+
+    if (true)
+        return false;
+
+    /* If the application is not ready to render we cannot resize the window yet */
+    if (!GetApplicationReadyToRender())
+    {
+        return false;
+    }
+
+    SetApplicationReadyToRender(false);
+    
+    // Ensure all operations on the device have been finished before destroying resources
+    vkDeviceWaitIdle(logicalDevice);
+    
+    // Recreate swap chain
+    width = _width;
+    height = _height;
+    if (!CreateSwapchain(swapChain, physicalDevice, surface, width, height, imageCount, images, buffers, logicalDevice, colorFormat, colorSpace))
+    {
+        std::cout << "Error while creating the swapchain" << std::endl;
+        return false;
+    }
+    
+    // Recreate the frame buffers
+    vkDestroyImageView(logicalDevice, depthStencil.view, nullptr);
+    vkDestroyImage(logicalDevice, depthStencil.image, nullptr);
+    vkFreeMemory(logicalDevice, depthStencil.mem, nullptr);
+
+    if (!CreateDepthStencil(width, height, logicalDevice, &depthStencil, &memoryProperties, &depthFormat))
+    {
+        std::cout << "Error creating Depth Stencil" << std::endl;
+        return false;
+    }
+    
+    for (uint32_t i = 0; i < frameBuffers.size(); i++) 
+    {
+        vkDestroyFramebuffer(logicalDevice, frameBuffers[i], nullptr);
+    }
+
+    if (!CreateFrameBuffer())
+    {
+        std::cout << "Error creating Frame Buffer" << std::endl;
+    }
+
+    // Command buffers need to be recreated as they may store
+    // references to the recreated frame buffer
+    DestroyCommandBuffers();
+    CreateCommandBuffers(drawCmdBuffers, commandBufferCommandPool, imageCount, logicalDevice);
+    BuildCommandBuffers();
+
+    // SRS - Recreate fences in case number of swapchain images has changed on resize
+    for (auto& fence : waitFences) {
+        vkDestroyFence(logicalDevice, fence, nullptr);
+    }
+    CreateSynchronizationPrimitives(waitFences, drawCmdBuffers, logicalDevice);
+
+    vkDeviceWaitIdle(logicalDevice);
+
+    /* Update camera and Uniform Buffers */
+    if ((width > 0.0f) && (height > 0.0f))
+        camera.UpdateAspectRatio((float)width / (float)height);
+    camera.SetPerspective(60.0f, (float)(width) / (float)height, 0.1f, 256.0f);
+
+    UpdateModelPositions();
+
+    /* Allow the application to start looping again */
+    SetApplicationReadyToRender(true);
+
     return true;
 }
 

@@ -20,6 +20,9 @@ private:
 	bool sButtonDown = false;
 	bool dButtonDown = false;
 
+	uint32_t targetWidth = 1280;
+	uint32_t targetHeight = 720;
+
 	/* Functions */
 
 public:
