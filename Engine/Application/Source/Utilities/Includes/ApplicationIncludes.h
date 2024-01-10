@@ -17,6 +17,9 @@
 /* OS Specific */
 #include <Windows.h>
 
+// For time tracking
+#include <chrono>
+
 /* General */
 #include <iostream>
 #include <vector>

@@ -116,7 +116,7 @@ namespace SE_Renderer
 	
 	bool CreateCommandBuffers(std::vector<VkCommandBuffer>& _drawCmdBuffers, VkCommandPool _commandBufferCommandPool, uint32_t _imageCount, VkDevice _logicalDevice);
 	bool BuildCommandBuffers();
-	bool DestroyCommandBuffers();
+	void DestroyCommandBuffers(VkDevice _logicalDevice, VkCommandPool _commandBufferCommandPool, std::vector<VkCommandBuffer>& _drawCmdBuffers);
 	/*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 	VkBool32 GetSupportedDepthFormat(VkPhysicalDevice _physicalDevice, VkFormat* _depthFormat);
 	uint32_t GetQueueFamilyIndex(VkQueueFlags _queueFlags, std::vector<VkQueueFamilyProperties>& _queueFamilyProperties);

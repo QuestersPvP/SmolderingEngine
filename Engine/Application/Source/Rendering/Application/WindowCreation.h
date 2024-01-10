@@ -15,6 +15,9 @@ namespace SmolderingEngine
         USERMESSAGE_KEYUP,
         USERMESSAGE_QUIT,
 
+        // Mouse events
+        USERMESSAGE_MOUSEMOVE,
+
         // Keydown events
         KEYDOWN_W,
         KEYDOWN_A,

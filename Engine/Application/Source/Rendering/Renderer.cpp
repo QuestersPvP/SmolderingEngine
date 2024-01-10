@@ -552,6 +552,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
 
     const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
     model.loadFromFile("S:/vulkan-tutorials/Vulkan/assets/models/treasure_smooth.gltf", logicalDevice, graphicsCommandPool, queue, memoryProperties, glTFLoadingFlags);
+        //"S:/SmoulderingEngine/Engine/Application/Source/Other/Models/test.gltf"
 
     /* Uniform Buffers */
     
@@ -798,6 +799,8 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
 
 bool Renderer::UpdateRendererClass()
 {
+    auto currTime = std::chrono::high_resolution_clock::now();
+
     // Acquire the next image from the swap chain
     VkResult result = vkAcquireNextImageKHR(logicalDevice, swapChain, UINT64_MAX, semaphores.presentComplete, (VkFence)nullptr, &frame_index);// swapchain.acquireNextImage(semaphores.presentComplete, &currentBuffer);
     // Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE)
@@ -868,6 +871,8 @@ bool Renderer::UpdateRendererClass()
         std::cout << "Error waiting for queue" << std::endl;
         return false;
     }
+
+    UpdateModelPositions();
 
     frame_index = (frame_index + 1) % drawCmdBuffers.size();
 
@@ -945,8 +950,10 @@ bool Renderer::ResizeWindow(uint32_t _width, uint32_t _height)
 
     /*------------------------------------------------------------------------------------*/
 
-    if (true)
-        return false;
+    //if (true)
+    //    return false;
+
+    // TODO: FIGURE OUT THE FOLLOWING: CREATESWAPCHAIN, CREATEFRAMEBUFFER, BUILDCOMMANDBUFFERS
 
     /* If the application is not ready to render we cannot resize the window yet */
     if (!GetApplicationReadyToRender())
@@ -962,11 +969,203 @@ bool Renderer::ResizeWindow(uint32_t _width, uint32_t _height)
     // Recreate swap chain
     width = _width;
     height = _height;
-    if (!CreateSwapchain(swapChain, physicalDevice, surface, width, height, imageCount, images, buffers, logicalDevice, colorFormat, colorSpace))
+    //if (!CreateSwapchain(swapChain, physicalDevice, surface, width, height, imageCount, images, buffers, logicalDevice, colorFormat, colorSpace))
+    //{
+    //    std::cout << "Error while creating the swapchain" << std::endl;
+    //    return false;
+    //}
+    // Store the current swap chain handle so we can use it later on to ease up recreation
+    VkSwapchainKHR oldSwapchain = swapChain;
+
+    // Get physical device surface properties and formats
+    VkSurfaceCapabilitiesKHR surfCaps;
+    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfCaps))
     {
-        std::cout << "Error while creating the swapchain" << std::endl;
+        std::cout << "Error obtaining surface capabilities" << std::endl;
         return false;
     }
+
+    // Get available present modes
+    uint32_t presentModeCount;
+    if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL))
+    {
+        std::cout << "Error getting presentation modes" << std::endl;
+        return false;
+    }
+    assert(presentModeCount > 0);
+
+    std::vector<VkPresentModeKHR> presentModes(presentModeCount);
+    if (vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data()))
+    {
+        std::cout << "Error getting presentation modes" << std::endl;
+        return false;
+    }
+
+    VkExtent2D swapchainExtent = {};
+    // If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
+    if (surfCaps.currentExtent.width == (uint32_t)-1)
+    {
+        // If the surface size is undefined, the size is set to
+        // the size of the images requested.
+        swapchainExtent.width = width;
+        swapchainExtent.height = height;
+    }
+    else
+    {
+        // If the surface size is defined, the swap chain size must match
+        swapchainExtent = surfCaps.currentExtent;
+        width = surfCaps.currentExtent.width;
+        height = surfCaps.currentExtent.height;
+    }
+
+    // Select a present mode for the swapchain
+    // The VK_PRESENT_MODE_FIFO_KHR mode must always be present as per spec
+    // This mode waits for the vertical blank ("v-sync")
+    VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+    for (size_t i = 0; i < presentModeCount; i++)
+    {
+        if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+        {
+            swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+            break;
+        }
+        if (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR)
+        {
+            swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        }
+    }
+
+    // Determine the number of images
+    uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 1;
+
+    if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
+    {
+        desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
+    }
+
+    // Find the transformation of the surface
+    VkSurfaceTransformFlagsKHR preTransform;
+    if (surfCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+    {
+        // We prefer a non-rotated transform
+        preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    }
+    else
+    {
+        preTransform = surfCaps.currentTransform;
+    }
+
+    // Find a supported composite alpha format (not all devices support alpha opaque)
+    VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    // Simply select the first composite alpha format available
+    std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags =
+    {
+        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+        VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
+        VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+    };
+    for (auto& compositeAlphaFlag : compositeAlphaFlags)
+    {
+        if (surfCaps.supportedCompositeAlpha & compositeAlphaFlag)
+        {
+            compositeAlpha = compositeAlphaFlag;
+            break;
+        };
+    }
+
+    VkSwapchainCreateInfoKHR swapchainCI = {};
+    swapchainCI.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapchainCI.surface = surface;
+    swapchainCI.minImageCount = desiredNumberOfSwapchainImages;
+    swapchainCI.imageFormat = colorFormat;
+    swapchainCI.imageColorSpace = colorSpace;
+    swapchainCI.imageExtent = { swapchainExtent.width, swapchainExtent.height };
+    swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchainCI.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
+    swapchainCI.imageArrayLayers = 1;
+    swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    swapchainCI.queueFamilyIndexCount = 0;
+    swapchainCI.presentMode = swapchainPresentMode;
+    // Setting oldSwapChain to the saved handle of the previous swapchain aids in resource reuse and makes sure that we can still present already acquired images
+    swapchainCI.oldSwapchain = oldSwapchain;
+    // Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
+    swapchainCI.clipped = VK_TRUE;
+    swapchainCI.compositeAlpha = compositeAlpha;
+
+    // Enable transfer source on swap chain images if supported
+    if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
+        swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    }
+
+    // Enable transfer destination on swap chain images if supported
+    if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+        swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    }
+
+    if (vkCreateSwapchainKHR(logicalDevice, &swapchainCI, nullptr, &swapChain) != VK_SUCCESS)
+    {
+        std::cout << "Error creating swapchain" << std::endl;
+        return false;
+    }
+
+    // If an existing swap chain is re-created, destroy the old swap chain
+    // This also cleans up all the presentable images
+    if (oldSwapchain != VK_NULL_HANDLE)
+    {
+        for (uint32_t i = 0; i < imageCount; i++)
+        {
+            vkDestroyImageView(logicalDevice, buffers[i].view, nullptr);
+        }
+        vkDestroySwapchainKHR(logicalDevice, oldSwapchain, nullptr);
+    }
+    if (vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, NULL))
+    {
+        std::cout << "Error getting swapchain images" << std::endl;
+        return false;
+    }
+
+    // Get the swap chain images
+    images.resize(imageCount);
+    if (vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, images.data()))
+    {
+        std::cout << "Error getting swapchain images" << std::endl;
+        return false;
+    }
+
+    // Get the swap chain buffers containing the image and imageview
+    buffers.resize(imageCount);
+    for (uint32_t i = 0; i < imageCount; i++)
+    {
+        VkImageViewCreateInfo colorAttachmentView = {};
+        colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        colorAttachmentView.pNext = NULL;
+        colorAttachmentView.format = colorFormat;
+        colorAttachmentView.components = {
+            VK_COMPONENT_SWIZZLE_R,
+            VK_COMPONENT_SWIZZLE_G,
+            VK_COMPONENT_SWIZZLE_B,
+            VK_COMPONENT_SWIZZLE_A
+        };
+        colorAttachmentView.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        colorAttachmentView.subresourceRange.baseMipLevel = 0;
+        colorAttachmentView.subresourceRange.levelCount = 1;
+        colorAttachmentView.subresourceRange.baseArrayLayer = 0;
+        colorAttachmentView.subresourceRange.layerCount = 1;
+        colorAttachmentView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        colorAttachmentView.flags = 0;
+
+        buffers[i].image = images[i];
+
+        colorAttachmentView.image = buffers[i].image;
+
+        if (vkCreateImageView(logicalDevice, &colorAttachmentView, nullptr, &buffers[i].view))
+        {
+            std::cout << "Error creating image views" << std::endl;
+            return false;
+        }
+    }
+
     
     // Recreate the frame buffers
     vkDestroyImageView(logicalDevice, depthStencil.view, nullptr);
@@ -984,16 +1183,99 @@ bool Renderer::ResizeWindow(uint32_t _width, uint32_t _height)
         vkDestroyFramebuffer(logicalDevice, frameBuffers[i], nullptr);
     }
 
-    if (!CreateFrameBuffer())
+    VkImageView frameAttachments[2];
+
+    // Depth/Stencil attachment is the same for all frame buffers
+    frameAttachments[1] = depthStencil.view;
+
+    VkFramebufferCreateInfo frameBufferCreateInfo = {};
+    frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    frameBufferCreateInfo.pNext = NULL;
+    frameBufferCreateInfo.renderPass = renderPass;
+    frameBufferCreateInfo.attachmentCount = 2;
+    frameBufferCreateInfo.pAttachments = frameAttachments;
+    frameBufferCreateInfo.width = width;
+    frameBufferCreateInfo.height = height;
+    frameBufferCreateInfo.layers = 1;
+
+    // Create frame buffers for every swap chain image
+    frameBuffers.resize(imageCount);
+    for (uint32_t i = 0; i < frameBuffers.size(); i++)
     {
-        std::cout << "Error creating Frame Buffer" << std::endl;
+        frameAttachments[0] = buffers[i].view;
+        if (vkCreateFramebuffer(logicalDevice, &frameBufferCreateInfo, nullptr, &frameBuffers[i]) != VK_SUCCESS)
+        {
+            std::cout << "Error creating frame buffer" << std::endl;
+            return false;
+        }
     }
+
+    //if (!CreateFrameBuffer())
+    //{
+    //    std::cout << "Error creating Frame Buffer" << std::endl;
+    //}
 
     // Command buffers need to be recreated as they may store
     // references to the recreated frame buffer
-    DestroyCommandBuffers();
+    DestroyCommandBuffers(logicalDevice, commandBufferCommandPool, drawCmdBuffers);
     CreateCommandBuffers(drawCmdBuffers, commandBufferCommandPool, imageCount, logicalDevice);
-    BuildCommandBuffers();
+    //BuildCommandBuffers();
+    VkCommandBufferBeginInfo cmdBufInfo = commandBufferBeginInfo();
+
+    VkClearValue clearValues[2];
+    clearValues[0].color = defaultClearColor;
+    clearValues[1].depthStencil = { 1.0f, 0 };
+
+    VkRenderPassBeginInfo renderPassBeginInfo = RenderPassBeginInfo();
+    renderPassBeginInfo.renderPass = renderPass;
+    renderPassBeginInfo.renderArea.offset.x = 0;
+    renderPassBeginInfo.renderArea.offset.y = 0;
+    renderPassBeginInfo.renderArea.extent.width = width;
+    renderPassBeginInfo.renderArea.extent.height = height;
+    renderPassBeginInfo.clearValueCount = 2;
+    renderPassBeginInfo.pClearValues = clearValues;
+
+    for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+    {
+        // Set target frame buffer
+        renderPassBeginInfo.framebuffer = frameBuffers[i];
+
+        if (vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo) != VK_SUCCESS)
+        {
+            std::cout << "Error begining command buffer" << std::endl;
+            return false;
+        }
+
+        vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        VkViewport viewport = Viewport((float)width, (float)height, 0.0f, 1.0f);
+        vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+
+        VkRect2D scissor = rect2D(width, height, 0, 0);
+        vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
+
+        vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+        model.bindBuffers(drawCmdBuffers[i]);
+
+        const VkDeviceSize offsets[1] = { 0 };
+        vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &model.vertices.buffer, offsets);
+        vkCmdBindIndexBuffer(drawCmdBuffers[i], model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+        //buffersBound = true;
+
+        viewport.width = (float)width;
+        vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+        vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdSetLineWidth(drawCmdBuffers[i], 1.0f);
+        model.draw(drawCmdBuffers[i]);
+
+        vkCmdEndRenderPass(drawCmdBuffers[i]);
+
+        if (vkEndCommandBuffer(drawCmdBuffers[i]) != VK_SUCCESS)
+        {
+            std::cout << "Error ending command buffers" << std::endl;
+            return false;
+        }
+    }
 
     // SRS - Recreate fences in case number of swapchain images has changed on resize
     for (auto& fence : waitFences) {

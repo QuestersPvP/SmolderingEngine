@@ -23,6 +23,11 @@ private:
 	uint32_t targetWidth = 1280;
 	uint32_t targetHeight = 720;
 
+	bool firstMouseUpdate = true;
+	uint32_t mouseX = 0;
+	uint32_t mouseY = 0;
+	glm::vec2 mousePos = glm::vec2();
+
 	/* Functions */
 
 public:
@@ -34,9 +39,11 @@ public:
 	const void SetApplicationRunStatus(bool _newRunStatus) { applicationShouldRun = _newRunStatus; };
 	const bool GetApplicationRunStatus() { return applicationShouldRun; };
 
+	void UpdateInput(Renderer& _renderer, float _time);
+	void UpdateRotation(Renderer& _renderer);
+
 private:
 	void ApplicationShutdown();
-	void ProcessInput(Renderer& _renderer);
 
 };
 

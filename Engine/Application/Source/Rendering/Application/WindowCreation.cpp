@@ -63,6 +63,9 @@ namespace SmolderingEngine
         case WM_CLOSE:
             PostMessage(hWnd, USERMESSAGE_QUIT, wParam, lParam);
             break;
+        case WM_MOUSEMOVE:
+            PostMessage(hWnd, USERMESSAGE_MOUSEMOVE, wParam, lParam);
+            break;
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
         }

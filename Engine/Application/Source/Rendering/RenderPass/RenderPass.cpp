@@ -1798,9 +1798,9 @@ namespace SE_Renderer
         return false;
     }
 
-    bool DestroyCommandBuffers()
+    void DestroyCommandBuffers(VkDevice _logicalDevice, VkCommandPool _commandBufferCommandPool, std::vector<VkCommandBuffer>& _drawCmdBuffers)
     {
-        return false;
+        vkFreeCommandBuffers(_logicalDevice, _commandBufferCommandPool, static_cast<uint32_t>(_drawCmdBuffers.size()), _drawCmdBuffers.data());
     }
 
     VkBool32 GetSupportedDepthFormat(VkPhysicalDevice _physicalDevice, VkFormat* _depthFormat)

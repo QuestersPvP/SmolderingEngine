@@ -9,6 +9,11 @@ running this project on a Windows based platform.
 
 int main()
 {
+    // time stuff
+    std::chrono::high_resolution_clock::time_point tickStart = std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point tickEnd = std::chrono::high_resolution_clock::now();
+    float timeBetweenFrames = 0.0f;
+
     WindowManager window;       // Handles the window.
     Renderer engineRenderer;    // Handles rendering stuff.
 
@@ -19,10 +24,19 @@ int main()
     // Update the application
     while (window.GetApplicationRunStatus())
     {
+        tickStart = std::chrono::high_resolution_clock::now();
+
         if (window.UpdateWindowClass(engineRenderer) && engineRenderer.GetApplicationReadyToRender())
         {
+            // Convert time into seconds
+            timeBetweenFrames = std::chrono::duration_cast<std::chrono::duration<float>>(tickStart-tickEnd).count();
+
+            // update engine
             engineRenderer.UpdateRendererClass();
+            window.UpdateInput(engineRenderer, timeBetweenFrames);
         }
+
+        tickEnd = std::chrono::high_resolution_clock::now();
     }
 
     // Clean-up
