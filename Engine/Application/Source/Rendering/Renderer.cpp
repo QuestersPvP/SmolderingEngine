@@ -551,7 +551,7 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     /* Load Objects */
 
     const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-    model.loadFromFile("S:/vulkan-tutorials/Vulkan/assets/models/treasure_smooth.gltf", logicalDevice, graphicsCommandPool, queue, memoryProperties, glTFLoadingFlags);
+    model.loadFromFile("S:/SmoulderingEngine/Engine/Application/Source/Other/Models/Castle.gltf", logicalDevice, graphicsCommandPool, queue, memoryProperties, glTFLoadingFlags);
         //"S:/SmoulderingEngine/Engine/Application/Source/Other/Models/test.gltf"
 
     /* Uniform Buffers */
