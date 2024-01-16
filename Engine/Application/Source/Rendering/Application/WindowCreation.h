@@ -2,10 +2,10 @@
 
 // TODO: MOVE THIS WHOLE CLASS INTO WINDOW
 
-#include "../../Common/Common.h"
+#include "Utilities/Includes/ApplicationIncludes.h"
 #include "Window/WindowManager.h"
 
-namespace SmolderingEngine
+namespace SE_Renderer
 {
     enum UserMessage 
     {
@@ -38,5 +38,6 @@ namespace SmolderingEngine
     void DestroyPresentationSurface(VkInstance _instance, VkSurfaceKHR& _presentationSurface);
 
     bool SelectQueueFamilyThatSupportsPresentationToGivenSurface(VkPhysicalDevice _physicalDevice, VkSurfaceKHR _presentationSurface, uint32_t& _queueFamilyIndex);
+    bool CheckAvailableQueueFamiliesAndTheirProperties(VkPhysicalDevice _physicalDevice, std::vector<VkQueueFamilyProperties>& _queueFamilies);
 };
 

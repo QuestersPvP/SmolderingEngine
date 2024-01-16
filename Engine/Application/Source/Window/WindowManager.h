@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../Common/Common.h"
+#include "Utilities/Includes/ApplicationIncludes.h"
 #include "../Rendering/Application/WindowCreation.h"
 #include "Rendering/Renderer.h"
 
-using namespace SmolderingEngine;
+using namespace SE_Renderer;
 
 class WindowManager
 {

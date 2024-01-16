@@ -1,9 +1,7 @@
 
 #include "WindowCreation.h"
 
-#include "../Instances/InstancesAndDevices.h"
-
-namespace SmolderingEngine
+namespace SE_Renderer
 {
     LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     {
@@ -155,5 +153,27 @@ namespace SmolderingEngine
         }
 
         return false;
+    }
+
+    bool CheckAvailableQueueFamiliesAndTheirProperties(VkPhysicalDevice _physicalDevice, std::vector<VkQueueFamilyProperties>& _queueFamilies)
+    {
+        // First we will get the queueFamiliesCount on the _physicalDevice.
+        uint32_t queueFamiliesCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamiliesCount, nullptr);
+        if (queueFamiliesCount == 0) {
+            std::cout << "Could not get the number of queue families." << std::endl;
+            return false;
+        }
+        
+        // Now that we know how many queue families there are resize the vector to fit them all,
+        // then store the properties of the queue families inside of the vector.
+        _queueFamilies.resize(queueFamiliesCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(_physicalDevice, &queueFamiliesCount, _queueFamilies.data());
+        if (queueFamiliesCount == 0) {
+            std::cout << "Could not acquire properties of queue families." << std::endl;
+            return false;
+        }
+        
+        return true;
     }
 };

@@ -12,7 +12,7 @@ public:
 	glm::vec3 position = glm::vec3();
 	glm::vec4 viewPos = glm::vec4();
 	float rotationSpeed = 1000.0f;
-	float movementSpeed = 1000.0f;
+	float movementSpeed = 10000.0f;
 	CameraMatrices matrices;
 
 	void SetRotationSpeed(float _rotationSpeed);
