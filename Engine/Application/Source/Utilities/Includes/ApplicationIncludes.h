@@ -39,4 +39,7 @@
 #include "Rendering/RenderPass/RenderPass.h"
 #include "Rendering/Camera/Camera.h"
 
+#include "Objects/Object.h"
+//#include "Objects/GameObjects/GameObject.h"
+
 /* Math */

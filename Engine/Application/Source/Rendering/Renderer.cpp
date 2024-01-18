@@ -551,8 +551,8 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
     /* Load Objects */
 
     const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-    model.loadFromFile("S:/SmoulderingEngine/Engine/Application/Source/Other/Models/Castle.gltf", logicalDevice, graphicsCommandPool, queue, memoryProperties, glTFLoadingFlags);
-        //"S:/SmoulderingEngine/Engine/Application/Source/Other/Models/test.gltf"
+    cube.model.loadFromFile("S:/SmoulderingEngine/Engine/Application/Source/Other/Models/Castle.gltf", logicalDevice, graphicsCommandPool, queue, memoryProperties, glTFLoadingFlags);
+    //model.loadFromFile("S:/SmoulderingEngine/Engine/Application/Source/Other/Models/Castle.gltf", logicalDevice, graphicsCommandPool, queue, memoryProperties, glTFLoadingFlags);
 
     /* Uniform Buffers */
     
@@ -769,18 +769,18 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
         vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-        model.bindBuffers(drawCmdBuffers[i]);
+        cube.model.bindBuffers(drawCmdBuffers[i]);
 
         const VkDeviceSize offsets[1] = { 0 };
-        vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &model.vertices.buffer, offsets);
-        vkCmdBindIndexBuffer(drawCmdBuffers[i], model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &cube.model.vertices.buffer, offsets);
+        vkCmdBindIndexBuffer(drawCmdBuffers[i], cube.model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
         //buffersBound = true;
 
         viewport.width = (float)width;
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
         vkCmdSetLineWidth(drawCmdBuffers[i], 1.0f);
-        model.draw(drawCmdBuffers[i]);
+        cube.model.draw(drawCmdBuffers[i]);
 
         vkCmdEndRenderPass(drawCmdBuffers[i]);
 
@@ -1189,18 +1189,18 @@ bool Renderer::ResizeWindow(uint32_t _width, uint32_t _height)
         vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 
         vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-        model.bindBuffers(drawCmdBuffers[i]);
+        cube.model.bindBuffers(drawCmdBuffers[i]);
 
         const VkDeviceSize offsets[1] = { 0 };
-        vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &model.vertices.buffer, offsets);
-        vkCmdBindIndexBuffer(drawCmdBuffers[i], model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &cube.model.vertices.buffer, offsets);
+        vkCmdBindIndexBuffer(drawCmdBuffers[i], cube.model.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
         //buffersBound = true;
 
         viewport.width = (float)width;
         vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
         vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
         vkCmdSetLineWidth(drawCmdBuffers[i], 1.0f);
-        model.draw(drawCmdBuffers[i]);
+        cube.model.draw(drawCmdBuffers[i]);
 
         vkCmdEndRenderPass(drawCmdBuffers[i]);
 

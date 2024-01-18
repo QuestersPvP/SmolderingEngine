@@ -1,16 +1,7 @@
 #pragma once
 
-//#include "../Common/Common.h"
-//#include "../Rendering/Instances/InstancesAndDevices.h"
-//#include "../Rendering/Application/WindowCreation.h"
-//#include "../Rendering/ImagePresentation/SwapChain.h"
-//#include "../Rendering/BuffersAndPools/CommandBufferAndPool.h"
-//#include "../Rendering/RenderPass/RenderPass.h"
-//#include "../../VulkanglTFModel.h"
-//#include "Camera/Camera.h"
-//#include "vulkan/vulkan.h"
-
 #include "../Utilities/Includes/ApplicationIncludes.h"
+#include "../Objects/GameObjects/GameObject.h"
 
 using namespace SE_Renderer;
 
@@ -18,102 +9,78 @@ class Renderer
 {
 	/* Variables */
 public:
-
-
-    std::string title = "Smoldering Engine";
-    std::string name = "Smoldering Engine";
-    VkPipeline graphicsPipeline;
-    VkPipelineLayout pipelineLayout;
-    VkDescriptorSet descriptorSet;
-    VkDescriptorSetLayout descriptorSetLayout;
+    // Camera that is attatched to the GameObject we are rendering
     Camera camera;
+    // Object we want to render, holds a vkglTF::Model
+    GameObject cube;
+
     VkQueueFlags requestedQueueTypes = (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
-    VkSurfaceKHR surface;
-    // Vulkan instance, stores all per-application states
-    VkInstance instance;
-    std::vector<std::string> supportedInstanceExtensions;
-    // Stores physical device properties (for e.g. checking device limits)
-    //VkPhysicalDeviceProperties deviceProperties;
-    // Stores the features available on the selected physical device (for e.g. checking if a feature is available)
-    //VkPhysicalDeviceFeatures deviceFeatures;
-    // Stores all available memory (type) properties for the physical device
-    //VkPhysicalDeviceMemoryProperties deviceMemoryProperties;
-    /** @brief Set of physical device features to be enabled for this example (must be set in the derived constructor) */
-    VkPhysicalDeviceFeatures enabledFeatures{};
-    /** @brief Set of device extensions to be enabled for this example (must be set in the derived constructor) */
-    //std::vector<const char*> enabledDeviceExtensions;
-    //std::vector<const char*> enabledInstanceExtensions;
-    /** @brief Optional pNext structure for passing extension structures to device creation */
-    //void* deviceCreatepNextChain = nullptr;
-    // Handle to the device graphics queue that command buffers are submitted to
-    VkQueue queue;
-    // Depth buffer format (selected during Vulkan initialization)
-    VkFormat depthFormat;
-    // Command buffer pool
-    VkCommandPool commandBufferCommandPool;
-    /** @brief Pipeline stages used to wait at for graphics queue submissions */
     VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    // Contains command buffers and semaphores to be presented to the queue
-    VkSubmitInfo submitInfo;
-    // Command buffers used for rendering
-    std::vector<VkCommandBuffer> drawCmdBuffers;
-    // Global render pass for frame buffer writes
-    VkRenderPass renderPass = VK_NULL_HANDLE;
-    // List of available frame buffers (same as number of swap chain images)
-    std::vector<VkFramebuffer>frameBuffers;
-    // Active frame buffer index
+    UBOVS uboVS;
+
     uint32_t currentBuffer = 0;
-    // Descriptor set pool
-    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    // List of shader modules created (stored for cleanup)
-    std::vector<VkShaderModule> shaderModules;
-    // Pipeline cache object
-    VkPipelineCache pipelineCache;
-    // Wraps the swap chain to present images (framebuffers) to the windowing system
-    VkFormat colorFormat;
-    VkColorSpaceKHR colorSpace;
-    VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-    uint32_t imageCount;
-    std::vector<VkImage> images;
-    std::vector<SwapChainBuffer> buffers;
-    uint32_t queueNodeIndex = UINT32_MAX;
-    SynchronizationSemaphores semaphores;
-    std::vector<VkFence> waitFences;
+    /* Keeps track of the current swapchain image index */
+    uint32_t frame_index = 0;
     uint32_t width = 1280;
     uint32_t height = 720;
-    /** @brief Physical device representation */
-    VkPhysicalDevice physicalDevice;
-    /** @brief Logical device representation (application's view of the device) */
-    VkDevice logicalDevice;
-    /** @brief Properties of the physical device including limits that the application can check against */
-    VkPhysicalDeviceProperties properties;
-    /** @brief Features of the physical device that an application can use to check if a feature is supported */
-    VkPhysicalDeviceFeatures features;
-    /** @brief Memory types and heaps of the physical device */
-    VkPhysicalDeviceMemoryProperties memoryProperties;
-    /** @brief Queue family properties of the physical device */
-    std::vector<VkQueueFamilyProperties> queueFamilyProperties;
-    /** @brief List of extensions supported by the device */
-    std::vector<std::string> supportedExtensions;
-    /** @brief Default command pool for the graphics queue family index */
-    VkCommandPool graphicsCommandPool = VK_NULL_HANDLE;
-    /** @brief Contains queue family indices */
-    QueueFamilyIndices queueFamilyIndices;
-    VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
-    DepthStencil depthStencil;
+    void* mapped = nullptr;
+
+    /* VkTypedef*/
+    VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+    VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+    VkInstance instance = VK_NULL_HANDLE;
+    VkQueue queue = VK_NULL_HANDLE;
+    VkCommandPool commandBufferCommandPool = VK_NULL_HANDLE;
+    VkRenderPass renderPass = VK_NULL_HANDLE;
     VkBuffer buffer = VK_NULL_HANDLE;
     VkDeviceMemory memory = VK_NULL_HANDLE;
-    VkDescriptorBufferInfo descriptor;
+    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkDevice logicalDevice = VK_NULL_HANDLE;
+    VkPipelineCache pipelineCache = VK_NULL_HANDLE;
+    VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+    VkCommandPool graphicsCommandPool = VK_NULL_HANDLE;
+
+    uint32_t imageCount = 0;
+    VkBufferUsageFlags usageFlags;
+    VkMemoryPropertyFlags memoryPropertyFlags;
     VkDeviceSize size = 0;
     VkDeviceSize alignment = 0;
-    void* mapped = nullptr;
-    /** @brief Usage flags to be filled by external source at buffer creation (to query at some later point) */
-    VkBufferUsageFlags usageFlags;
-    /** @brief Memory property flags to be filled by external source at buffer creation (to query at some later point) */
-    VkMemoryPropertyFlags memoryPropertyFlags;
-    vkglTF::Model model;
-    UBOVS uboVS;
-    uint32_t frame_index = 0;
+    uint32_t queueNodeIndex = UINT32_MAX;
+
+    /* VkStructs */
+    VkPhysicalDeviceFeatures enabledFeatures{};
+    VkPhysicalDeviceProperties properties;
+    VkPhysicalDeviceFeatures features;
+    VkSubmitInfo submitInfo;
+    VkDescriptorBufferInfo descriptor;
+    DepthStencil depthStencil;
+    SynchronizationSemaphores semaphores;
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    QueueFamilyIndices queueFamilyIndices;
+
+    /* VkEnums */
+    VkFormat depthFormat;
+    VkFormat colorFormat;
+    VkColorSpaceKHR colorSpace;
+
+    /* Vectors */
+    std::vector<std::string> supportedInstanceExtensions;
+    std::vector<VkCommandBuffer> drawCmdBuffers;
+    std::vector<VkFramebuffer>frameBuffers;
+    std::vector<VkShaderModule> shaderModules;
+    std::vector<VkImage> images;
+    std::vector<SwapChainBuffer> buffers;
+    std::vector<VkQueueFamilyProperties> queueFamilyProperties;
+    std::vector<std::string> supportedExtensions;
+    std::vector<VkFence> waitFences;
+
+    /* Union */
+    // Color we clear the screen too
+    VkClearColorValue defaultClearColor = { { 0.025f, 0.025f, 0.025f, 1.0f } };
 
 private:
     bool applicationReadyToRender = false;
