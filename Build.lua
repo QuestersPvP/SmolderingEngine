@@ -10,6 +10,11 @@ workspace "SmolderingEngine"
 
 OutputDir = "%{cfg.system}-%{cfg.architecture}/%{cfg.buildcfg}"
 
+defines 
+{
+	"CURRENT_WORKING_DIRECTORY=\"" .. os.getcwd() .. "\""
+}
+
 group "Engine"
 
 	files  

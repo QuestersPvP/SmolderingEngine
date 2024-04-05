@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Utilities/Includes/ApplicationIncludes.h"
-#include "../Objects/GameObjects/GameObject.h"
+#include "Utilities/Includes/ApplicationIncludes.h"
+#include "Objects/GameObjects/GameObject.h"
 
 using namespace SE_Renderer;
 

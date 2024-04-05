@@ -1,5 +1,7 @@
 #include "Renderer.h"
 
+#include "Utilities/HelperFunctions/HelperFunctions.h"
+
 bool Renderer::InitRendererClass(const WindowParameters& _window)
 {
     /* Setup Camera */
@@ -550,8 +552,9 @@ bool Renderer::InitRendererClass(const WindowParameters& _window)
 
     /* Load Objects */
 
+    std::string localFilePath = GetRelativeFilePath("/Engine/Application/Source/Other/Models/Castle.gltf");
     const uint32_t glTFLoadingFlags = vkglTF::FileLoadingFlags::PreTransformVertices | vkglTF::FileLoadingFlags::PreMultiplyVertexColors | vkglTF::FileLoadingFlags::FlipY;
-    cube.model.loadFromFile("S:/SmoulderingEngine/Engine/Application/Source/Other/Models/Castle.gltf", logicalDevice, graphicsCommandPool, queue, memoryProperties, glTFLoadingFlags);
+    cube.model.loadFromFile(localFilePath, logicalDevice, graphicsCommandPool, queue, memoryProperties, glTFLoadingFlags);
     //model.loadFromFile("S:/SmoulderingEngine/Engine/Application/Source/Other/Models/Castle.gltf", logicalDevice, graphicsCommandPool, queue, memoryProperties, glTFLoadingFlags);
 
     /* Uniform Buffers */
