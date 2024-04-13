@@ -41,7 +41,7 @@
 #include <assert.h>
 #include <limits.h>
 
-#include "GL/glcorearb.h"
+#include "../other_include/GL/glcorearb.h"
 #include "ktx.h"
 #include "ktxint.h"
 #include "stream.h"

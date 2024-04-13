@@ -19,8 +19,16 @@ group "Engine"
 
 	files  
 	{
-		"Dependencies/*.cpp",
-		"Dependencies/*.h"
+		"Dependencies/**.cpp",
+		"Dependencies/**.h",
+
+		-- include everything within KTX separately 
+		"Dependencies/KTX/**.cpp",
+		"Dependencies/KTX/**.h",
+		"Dependencies/KTX/**.c",
+		"Dependencies/KTX/**.cxx",
+		"Dependencies/KTX/**.inl",
+		"Dependencies/KTX/**.gypi"
 	}	
 
 	group "Engine/Application"

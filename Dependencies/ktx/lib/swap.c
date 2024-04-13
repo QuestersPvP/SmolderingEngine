@@ -19,7 +19,7 @@
  * limitations under the License.
  */
 
-#include "KHR/khrplatform.h"
+#include "../other_include/KHR/khrplatform.h"
 
 /*
  * SwapEndian16: Swaps endianness in an array of 16-bit values

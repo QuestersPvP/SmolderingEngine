@@ -1,7 +1,6 @@
 #pragma once
 
 /* Temporary */
-//TODO: REMOVE TEMP INCLUDES
 #include "vulkan/vulkan.h"
 
 #define GLM_FORCE_RADIANS
@@ -9,10 +8,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
-/* Application Level */
-#include "../Defines/ApplicationDefines.h"
-#include "../Structs/ApplicationStructures.h"
 
 /* OS Specific */
 #include <Windows.h>
@@ -32,7 +27,14 @@
 #include <memory>
 #include <cassert>
 
-/* Dependencies */
+/* Third Party Libraries */
+#include "../../../Dependencies/ktx/include/ktx.h"
+
+/* Application Level */
+#include "../Defines/ApplicationDefines.h"
+#include "../Structs/ApplicationStructures.h"
+
+/* Third Party Libraries */
 #include "../../../Dependencies/VulkanglTFModel.h"
 
 /* Rendering */
