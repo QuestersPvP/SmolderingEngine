@@ -18,6 +18,7 @@
 
 #include "vulkan/vulkan.h"
 #include "Rendering/RenderPass/RenderPass.h"
+#include "Utilities/Structs/ApplicationStructures.h"
 //#include "VulkanDevice.h"
 
 #include <ktx.h>
@@ -227,17 +228,17 @@ namespace vkglTF
 		glm::vec3 normal;
 		glm::vec2 uv;
 		glm::vec4 color;
-		glm::vec4 joint0;
-		glm::vec4 weight0;
-		glm::vec4 tangent;
-		static VkVertexInputBindingDescription vertexInputBindingDescription;
-		static std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescriptions;
-		static VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo;
-		static VkVertexInputBindingDescription inputBindingDescription(uint32_t binding);
-		static VkVertexInputAttributeDescription inputAttributeDescription(uint32_t binding, uint32_t location, VertexComponent component);
-		static std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptions(uint32_t binding, const std::vector<VertexComponent> components);
-		/** @brief Returns the default pipeline vertex input state create info structure for the requested vertex components */
-		static VkPipelineVertexInputStateCreateInfo* getPipelineVertexInputState(const std::vector<VertexComponent> components);
+		//glm::vec4 joint0;
+		//glm::vec4 weight0;
+		//glm::vec4 tangent;
+		//static VkVertexInputBindingDescription vertexInputBindingDescription;
+		//static std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescriptions;
+		//static VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo;
+		//static VkVertexInputBindingDescription inputBindingDescription(uint32_t binding);
+		//static VkVertexInputAttributeDescription inputAttributeDescription(uint32_t binding, uint32_t location, VertexComponent component);
+		//static std::vector<VkVertexInputAttributeDescription> inputAttributeDescriptions(uint32_t binding, const std::vector<VertexComponent> components);
+		///** @brief Returns the default pipeline vertex input state create info structure for the requested vertex components */
+		//static VkPipelineVertexInputStateCreateInfo* getPipelineVertexInputState(const std::vector<VertexComponent> components);
 	};
 
 	enum FileLoadingFlags {
@@ -278,7 +279,8 @@ namespace vkglTF
 			VkDeviceMemory memory;
 		} indices;
 
-		std::vector<Node*> nodes;
+		std::vector<SENode*> nodes;
+		//std::vector<Node*> nodes;
 		std::vector<Node*> linearNodes;
 
 		std::vector<Skin*> skins;
@@ -300,21 +302,30 @@ namespace vkglTF
 		std::string path;
 
 		Model() {};
-		~Model();
-		/**/void loadNode(VkDevice& logicalDevice, VkPhysicalDeviceMemoryProperties& memoryProperties, vkglTF::Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
+		//~Model();
+		//void loadNode(VkDevice& logicalDevice, VkPhysicalDeviceMemoryProperties& memoryProperties, vkglTF::Node* parent, const tinygltf::Node& node, uint32_t nodeIndex, const tinygltf::Model& model, std::vector<uint32_t>& indexBuffer, std::vector<Vertex>& vertexBuffer, float globalscale);
+		void loadNode(const tinygltf::Node& inputNode, const tinygltf::Model& input, SENode* parent, std::vector<uint32_t>& indexBuffer, std::vector<SEVertex>& vertexBuffer);
 		//void loadSkins(tinygltf::Model& gltfModel);
-		//void loadImages(tinygltf::Model& gltfModel, vks::VulkanDevice* device, VkQueue transferQueue);
-		void loadMaterials(tinygltf::Model& gltfModel);
+		void LoadImages(tinygltf::Model& gltfModel, std::vector<SEImage>& InImages, VkDevice* logicalDevice, VkPhysicalDevice* physicalDevice,
+			VkCommandPool& commandPool, VkPhysicalDeviceMemoryProperties& memoryProperties, VkQueue& copyQueue);
+		void LoadTextures(tinygltf::Model& input, std::vector<SETexture>& textures);
+		void LoadMaterials(tinygltf::Model& gltfModel, std::vector<SEMaterial>& materials);
 		//void loadAnimations(tinygltf::Model& gltfModel);
-		/**/void loadFromFile(std::string filename, VkDevice& logicalDevice, VkCommandPool& commandPool, VkQueue& transferQueue, VkPhysicalDeviceMemoryProperties& memoryProperties, uint32_t fileLoadingFlags = vkglTF::FileLoadingFlags::None, float scale = 1.0f);
-		/**/void bindBuffers(VkCommandBuffer& commandBuffer);
-		/**/void drawNode(Node* node, VkCommandBuffer& commandBuffer, uint32_t renderFlags = 0, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, uint32_t bindImageSet = 1);
-		/**/void draw(VkCommandBuffer& commandBuffer, uint32_t renderFlags = 0, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, uint32_t bindImageSet = 1);
-		/**/void getNodeDimensions(Node* node, glm::vec3& min, glm::vec3& max);
-		/**/void getSceneDimensions();
+		void loadFromFile(std::string filename, VkDevice& logicalDevice, VkPhysicalDevice& physicalDevice, VkCommandPool& commandPool, VkQueue& transferQueue,
+		VkQueue& copyQueue, VkPhysicalDeviceMemoryProperties& memoryProperties, std::vector<SEImage>& images, std::vector<SETexture>& textures, std::vector<SEMaterial>& materials,
+		SEVertices& vertices, SEIndices& indices, uint32_t fileLoadingFlags = vkglTF::FileLoadingFlags::None, float scale = 1.0f);
+		void bindBuffers(VkCommandBuffer& commandBuffer);
+		//void drawNode(Node* node, VkCommandBuffer& commandBuffer, uint32_t renderFlags = 0, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, uint32_t bindImageSet = 1);
+		//void draw(VkCommandBuffer& commandBuffer, uint32_t renderFlags = 0, VkPipelineLayout pipelineLayout = VK_NULL_HANDLE, uint32_t bindImageSet = 1);
+		void drawNode(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, SENode* node, std::vector<SETexture> textures,
+			std::vector<SEMaterial> materials, std::vector<SEImage>& images);
+		void draw(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, SEVertices& verts, SEIndices& indies, std::vector<SETexture>& textures,
+			std::vector<SEMaterial>& materials, std::vector<SEImage>& images);
+		void getNodeDimensions(Node* node, glm::vec3& min, glm::vec3& max);
+		void getSceneDimensions();
 		//void updateAnimation(uint32_t index, float time);
 		//Node* findNode(Node* parent, uint32_t index);
 		//Node* nodeFromIndex(uint32_t index);
-		/**/void prepareNodeDescriptor(vkglTF::Node* node, VkDescriptorSetLayout descriptorSetLayout, VkDevice logicalDevice);
+		void prepareNodeDescriptor(vkglTF::Node* node, VkDescriptorSetLayout descriptorSetLayout, VkDevice logicalDevice);
 	};
 }

@@ -21,6 +21,7 @@ namespace SE_Renderer
 	bool CreateCommandBuffers(std::vector<VkCommandBuffer>& _drawCmdBuffers, VkCommandPool _commandBufferCommandPool, uint32_t _imageCount, VkDevice _logicalDevice);
 	bool BuildCommandBuffers();
 	void DestroyCommandBuffers(VkDevice _logicalDevice, VkCommandPool _commandBufferCommandPool, std::vector<VkCommandBuffer>& _drawCmdBuffers);
+	VkResult CreateBuffer(VkDevice InLogicalDevice, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkPhysicalDeviceMemoryProperties& memoryProperties, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, void* data = nullptr);
 	/*---------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 	VkBool32 GetSupportedDepthFormat(VkPhysicalDevice _physicalDevice, VkFormat* _depthFormat);
@@ -46,6 +47,112 @@ namespace SE_Renderer
 		VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{};
 		pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		return pipelineVertexInputStateCreateInfo;
+	}
+
+	inline VkImageMemoryBarrier ImageMemoryBarrier()
+	{
+		VkImageMemoryBarrier imageMemoryBarrier{};
+		imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		return imageMemoryBarrier;
+	}
+
+	inline VkImageCreateInfo ImageCreateInfo()
+	{
+		VkImageCreateInfo imageCreateInfo{};
+		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		return imageCreateInfo;
+	}
+
+	inline VkBufferCreateInfo BufferCreateInfo()
+	{
+		VkBufferCreateInfo bufCreateInfo{};
+		bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		return bufCreateInfo;
+	}
+
+	inline VkBufferCreateInfo BufferCreateInfo(
+		VkBufferUsageFlags usage,
+		VkDeviceSize size)
+	{
+		VkBufferCreateInfo bufCreateInfo{};
+		bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		bufCreateInfo.usage = usage;
+		bufCreateInfo.size = size;
+		return bufCreateInfo;
+	}
+
+	inline VkPushConstantRange PushConstantRange(
+		VkShaderStageFlags stageFlags,
+		uint32_t size,
+		uint32_t offset)
+	{
+		VkPushConstantRange pushConstantRange{};
+		pushConstantRange.stageFlags = stageFlags;
+		pushConstantRange.offset = offset;
+		pushConstantRange.size = size;
+		return pushConstantRange;
+	}
+
+	inline VkWriteDescriptorSet WriteDescriptorSet(
+		VkDescriptorSet dstSet,
+		VkDescriptorType type,
+		uint32_t binding,
+		VkDescriptorBufferInfo* bufferInfo,
+		uint32_t descriptorCount = 1)
+	{
+		VkWriteDescriptorSet writeDescriptorSet{};
+		writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeDescriptorSet.dstSet = dstSet;
+		writeDescriptorSet.descriptorType = type;
+		writeDescriptorSet.dstBinding = binding;
+		writeDescriptorSet.pBufferInfo = bufferInfo;
+		writeDescriptorSet.descriptorCount = descriptorCount;
+		return writeDescriptorSet;
+	}
+
+	inline VkWriteDescriptorSet WriteDescriptorSet(
+		VkDescriptorSet dstSet,
+		VkDescriptorType type,
+		uint32_t binding,
+		VkDescriptorImageInfo* imageInfo,
+		uint32_t descriptorCount = 1)
+	{
+		VkWriteDescriptorSet writeDescriptorSet{};
+		writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeDescriptorSet.dstSet = dstSet;
+		writeDescriptorSet.descriptorType = type;
+		writeDescriptorSet.dstBinding = binding;
+		writeDescriptorSet.pImageInfo = imageInfo;
+		writeDescriptorSet.descriptorCount = descriptorCount;
+		return writeDescriptorSet;
+	}
+
+	inline VkVertexInputAttributeDescription vertexInputAttributeDescription(
+		uint32_t binding,
+		uint32_t location,
+		VkFormat format,
+		uint32_t offset)
+	{
+		VkVertexInputAttributeDescription vInputAttribDescription{};
+		vInputAttribDescription.location = location;
+		vInputAttribDescription.binding = binding;
+		vInputAttribDescription.format = format;
+		vInputAttribDescription.offset = offset;
+		return vInputAttribDescription;
+	}
+
+	inline VkVertexInputBindingDescription vertexInputBindingDescription(
+		uint32_t binding,
+		uint32_t stride,
+		VkVertexInputRate inputRate)
+	{
+		VkVertexInputBindingDescription vInputBindDescription{};
+		vInputBindDescription.binding = binding;
+		vInputBindDescription.stride = stride;
+		vInputBindDescription.inputRate = inputRate;
+		return vInputBindDescription;
 	}
 
 	inline VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo(
@@ -159,6 +266,19 @@ namespace SE_Renderer
 		pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates.data();
 		pipelineDynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(pDynamicStates.size());
+		pipelineDynamicStateCreateInfo.flags = flags;
+		return pipelineDynamicStateCreateInfo;
+	}
+
+	inline VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo(
+		const VkDynamicState* pDynamicStates,
+		uint32_t dynamicStateCount,
+		VkPipelineDynamicStateCreateFlags flags = 0)
+	{
+		VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo{};
+		pipelineDynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+		pipelineDynamicStateCreateInfo.pDynamicStates = pDynamicStates;
+		pipelineDynamicStateCreateInfo.dynamicStateCount = dynamicStateCount;
 		pipelineDynamicStateCreateInfo.flags = flags;
 		return pipelineDynamicStateCreateInfo;
 	}
@@ -314,17 +434,6 @@ namespace SE_Renderer
 		rect2D.offset.x = offsetX;
 		rect2D.offset.y = offsetY;
 		return rect2D;
-	}
-
-	inline VkBufferCreateInfo BufferCreateInfo(
-		VkBufferUsageFlags usage,
-		VkDeviceSize size)
-	{
-		VkBufferCreateInfo bufCreateInfo{};
-		bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bufCreateInfo.usage = usage;
-		bufCreateInfo.size = size;
-		return bufCreateInfo;
 	}
 
 	inline VkMemoryAllocateInfo memoryAllocateInfo()

@@ -33,6 +33,7 @@ public:
     VkSurfaceKHR surface = VK_NULL_HANDLE;
     VkInstance instance = VK_NULL_HANDLE;
     VkQueue queue = VK_NULL_HANDLE;
+    VkQueue copyQueue = VK_NULL_HANDLE;
     VkCommandPool commandBufferCommandPool = VK_NULL_HANDLE;
     VkRenderPass renderPass = VK_NULL_HANDLE;
     VkBuffer buffer = VK_NULL_HANDLE;
@@ -57,10 +58,16 @@ public:
     VkPhysicalDeviceFeatures features;
     VkSubmitInfo submitInfo;
     VkDescriptorBufferInfo descriptor;
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+
+    /* Project Structs */
     DepthStencil depthStencil;
     SynchronizationSemaphores semaphores;
-    VkPhysicalDeviceMemoryProperties memoryProperties;
     QueueFamilyIndices queueFamilyIndices;
+    SEVertices vertices;
+    SEIndices indices;
+    SEDescriptorSetLayouts descriptorSetLayouts;
+    ShaderData shaderData;
 
     /* VkEnums */
     VkFormat depthFormat;
@@ -68,15 +75,21 @@ public:
     VkColorSpaceKHR colorSpace;
 
     /* Vectors */
-    std::vector<std::string> supportedInstanceExtensions;
     std::vector<VkCommandBuffer> drawCmdBuffers;
     std::vector<VkFramebuffer>frameBuffers;
     std::vector<VkShaderModule> shaderModules;
     std::vector<VkImage> images;
-    std::vector<SwapChainBuffer> buffers;
     std::vector<VkQueueFamilyProperties> queueFamilyProperties;
-    std::vector<std::string> supportedExtensions;
     std::vector<VkFence> waitFences;
+
+    std::vector<std::string> supportedExtensions;
+    std::vector<std::string> supportedInstanceExtensions;
+
+    std::vector<SwapChainBuffer> buffers;
+    std::vector<SEImage> modelImages;
+    std::vector<SETexture> textures;
+    std::vector<SEMaterial> materials;
+    std::vector<SENode*> nodes;
 
     /* Union */
     // Color we clear the screen too

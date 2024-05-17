@@ -666,6 +666,65 @@ namespace SE_Renderer
         }
     }
 
+    VkResult CreateBuffer(VkDevice InLogicalDevice, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkPhysicalDeviceMemoryProperties& memoryProperties, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, void* data)
+    {
+        // Create the buffer handle
+        VkBufferCreateInfo bufferCreateInfo = BufferCreateInfo(usageFlags, size);
+        bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        if (vkCreateBuffer(InLogicalDevice, &bufferCreateInfo, nullptr, buffer) != VK_SUCCESS)
+        {
+            std::cout << "Error creating buffer!" << std::endl;
+        }
+
+        // Create the memory backing up the buffer handle
+        VkMemoryRequirements memReqs;
+        VkMemoryAllocateInfo memAlloc = memoryAllocateInfo();
+        vkGetBufferMemoryRequirements(InLogicalDevice, *buffer, &memReqs);
+        memAlloc.allocationSize = memReqs.size;
+        // Find a memory type index that fits the properties of the buffer
+        memAlloc.memoryTypeIndex = GetMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags, memoryProperties);
+        // If the buffer has VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT set we also need to enable the appropriate flag during allocation
+        VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
+        if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
+            allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
+            allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+            memAlloc.pNext = &allocFlagsInfo;
+        }
+        if (vkAllocateMemory(InLogicalDevice, &memAlloc, nullptr, memory) != VK_SUCCESS)
+        {
+            std::cout << "Error allocating memory!" << std::endl;
+        }
+
+        // If a pointer to the buffer data has been passed, map the buffer and copy over the data
+        if (data != nullptr)
+        {
+            void* mapped;
+            if (vkMapMemory(InLogicalDevice, *memory, 0, size, 0, &mapped) != VK_SUCCESS)
+            {
+                std::cout << "Error mapping memory!" << std::endl;
+            }
+            memcpy(mapped, data, size);
+            // If host coherency hasn't been requested, do a manual flush to make writes visible
+            if ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+            {
+                VkMappedMemoryRange mappedRange = mappedMemoryRange();
+                mappedRange.memory = *memory;
+                mappedRange.offset = 0;
+                mappedRange.size = size;
+                vkFlushMappedMemoryRanges(InLogicalDevice, 1, &mappedRange);
+            }
+            vkUnmapMemory(InLogicalDevice, *memory);
+        }
+
+        // Attach the memory to the buffer object
+        if (vkBindBufferMemory(InLogicalDevice, *buffer, *memory, 0) != VK_SUCCESS)
+        {
+            std::cout << "Error binding buffer memory!" << std::endl;
+        }
+
+        return VK_SUCCESS;
+    }
+
     // TODO: MAKE THIS FUNCTION INLINE
     VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage, VkDevice _logicalDevice)
     {
