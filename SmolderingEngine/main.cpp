@@ -1,40 +1,54 @@
+// Third Party
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/mat4x4.hpp>
-
+// Standard Library
+#include <stdexcept>
+#include <vector>
 #include <iostream>
 
-int main()
+// Project Includes
+#include "Rendering/public/Renderer.h"
+
+
+// TODO: make a class to handle window operations / input
+#pragma region WINDOW STUFFz
+GLFWwindow* Window;
+
+void InitWindow(std::string InWindowName = "Smoldering Engine", const int InWidth = 800, const int InHeight = 600)
 {
+	// init glfw
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	GLFWwindow* window = glfwCreateWindow(800, 600, "Test Window", nullptr, nullptr);
+	// TODO: make window able to be resizable
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-	uint32_t extensionCount = 0;
-	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+	Window = glfwCreateWindow(InWidth, InHeight, InWindowName.c_str(), nullptr, nullptr);
 
-	printf("Exension count: %i\n", extensionCount);
+}
+#pragma endregion
 
-	glm::mat4 testMatrix(1.0f);
-	glm::vec4 testVector(1.0f);
+int main()
+{
+	// Setup the window
+	InitWindow("Smoldering Engine", 800, 600);
 
-	auto testResult = testMatrix * testVector;
+	// Setup the renderer
+	Renderer seRenderer;
+	if (seRenderer.InitRenderer(Window) == EXIT_FAILURE)
+		return EXIT_FAILURE;
 
-	while (!glfwWindowShouldClose(window))
+	while (!glfwWindowShouldClose(Window))
 	{
-		// check for input (e.g. window close etc.)
 		glfwPollEvents();
 	}
 
-	// destroy glfw windows
-	glfwDestroyWindow(window);
-	// destroy glfw
+	seRenderer.DestroyRenderer();
+
+	// Destroy GLFW window / GLFW
+	glfwDestroyWindow(Window);
 	glfwTerminate();
 
-	return 0;
+	return EXIT_SUCCESS;
 }
