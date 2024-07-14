@@ -8,7 +8,7 @@
 #include <iostream>
 
 // Project Includes
-#include "../Public/Rendering/Renderer.h"
+#include "Public/Rendering/Renderer.h"
 
 
 // TODO: make a class to handle window operations / input

@@ -6,8 +6,10 @@
 // Standard Library
 #include <stdexcept>
 #include <vector>
+#include <array>
 #include <iostream>
 #include <set>
+#include <algorithm>
 
 // Project includes
 #include "Utilities.h"
@@ -33,8 +35,17 @@ private:
 	VkQueue GraphicsQueue;
 	VkQueue PresentationQueue;
 	VkSurfaceKHR VulkanSurface;
+	VkSwapchainKHR Swapchain;
+	VkFormat SwapchainImageFormat;
+	VkExtent2D SwapchainExtent;
+	std::vector<SwapchainImage> SwapchainImages;
 
-	// Vulkan Validation
+	// Vulkan Pipeline
+	VkPipeline GraphicsPipeline;
+	VkPipelineLayout PipelineLayout;
+	VkRenderPass RenderPass;
+
+	// Vulkan Validation Layers
 	const std::vector<const char*> ValidationLayers = 
 	{
 	"VK_LAYER_KHRONOS_validation"
@@ -53,6 +64,13 @@ public:
 	void CreateVulkanInstance();
 	void CreateLogicalDevice();
 	void CreateVulkanSurface();
+	void CreateSwapChain();
+	void CreateRenderpass();
+	void CreateGraphicsPipeline();
+
+	VkImageView CreateImageView(VkImage InImage, VkFormat InFormat, VkImageAspectFlags InAspectFlags);
+	VkShaderModule CreateShaderModule(const std::vector<char>& InCode);
+
 
 	// Not allocating memory, no need to delete.
 	void GetPhysicalDevice();
@@ -63,7 +81,13 @@ public:
 	bool CheckDeviceExtentionSupport(VkPhysicalDevice InPhysicalDevice);
 	bool CheckValidationLayerSupport();
 
+
+	VkSurfaceFormatKHR ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& InSurfaceFormats);
+	VkPresentModeKHR ChooseBestPresentationMode(const std::vector<VkPresentModeKHR> InPresentationMode);
+	VkExtent2D ChooseSwapChainExtent(const VkSurfaceCapabilitiesKHR& InSurfaceCapabilities);
+
 	QueueFamilyIndicies GetQueueFamilies(VkPhysicalDevice InPhysicalDevice);
+	SwapchainDetails GetSwapchainDetails(VkPhysicalDevice InPhysicalDevice);
 
 	// Validation Layer Callback Functions
 
