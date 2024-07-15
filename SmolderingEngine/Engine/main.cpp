@@ -35,16 +35,17 @@ int main()
 	InitWindow("Smoldering Engine", 800, 600);
 
 	// Setup the renderer
-	Renderer seRenderer;
-	if (seRenderer.InitRenderer(Window) == EXIT_FAILURE)
+	Renderer SERenderer;
+	if (SERenderer.InitRenderer(Window) == EXIT_FAILURE)
 		return EXIT_FAILURE;
 
 	while (!glfwWindowShouldClose(Window))
 	{
 		glfwPollEvents();
+		SERenderer.Draw();
 	}
 
-	seRenderer.DestroyRenderer();
+	SERenderer.DestroyRenderer();
 
 	// Destroy GLFW window / GLFW
 	glfwDestroyWindow(Window);

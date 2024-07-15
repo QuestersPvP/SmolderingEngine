@@ -27,6 +27,7 @@ public:
 
 private:
 	GLFWwindow* Window;
+	int CurrentFrame = 0;
 
 	// Vulkan Components
 	VkInstance VulkanInstance;
@@ -38,12 +39,23 @@ private:
 	VkSwapchainKHR Swapchain;
 	VkFormat SwapchainImageFormat;
 	VkExtent2D SwapchainExtent;
+
 	std::vector<SwapchainImage> SwapchainImages;
+	std::vector<VkFramebuffer> SwapchainFramebuffers;
+	std::vector<VkCommandBuffer> CommandBuffers;
+
+	// Vulkan Pools
+	VkCommandPool GraphicsCommandPool;
 
 	// Vulkan Pipeline
 	VkPipeline GraphicsPipeline;
 	VkPipelineLayout PipelineLayout;
 	VkRenderPass RenderPass;
+
+	// Synchronisation
+	std::vector<VkSemaphore> ImageAvailableSemaphores;
+	std::vector<VkSemaphore> RenderingCompleteSemaphores;
+	std::vector<VkFence> DrawFences;
 
 	// Vulkan Validation Layers
 	const std::vector<const char*> ValidationLayers = 
@@ -58,6 +70,7 @@ public:
 	~Renderer();
 
 	int InitRenderer(GLFWwindow* InWindow);
+	void Draw();
 	void DestroyRenderer();
 
 	// Vulkan functions
@@ -67,10 +80,16 @@ public:
 	void CreateSwapChain();
 	void CreateRenderpass();
 	void CreateGraphicsPipeline();
+	void CreateFramebuffers();
+	void CreateCommandPool();
+	void CreateSynchronizationPrimatives();
+
+	void AllocateCommandBuffers();
 
 	VkImageView CreateImageView(VkImage InImage, VkFormat InFormat, VkImageAspectFlags InAspectFlags);
 	VkShaderModule CreateShaderModule(const std::vector<char>& InCode);
 
+	void RecordCommands();
 
 	// Not allocating memory, no need to delete.
 	void GetPhysicalDevice();
