@@ -1,4 +1,4 @@
-#include "../../Public/Rendering/Renderer.h"
+#include "Public/Rendering/Renderer.h"
 
 Renderer::Renderer()
 {
@@ -446,10 +446,9 @@ void Renderer::CreateRenderpass()
 void Renderer::CreateGraphicsPipeline()
 {
 #pragma region Shader Stage Creation
-	// TODO: FIX FILE PATH
 	// Read in SPIR-V code
-	std::vector<char> VertexShaderCode = ReadFile("S:/SmolderingEngine/SmolderingEngine/Engine/Shaders/vert.spv");
-	std::vector<char> FragmentShaderCode = ReadFile("S:/SmolderingEngine/SmolderingEngine/Engine/Shaders/frag.spv");
+	std::vector<char> VertexShaderCode = ReadFile(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Engine/Shaders/vert.spv");
+	std::vector<char> FragmentShaderCode = ReadFile(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Engine/Shaders/frag.spv");
 
 	// Convert the SPIR-V code into shader modules
 	VkShaderModule VertexShaderModule = CreateShaderModule(VertexShaderCode);
@@ -972,7 +971,6 @@ void Renderer::RecordCommands()
 {
 	VkCommandBufferBeginInfo BufferBeginInfo = {};
 	BufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	BufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
 	// Info on how to begin a render pass (for graphical applications)
 	VkRenderPassBeginInfo RenderPassBeginInfo = {};
