@@ -1,4 +1,4 @@
-#include "Public/Rendering/Renderer.h"
+#include "Engine/Public/Rendering/Renderer.h"
 
 Renderer::Renderer()
 {
@@ -8,9 +8,10 @@ Renderer::~Renderer()
 {
 }
 
-int Renderer::InitRenderer(GLFWwindow* InWindow)
+int Renderer::InitRenderer(GLFWwindow* InWindow, Game InGame)
 {
 	Window = InWindow;
+	SEGame = InGame;
 
 	try
 	{
@@ -19,6 +20,10 @@ int Renderer::InitRenderer(GLFWwindow* InWindow)
 		CreateVulkanSurface();
 		GetPhysicalDevice();
 		CreateLogicalDevice();
+
+		// Mesh creation
+		SEGame.LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice);
+
 		CreateSwapChain();
 		CreateRenderpass();
 		CreateGraphicsPipeline();
@@ -88,6 +93,8 @@ void Renderer::Draw()
 void Renderer::DestroyRenderer()
 {
 	vkDeviceWaitIdle(Devices.LogicalDevice); // Wait until queues and all operations are done before cleaning up
+
+	SEGame.DestroyMeshes();
 
 	for (size_t i = 0; i < MAX_FRAME_DRAWS; i++)
 	{
@@ -479,21 +486,45 @@ void Renderer::CreateGraphicsPipeline()
 #pragma endregion
 
 #pragma region Vertex Input
+
+	// How the data for a single vertex is as a whole (position, color, texture coords, normals, etc.)
+	VkVertexInputBindingDescription VertexBindingDescription = {};
+	VertexBindingDescription.binding = 0;								// Can bind multiple streams of data
+	VertexBindingDescription.stride = sizeof(Vertex);					// Size of vertex data
+	VertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;	// How to move between data after each vertex
+																		// VK_VERTEX_INPUT_RATE_VERTEX = Move onto next vertex
+																		// VK_VERTEX_INPUT_RATE_INSTANCE = Move onto vertex for the next instance of this object
+	
+	// How the data for an attribute is defined within a vertex
+	std::array<VkVertexInputAttributeDescription, 2> AttributeDesciptions;
+	
+	// Position attribute
+	AttributeDesciptions[0].binding = 0;							// What binding the data set is at, should be same as above
+	AttributeDesciptions[0].location = 0;							// Location in shader where data is read from
+	AttributeDesciptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;	// Format the data will take / defines size of data
+	AttributeDesciptions[0].offset = offsetof(Vertex, Position);	// Where the attribute is defined in the data for a single vertex
+
+	// Color attribute
+	AttributeDesciptions[1].binding = 0;					
+	AttributeDesciptions[1].location = 1;					
+	AttributeDesciptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+	AttributeDesciptions[1].offset = offsetof(Vertex, Color);
+
 	/*
-VkStructureType                             sType;
-const void*                                 pNext;
-VkPipelineVertexInputStateCreateFlags       flags;
-uint32_t                                    vertexBindingDescriptionCount;
-const VkVertexInputBindingDescription*      pVertexBindingDescriptions;
-uint32_t                                    vertexAttributeDescriptionCount;
-const VkVertexInputAttributeDescription*    pVertexAttributeDescriptions;
-*/
+	VkStructureType                             sType;
+	const void*                                 pNext;
+	VkPipelineVertexInputStateCreateFlags       flags;
+	uint32_t                                    vertexBindingDescriptionCount;
+	const VkVertexInputBindingDescription*      pVertexBindingDescriptions;
+	uint32_t                                    vertexAttributeDescriptionCount;
+	const VkVertexInputAttributeDescription*    pVertexAttributeDescriptions;
+	*/
 	VkPipelineVertexInputStateCreateInfo VertexInputCreateInfo = {};
 	VertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	VertexInputCreateInfo.vertexBindingDescriptionCount = 0;
-	VertexInputCreateInfo.pVertexBindingDescriptions = nullptr;		// List of vertex binding descriptions (data spacing and stride info)
-	VertexInputCreateInfo.vertexAttributeDescriptionCount = 0;
-	VertexInputCreateInfo.pVertexAttributeDescriptions = nullptr;	// List of vertex attribute descriptions (data format and where to bind to/from)  
+	VertexInputCreateInfo.vertexBindingDescriptionCount = 1;
+	VertexInputCreateInfo.pVertexBindingDescriptions = &VertexBindingDescription;		// List of vertex binding descriptions (data spacing and stride info)
+	VertexInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(AttributeDesciptions.size());
+	VertexInputCreateInfo.pVertexAttributeDescriptions = AttributeDesciptions.data();	// List of vertex attribute descriptions (data format and where to bind to/from)  
 #pragma endregion
 
 #pragma region Input Assembly
@@ -995,10 +1026,15 @@ void Renderer::RecordCommands()
 
 		// Bind the pipeline to render pass 
 		vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipeline);
-		// you can bind more stuff here
+		
+		// Bind more stuff here
+
+		VkBuffer VertexBuffers[] = { SEGame.MeshOne.GetVertexBuffer() }; // Buffers to bind
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(CommandBuffers[i], 0, 1, VertexBuffers, offsets);
 
 		// Execute the pipeline
-		vkCmdDraw(CommandBuffers[i], 3, 1, 0, 0);
+		vkCmdDraw(CommandBuffers[i], static_cast<int32_t>(SEGame.MeshOne.GetVertexCount()), 1, 0, 0);
 		// you can draw more stuff here also
 
 		vkCmdEndRenderPass(CommandBuffers[i]);

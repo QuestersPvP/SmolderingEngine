@@ -19,7 +19,7 @@ file(GLOB_RECURSE MY_HEADERS CONFIGURE_DEPENDS 		"${CMAKE_CURRENT_SOURCE_DIR}/Sm
 add_executable(SmolderingEngine 			${MY_SOURCES} ${MY_HEADERS})
 
 # Include directories for source files
-include_directories(SmolderingEngine PRIVATE 		${CMAKE_CURRENT_SOURCE_DIR}/SmolderingEngine/Engine)	# To access Public, Private, and Shader folders quickly
+include_directories(SmolderingEngine PRIVATE 		${CMAKE_CURRENT_SOURCE_DIR}/SmolderingEngine)	# To access Engine or Game folders quickly
 
 # Add GLFW
 set(GLFW_INCLUDE_DIR 					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GLFW/include)

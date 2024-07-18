@@ -1,12 +1,19 @@
 #pragma once
 
 #include <fstream>
+#include "GLM/glm.hpp"
 
 const int MAX_FRAME_DRAWS = 2;
 
 const std::vector<const char*> DeviceExtensions =
 {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+
+struct Vertex
+{
+	glm::vec3 Position;
+	glm::vec3 Color;
 };
 
 static std::vector<char> ReadFile(const std::string& InFileName)

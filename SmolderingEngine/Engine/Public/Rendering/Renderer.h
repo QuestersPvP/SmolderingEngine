@@ -13,6 +13,8 @@
 
 // Project includes
 #include "Utilities.h"
+#include "Game/Public/Game.h"
+#include "Mesh.h"
 
 struct VulkanDevices
 {
@@ -28,6 +30,8 @@ public:
 private:
 	GLFWwindow* Window;
 	int CurrentFrame = 0;
+
+	Game SEGame;
 
 	// Vulkan Components
 	VkInstance VulkanInstance;
@@ -69,7 +73,7 @@ public:
 	Renderer();
 	~Renderer();
 
-	int InitRenderer(GLFWwindow* InWindow);
+	int InitRenderer(GLFWwindow* InWindow, Game InGame);
 	void Draw();
 	void DestroyRenderer();
 

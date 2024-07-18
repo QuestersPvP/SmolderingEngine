@@ -8,7 +8,7 @@
 #include <iostream>
 
 // Project Includes
-#include "Public/Rendering/Renderer.h"
+#include "Engine/Public/Rendering/Renderer.h"
 
 
 // TODO: make a class to handle window operations / input
@@ -31,12 +31,14 @@ void InitWindow(std::string InWindowName = "Smoldering Engine", const int InWidt
 
 int main()
 {
+	Game SEGame;
+	Renderer SERenderer;
+
 	// Setup the window
 	InitWindow("Smoldering Engine", 800, 600);
 
 	// Setup the renderer
-	Renderer SERenderer;
-	if (SERenderer.InitRenderer(Window) == EXIT_FAILURE)
+	if (SERenderer.InitRenderer(Window, SEGame) == EXIT_FAILURE)
 		return EXIT_FAILURE;
 
 	while (!glfwWindowShouldClose(Window))
@@ -45,6 +47,7 @@ int main()
 		SERenderer.Draw();
 	}
 
+	// Destroys all Renderer resources and the Game meshes
 	SERenderer.DestroyRenderer();
 
 	// Destroy GLFW window / GLFW
