@@ -20,15 +20,15 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game InGame)
 		CreateVulkanSurface();
 		GetPhysicalDevice();
 		CreateLogicalDevice();
-
-		// Mesh creation
-		SEGame.LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice);
-
 		CreateSwapChain();
 		CreateRenderpass();
 		CreateGraphicsPipeline();
 		CreateFramebuffers();
 		CreateCommandPool();
+
+		// Mesh creation
+		SEGame.LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
+
 		AllocateCommandBuffers();
 		RecordCommands();
 		CreateSynchronizationPrimatives();
@@ -1029,12 +1029,20 @@ void Renderer::RecordCommands()
 		
 		// Bind more stuff here
 
-		VkBuffer VertexBuffers[] = { SEGame.MeshOne.GetVertexBuffer() }; // Buffers to bind
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(CommandBuffers[i], 0, 1, VertexBuffers, offsets);
+		for (size_t j = 0; j < SEGame.GameMeshes.size(); j++)
+		{
+			// bind mesh vertex buffer
+			VkBuffer VertexBuffers[] = { SEGame.GameMeshes[j].GetVertexBuffer()}; // Buffers to bind
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(CommandBuffers[i], 0, 1, VertexBuffers, offsets);
 
-		// Execute the pipeline
-		vkCmdDraw(CommandBuffers[i], static_cast<int32_t>(SEGame.MeshOne.GetVertexCount()), 1, 0, 0);
+			// Bind mesh index buffer
+			vkCmdBindIndexBuffer(CommandBuffers[i], SEGame.GameMeshes[j].GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+			// Execute the pipeline
+			vkCmdDrawIndexed(CommandBuffers[i], SEGame.GameMeshes[j].GetIndexCount(), 1, 0, 0, 0);
+		}
+		
 		// you can draw more stuff here also
 
 		vkCmdEndRenderPass(CommandBuffers[i]);

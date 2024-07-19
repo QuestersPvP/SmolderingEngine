@@ -29,10 +29,10 @@ class Game
 {
     /* Variables */
 public:
-    Mesh MeshOne;
+    std::vector<Mesh> GameMeshes;
 
     /* Functions */
 public:
-    void LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevice);
+    void LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevice, VkQueue InTransferQueue, VkCommandPool InTransferCommandPool);
     void DestroyMeshes();
 };
