@@ -41,9 +41,22 @@ int main()
 	if (SERenderer.InitRenderer(Window, SEGame) == EXIT_FAILURE)
 		return EXIT_FAILURE;
 
+	float deltaTime = 0.0f, lastTime = 0.0f , modelRotation = 0.0f;
+
 	while (!glfwWindowShouldClose(Window))
 	{
 		glfwPollEvents();
+
+		// TODO: MOVE THIS
+		float now = glfwGetTime();
+		deltaTime = now - lastTime;
+		lastTime = now;
+		modelRotation += 10.0f * deltaTime;
+		if (modelRotation > 360.0f)
+			modelRotation -= 360.0f;
+		SERenderer.UpdateModelPosition(glm::rotate(glm::mat4(1.0f), glm::radians(modelRotation), glm::vec3(0.0f, 0.0f, 1.0f)));
+
+
 		SERenderer.Draw();
 	}
 

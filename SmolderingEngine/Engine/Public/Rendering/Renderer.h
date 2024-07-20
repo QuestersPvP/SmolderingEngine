@@ -30,6 +30,9 @@ class Renderer
 {
 	/* Variables */
 public:
+	// Scene (TODO: MOVE)
+	ModelViewProjection modelViewProjection;
+	void UpdateModelPosition(glm::mat4 inModelMatrix);
 
 private:
 	GLFWwindow* Window;
@@ -73,9 +76,6 @@ private:
 
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkDeviceMemory> uniformBufferMemory;
-
-	// Scene
-	ModelViewProjection modelViewProjection;
 
 	// Vulkan Validation Layers
 	const std::vector<const char*> validationLayers = 

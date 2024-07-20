@@ -1,5 +1,10 @@
 #include "Engine/Public/Rendering/Renderer.h"
 
+void Renderer::UpdateModelPosition(glm::mat4 inModelMatrix)
+{
+	modelViewProjection.model = inModelMatrix;
+}
+
 Renderer::Renderer()
 {
 }
