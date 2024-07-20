@@ -9,76 +9,83 @@
 
 const int MAX_FRAME_DRAWS = 2;
 
-const std::vector<const char*> DeviceExtensions =
+const std::vector<const char*> deviceExtensions =
 {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
 struct Vertex
 {
-	glm::vec3 Position;
-	glm::vec3 Color;
+	glm::vec3 position;
+	glm::vec3 color;
 };
 
 // Indicies (locations) of Queue families
 struct QueueFamilyIndicies
 {
-	int GraphicsFamily = -1;		// Location of Graphics Queue Family
-	int PresentationFamily = -1;	// Location of Presentation Queue Family
+	int graphicsFamily = -1;		// Location of Graphics Queue Family
+	int presentationFamily = -1;	// Location of Presentation Queue Family
 
 	/* Check if the Queue Family is valid */
 	bool IsValid()
 	{
-		return GraphicsFamily >= 0 && PresentationFamily >= 0;
+		return graphicsFamily >= 0 && presentationFamily >= 0;
 	}
 };
 
 struct SwapchainDetails
 {
-	VkSurfaceCapabilitiesKHR SurfaceCapabilities;		// Surface properties
-	std::vector<VkSurfaceFormatKHR> SurfaceFormats;		// Surface image formats
-	std::vector<VkPresentModeKHR> PresentationModes;	// How images should be presented
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;		// Surface properties
+	std::vector<VkSurfaceFormatKHR> surfaceFormats;		// Surface image formats
+	std::vector<VkPresentModeKHR> presentationModes;	// How images should be presented
 };
 
 struct SwapchainImage
 {
-	VkImage Image;
-	VkImageView ImageView;
+	VkImage image;
+	VkImageView imageView;
 };
 
-static std::vector<char> ReadFile(const std::string& InFileName)
+struct ModelViewProjection
+{
+	glm::mat4 projection;
+	glm::mat4 view;
+	glm::mat4 model;
+};
+
+static std::vector<char> ReadFile(const std::string& inFileName)
 {
 	// std::ios::ate - start reading from end of file
-	std::ifstream File(InFileName, std::ios::binary | std::ios::ate);
+	std::ifstream file(inFileName, std::ios::binary | std::ios::ate);
 
-	if (!File.is_open())
+	if (!file.is_open())
 		throw std::runtime_error("Failed to open file!");
 
 	// get the size of the file
-	size_t FileSize = (size_t)File.tellg();
-	std::vector<char> FileBuffer(FileSize);
+	size_t fileSize = (size_t)file.tellg();
+	std::vector<char> fileBuffer(fileSize);
 
 	// move to start of file
-	File.seekg(0);
+	file.seekg(0);
 
-	File.read(FileBuffer.data(), FileSize);
+	file.read(fileBuffer.data(), fileSize);
 
-	File.close();
+	file.close();
 
-	return FileBuffer;
+	return fileBuffer;
 }
 
-static uint32_t FindMemoryTypeIndex(VkPhysicalDevice InPhysicalDevice, uint32_t InAllowedTypes, VkMemoryPropertyFlags InMemoryPropertyFlags)
+static uint32_t FindMemoryTypeIndex(VkPhysicalDevice inPhysicalDevice, uint32_t inAllowedTypes, VkMemoryPropertyFlags inMemoryPropertyFlags)
 {
 	// Get properties of physical device
-	VkPhysicalDeviceMemoryProperties MemoryProperties;
-	vkGetPhysicalDeviceMemoryProperties(InPhysicalDevice, &MemoryProperties);
+	VkPhysicalDeviceMemoryProperties memoryProperties;
+	vkGetPhysicalDeviceMemoryProperties(inPhysicalDevice, &memoryProperties);
 
-	for (uint32_t i = 0; i < MemoryProperties.memoryTypeCount; i++)
+	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
 	{
-		if ((InAllowedTypes & (1 << i))													// Index of memory type must match corresponding bit in InAllowedTypes
-			&& (MemoryProperties.memoryTypes[i].propertyFlags & InMemoryPropertyFlags)	// Make sure desired property bit flags are part of memory types property flags
-			== InMemoryPropertyFlags)
+		if ((inAllowedTypes & (1 << i))													// Index of memory type must match corresponding bit in InAllowedTypes
+			&& (memoryProperties.memoryTypes[i].propertyFlags & inMemoryPropertyFlags)	// Make sure desired property bit flags are part of memory types property flags
+			== inMemoryPropertyFlags)
 		{
 			// memory type is valid so return its index
 			return i;

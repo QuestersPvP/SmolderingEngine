@@ -22,14 +22,27 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game InGame)
 		CreateLogicalDevice();
 		CreateSwapChain();
 		CreateRenderpass();
+		CreateDescriptorSetLayout();
 		CreateGraphicsPipeline();
 		CreateFramebuffers();
 		CreateCommandPool();
+
+		// Matrix creation									//FOV						// Aspect ratio									// near, far plane
+		modelViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 100.f);
+												// where camera is				// where we are looking			// Y is up
+		modelViewProjection.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelViewProjection.model = glm::mat4(1.0f);
+
+		// invert the Y (Vulkan treats Y as downwards, so if we invert it then Y is up.)
+		modelViewProjection.projection[1][1] *= -1;
 
 		// Mesh creation
 		SEGame.LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
 
 		AllocateCommandBuffers();
+		CreateUniformBuffers();
+		CreateDescriptorPool();
+		AllocateDescriptorSets();
 		RecordCommands();
 		CreateSynchronizationPrimatives();
 	}
@@ -54,6 +67,8 @@ void Renderer::Draw()
 	VkResult Result = vkAcquireNextImageKHR(Devices.LogicalDevice, Swapchain, std::numeric_limits<uint64_t>::max(), ImageAvailableSemaphores[CurrentFrame], VK_NULL_HANDLE, &ImageIndex);
 	if (Result != VK_SUCCESS)
 		throw std::runtime_error("Failed to acquire next image!");
+
+	UpdateUniformBuffer(ImageIndex);
 
 	// Submit the command buffer we want to render
 	VkSubmitInfo SubmitInfo = {};
@@ -94,6 +109,14 @@ void Renderer::DestroyRenderer()
 {
 	vkDeviceWaitIdle(Devices.LogicalDevice); // Wait until queues and all operations are done before cleaning up
 
+	vkDestroyDescriptorPool(Devices.LogicalDevice, descriptorPool, nullptr);
+	vkDestroyDescriptorSetLayout(Devices.LogicalDevice, descriptorSetLayout, nullptr);
+	for (size_t i = 0; i < uniformBuffers.size(); i++)
+	{
+		vkDestroyBuffer(Devices.LogicalDevice, uniformBuffers[i], nullptr);
+		vkFreeMemory(Devices.LogicalDevice, uniformBufferMemory[i], nullptr);
+	}
+
 	SEGame.DestroyMeshes();
 
 	for (size_t i = 0; i < MAX_FRAME_DRAWS; i++)
@@ -103,13 +126,13 @@ void Renderer::DestroyRenderer()
 		vkDestroyFence(Devices.LogicalDevice, DrawFences[i], nullptr);
 	}
 	vkDestroyCommandPool(Devices.LogicalDevice, GraphicsCommandPool, nullptr);
-	for (auto Framebuffer : SwapchainFramebuffers)
-		vkDestroyFramebuffer(Devices.LogicalDevice, Framebuffer, nullptr);
+	for (auto framebuffer : SwapchainFramebuffers)
+		vkDestroyFramebuffer(Devices.LogicalDevice, framebuffer, nullptr);
 	vkDestroyPipeline(Devices.LogicalDevice, GraphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(Devices.LogicalDevice, PipelineLayout, nullptr);
 	vkDestroyRenderPass(Devices.LogicalDevice, RenderPass, nullptr);
-	for (auto Image : SwapchainImages)
-		vkDestroyImageView(Devices.LogicalDevice, Image.ImageView, nullptr);
+	for (auto image : SwapchainImages)
+		vkDestroyImageView(Devices.LogicalDevice, image.imageView, nullptr);
 	vkDestroySwapchainKHR(Devices.LogicalDevice, Swapchain, nullptr);
 	vkDestroySurfaceKHR(VulkanInstance, VulkanSurface, nullptr);
 	vkDestroyDevice(Devices.LogicalDevice, nullptr);
@@ -167,8 +190,8 @@ void Renderer::CreateVulkanInstance()
 	VkInstanceCreateInfo CreateInfo = {};
 	CreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	CreateInfo.pApplicationInfo = &ApplicationInfo;
-	CreateInfo.enabledLayerCount = static_cast<uint32_t>(ValidationLayers.size());
-	CreateInfo.ppEnabledLayerNames = ValidationLayers.data();
+	CreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+	CreateInfo.ppEnabledLayerNames = validationLayers.data();
 	CreateInfo.enabledExtensionCount = static_cast<uint32_t>(InstanceExtensions.size());
 	CreateInfo.ppEnabledExtensionNames = InstanceExtensions.data();
 
@@ -187,7 +210,7 @@ void Renderer::CreateLogicalDevice()
 
 
 	std::vector<VkDeviceQueueCreateInfo> QueueCreateInfoVector;
-	std::set<int> QueueFamilyIndicies = { Indicies.GraphicsFamily, Indicies.PresentationFamily };
+	std::set<int> QueueFamilyIndicies = { Indicies.graphicsFamily, Indicies.presentationFamily };
 
 	for (int QueueFamilyIndex : QueueFamilyIndicies)
 	{
@@ -225,8 +248,8 @@ void Renderer::CreateLogicalDevice()
 	DeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	DeviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(QueueCreateInfoVector.size());
 	DeviceCreateInfo.pQueueCreateInfos = QueueCreateInfoVector.data();
-	DeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(DeviceExtensions.size());
-	DeviceCreateInfo.ppEnabledExtensionNames = DeviceExtensions.data();
+	DeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+	DeviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 	// Features on physical device that the logical device will use.
 	VkPhysicalDeviceFeatures PhysicalDeviceFeatures = {};
 	DeviceCreateInfo.pEnabledFeatures = &PhysicalDeviceFeatures;
@@ -237,8 +260,8 @@ void Renderer::CreateLogicalDevice()
 		throw std::runtime_error("Failed to create logical device");
 
 	// Get access to the Queues we just created while making the logical device
-	vkGetDeviceQueue(Devices.LogicalDevice, Indicies.GraphicsFamily, 0, &GraphicsQueue);
-	vkGetDeviceQueue(Devices.LogicalDevice, Indicies.PresentationFamily, 0, &PresentationQueue);
+	vkGetDeviceQueue(Devices.LogicalDevice, Indicies.graphicsFamily, 0, &GraphicsQueue);
+	vkGetDeviceQueue(Devices.LogicalDevice, Indicies.presentationFamily, 0, &PresentationQueue);
 }
 
 void Renderer::CreateVulkanSurface()
@@ -255,15 +278,15 @@ void Renderer::CreateSwapChain()
 	SwapchainDetails SwapchainInfo = GetSwapchainDetails(Devices.PhysicalDevice);
 
 	// Find best surface values for swapchain before trying to create it
-	VkSurfaceFormatKHR SurfaceFormat = ChooseBestSurfaceFormat(SwapchainInfo.SurfaceFormats);
-	VkPresentModeKHR PresentationMode = ChooseBestPresentationMode(SwapchainInfo.PresentationModes);
-	VkExtent2D SurfaceExtent = ChooseSwapChainExtent(SwapchainInfo.SurfaceCapabilities);
+	VkSurfaceFormatKHR SurfaceFormat = ChooseBestSurfaceFormat(SwapchainInfo.surfaceFormats);
+	VkPresentModeKHR PresentationMode = ChooseBestPresentationMode(SwapchainInfo.presentationModes);
+	VkExtent2D SurfaceExtent = ChooseSwapChainExtent(SwapchainInfo.surfaceCapabilities);
 
 	// How many images are in the swap chain
-	uint32_t ImageCount = SwapchainInfo.SurfaceCapabilities.minImageCount + 1; // +1 because we want atleast triple buffering
-	if (SwapchainInfo.SurfaceCapabilities.maxImageCount > 0 // if 0 then limitless image count
-		&& ImageCount > SwapchainInfo.SurfaceCapabilities.maxImageCount)
-		ImageCount = SwapchainInfo.SurfaceCapabilities.maxImageCount;
+	uint32_t ImageCount = SwapchainInfo.surfaceCapabilities.minImageCount + 1; // +1 because we want atleast triple buffering
+	if (SwapchainInfo.surfaceCapabilities.maxImageCount > 0 // if 0 then limitless image count
+		&& ImageCount > SwapchainInfo.surfaceCapabilities.maxImageCount)
+		ImageCount = SwapchainInfo.surfaceCapabilities.maxImageCount;
 
 	/*
 	VkStructureType                  sType;
@@ -297,10 +320,10 @@ void Renderer::CreateSwapChain()
 	
 	// Fill information out about Queue families
 	QueueFamilyIndicies Indicies = GetQueueFamilies(Devices.PhysicalDevice);
-	if (Indicies.GraphicsFamily != Indicies.PresentationFamily)
+	if (Indicies.graphicsFamily != Indicies.presentationFamily)
 	{
-		uint32_t QueueFamilyIndicies[] = { (uint32_t)Indicies.GraphicsFamily,
-										   (uint32_t)Indicies.PresentationFamily };
+		uint32_t QueueFamilyIndicies[] = { (uint32_t)Indicies.graphicsFamily,
+										   (uint32_t)Indicies.presentationFamily };
 
 		// If families are different then swapchain must let images be shared
 		SwapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -311,12 +334,12 @@ void Renderer::CreateSwapChain()
 	{
 		SwapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		SwapchainCreateInfo.queueFamilyIndexCount = 1;
-		uint32_t QueueFamilyIndex = static_cast<uint32_t>(Indicies.GraphicsFamily);
+		uint32_t QueueFamilyIndex = static_cast<uint32_t>(Indicies.graphicsFamily);
 		SwapchainCreateInfo.pQueueFamilyIndices = &QueueFamilyIndex;
 		//SwapchainCreateInfo.pQueueFamilyIndices = nullptr;
 	}
 
-	SwapchainCreateInfo.preTransform = SwapchainInfo.SurfaceCapabilities.currentTransform;
+	SwapchainCreateInfo.preTransform = SwapchainInfo.surfaceCapabilities.currentTransform;
 	SwapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;					// How to handle blending other windows over this application
 	SwapchainCreateInfo.presentMode = PresentationMode;
 	SwapchainCreateInfo.clipped = VK_TRUE;													// Wether to clip parts of image behind other windows / off screen.
@@ -345,8 +368,8 @@ void Renderer::CreateSwapChain()
 	for (VkImage Image : Images)
 	{
 		SwapchainImage SESwapchainImage = {};
-		SESwapchainImage.Image = Image;
-		SESwapchainImage.ImageView = CreateImageView(Image, SwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+		SESwapchainImage.image = Image;
+		SESwapchainImage.imageView = CreateImageView(Image, SwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 
 		// Add image to swapchain image vector
 		SwapchainImages.push_back(SESwapchainImage);
@@ -450,6 +473,28 @@ void Renderer::CreateRenderpass()
 		throw std::runtime_error("Failed to create renderpass!");
 }
 
+void Renderer::CreateDescriptorSetLayout()
+{
+	// Model View Projection binding info
+	VkDescriptorSetLayoutBinding mvpLayoutBinding = {};
+	mvpLayoutBinding.binding = 0;										// binding point in shader
+	mvpLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	mvpLayoutBinding.descriptorCount = 1;
+	mvpLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;			// it is bound in the vertex shader
+	mvpLayoutBinding.pImmutableSamplers = nullptr;
+
+	// Create descripor set layout with given bindings
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {};
+	descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	descriptorSetLayoutCreateInfo.bindingCount = 1;
+	descriptorSetLayoutCreateInfo.pBindings = &mvpLayoutBinding;
+	
+	// Create descriptor set layout
+	VkResult result = vkCreateDescriptorSetLayout(Devices.LogicalDevice, &descriptorSetLayoutCreateInfo, nullptr, &descriptorSetLayout);
+	if (result != VK_SUCCESS)
+		throw std::runtime_error("Failed to create descriptor set layout!");
+}
+
 void Renderer::CreateGraphicsPipeline()
 {
 #pragma region Shader Stage Creation
@@ -502,13 +547,13 @@ void Renderer::CreateGraphicsPipeline()
 	AttributeDesciptions[0].binding = 0;							// What binding the data set is at, should be same as above
 	AttributeDesciptions[0].location = 0;							// Location in shader where data is read from
 	AttributeDesciptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;	// Format the data will take / defines size of data
-	AttributeDesciptions[0].offset = offsetof(Vertex, Position);	// Where the attribute is defined in the data for a single vertex
+	AttributeDesciptions[0].offset = offsetof(Vertex, position);	// Where the attribute is defined in the data for a single vertex
 
 	// Color attribute
 	AttributeDesciptions[1].binding = 0;					
 	AttributeDesciptions[1].location = 1;					
 	AttributeDesciptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	AttributeDesciptions[1].offset = offsetof(Vertex, Color);
+	AttributeDesciptions[1].offset = offsetof(Vertex, color);
 
 	/*
 	VkStructureType                             sType;
@@ -599,13 +644,13 @@ void Renderer::CreateGraphicsPipeline()
 	*/
 	VkPipelineRasterizationStateCreateInfo RasterizationCreateInfo = {};
 	RasterizationCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	RasterizationCreateInfo.depthClampEnable = VK_FALSE;			// Requires DepthClamp = true on device features. in order to enable
-	RasterizationCreateInfo.rasterizerDiscardEnable = VK_FALSE;		// Wether to discard data and skip rasterizer. Never creates fragments, only suitable for pipeline without framebuffer ouput
-	RasterizationCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;		// When a polygon is drawn, what do we do (e.g. we want if colored)
-	RasterizationCreateInfo.lineWidth = 1.0f;						// How thick lines should be when drawn (if we want VK_POLYGON_MODE_LINE above)
-	RasterizationCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;		// Do not draw back side of triangles.
-	RasterizationCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;	// Basically helps figure out what the backside of the triangle is.
-	RasterizationCreateInfo.depthBiasClamp = VK_FALSE;				// If we should add depth bias to fragments (good for stopping "shadow acne")
+	RasterizationCreateInfo.depthClampEnable = VK_FALSE;					// Requires DepthClamp = true on device features. in order to enable
+	RasterizationCreateInfo.rasterizerDiscardEnable = VK_FALSE;				// Wether to discard data and skip rasterizer. Never creates fragments, only suitable for pipeline without framebuffer ouput
+	RasterizationCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;				// When a polygon is drawn, what do we do (e.g. we want if colored)
+	RasterizationCreateInfo.lineWidth = 1.0f;								// How thick lines should be when drawn (if we want VK_POLYGON_MODE_LINE above)
+	RasterizationCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;				// Do not draw back side of triangles.
+	RasterizationCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;	// Basically helps figure out what the backside of the triangle is.
+	RasterizationCreateInfo.depthBiasClamp = VK_FALSE;						// If we should add depth bias to fragments (good for stopping "shadow acne")
 #pragma endregion
 
 #pragma region Multisampling
@@ -669,8 +714,8 @@ void Renderer::CreateGraphicsPipeline()
 #pragma region Pipeline Layout
 	VkPipelineLayoutCreateInfo PipelineCreateInfo = {};
 	PipelineCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	PipelineCreateInfo.setLayoutCount = 0;
-	PipelineCreateInfo.pSetLayouts = nullptr;
+	PipelineCreateInfo.setLayoutCount = 1;
+	PipelineCreateInfo.pSetLayouts = &descriptorSetLayout;
 	PipelineCreateInfo.pushConstantRangeCount = 0;
 	PipelineCreateInfo.pPushConstantRanges = nullptr;
 
@@ -718,7 +763,7 @@ void Renderer::CreateFramebuffers()
 	for (size_t i = 0; i < SwapchainFramebuffers.size(); i++)
 	{
 		std::array<VkImageView, 1> Attachments = {
-		SwapchainImages[i].ImageView
+		SwapchainImages[i].imageView
 		};
 
 		/*
@@ -783,7 +828,7 @@ void Renderer::CreateCommandPool()
 	*/
 	VkCommandPoolCreateInfo CommandPoolInfo = {};
 	CommandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	CommandPoolInfo.queueFamilyIndex = FamilyIndicies.GraphicsFamily;	// Queue family type that buffers from this command pool will use
+	CommandPoolInfo.queueFamilyIndex = FamilyIndicies.graphicsFamily;	// Queue family type that buffers from this command pool will use
 	
 	VkResult Result = vkCreateCommandPool(Devices.LogicalDevice, &CommandPoolInfo, nullptr, &GraphicsCommandPool);
 
@@ -810,6 +855,78 @@ void Renderer::CreateSynchronizationPrimatives()
 			vkCreateSemaphore(Devices.LogicalDevice, &SemaphoreCreateInfo, nullptr, &RenderingCompleteSemaphores[i]) != VK_SUCCESS ||
 			vkCreateFence(Devices.LogicalDevice, &FenceCreateInfo, nullptr, &DrawFences[i]))
 			throw std::runtime_error("Failed to create a semaphore or fence!");
+	}
+}
+
+void Renderer::CreateUniformBuffers()
+{
+	VkDeviceSize bufferSize = sizeof(ModelViewProjection);
+
+	uniformBuffers.resize(SwapchainImages.size());
+	uniformBufferMemory.resize(SwapchainImages.size());
+
+	for (size_t i = 0; i < SwapchainImages.size(); i++)
+	{
+		CreateBuffer(Devices.PhysicalDevice, Devices.LogicalDevice, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffers[i], &uniformBufferMemory[i]);
+	}
+}
+
+void Renderer::CreateDescriptorPool()
+{
+	// type of descriptor and how many descriptors.
+	VkDescriptorPoolSize descriptorPoolSize = {};
+	descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorPoolSize.descriptorCount = static_cast<uint32_t>(uniformBuffers.size());
+
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
+	descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	descriptorPoolCreateInfo.maxSets = static_cast<uint32_t>(uniformBuffers.size());
+	descriptorPoolCreateInfo.poolSizeCount = 1;
+	descriptorPoolCreateInfo.pPoolSizes = &descriptorPoolSize;
+
+	VkResult result = vkCreateDescriptorPool(Devices.LogicalDevice, &descriptorPoolCreateInfo, nullptr, &descriptorPool);
+	if (result != VK_SUCCESS)
+		throw std::runtime_error("Failed to create a descriptor pool");
+}
+
+void Renderer::AllocateDescriptorSets()
+{
+	// resize descriptor set, the uniform buffers are linked
+	descriptorSets.resize(uniformBuffers.size());
+
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts(uniformBuffers.size(), descriptorSetLayout);
+
+	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
+	descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	descriptorSetAllocateInfo.descriptorPool = descriptorPool;
+	descriptorSetAllocateInfo.descriptorSetCount = static_cast<uint32_t>(uniformBuffers.size());
+	descriptorSetAllocateInfo.pSetLayouts = descriptorSetLayouts.data();
+	
+	VkResult result = vkAllocateDescriptorSets(Devices.LogicalDevice, &descriptorSetAllocateInfo, descriptorSets.data());
+	if (result != VK_SUCCESS)
+		throw std::runtime_error("Failed to allocate descriptor sets!");
+
+	// Update all of descriptor set buffer bindings
+	for (size_t i = 0; i < uniformBuffers.size(); i++)
+	{
+		// Buffer info and data offset info
+		VkDescriptorBufferInfo mvpBufferInfo = {};
+		mvpBufferInfo.buffer = uniformBuffers[i];			// buffer to get data from
+		mvpBufferInfo.offset = 0;							// any offset (e.g. skip any data)
+		mvpBufferInfo.range = sizeof(modelViewProjection);	// bind everything (size of data)
+
+		VkWriteDescriptorSet mvpSetWrite = {};
+		mvpSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		mvpSetWrite.dstSet = descriptorSets[i];							// desriptor set to update
+		mvpSetWrite.dstBinding = 0;										// binding in shader to update
+		mvpSetWrite.dstArrayElement = 0;								// index to update
+		mvpSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		mvpSetWrite.descriptorCount = 1;
+		mvpSetWrite.pBufferInfo = &mvpBufferInfo;
+
+		// update the descriptor sets with the new buffer binding info
+		vkUpdateDescriptorSets(Devices.LogicalDevice, 1, &mvpSetWrite, 0, nullptr);
 	}
 }
 
@@ -872,7 +989,7 @@ bool Renderer::CheckForBestPhysicalDevice(VkPhysicalDevice InPhysicalDevice)
 
 	// check swapchain support
 	SwapchainDetails SwapchainInfo = GetSwapchainDetails(InPhysicalDevice);
-	bool IsSwapChainValid = !SwapchainInfo.PresentationModes.empty() && !SwapchainInfo.SurfaceFormats.empty();
+	bool IsSwapChainValid = !SwapchainInfo.presentationModes.empty() && !SwapchainInfo.surfaceFormats.empty();
 
 	return Indicies.IsValid() && ExtensionsSupported && IsSwapChainValid;
 }
@@ -888,7 +1005,7 @@ bool Renderer::CheckDeviceExtentionSupport(VkPhysicalDevice InPhysicalDevice)
 	std::vector<VkExtensionProperties> Extensions(ExtensionCount);
 	vkEnumerateDeviceExtensionProperties(InPhysicalDevice, nullptr, &ExtensionCount, Extensions.data());
 
-	for (const auto& DeviceExtension : DeviceExtensions)
+	for (const auto& DeviceExtension : deviceExtensions)
 	{
 		bool HasExtension = false;
 		
@@ -919,7 +1036,7 @@ bool Renderer::CheckValidationLayerSupport()
 	vkEnumerateInstanceLayerProperties(&LayerCount, AvailableLayers.data());
 
 	// Check that the validation layers we requested are within the list of layers supported.
-	for (const char* LayerName : ValidationLayers) 
+	for (const char* LayerName : validationLayers) 
 	{
 		bool LayerFound = false;
 
@@ -1039,6 +1156,9 @@ void Renderer::RecordCommands()
 			// Bind mesh index buffer
 			vkCmdBindIndexBuffer(CommandBuffers[i], SEGame.GameMeshes[j].GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
+			// Bind descriptor sets
+			vkCmdBindDescriptorSets(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+
 			// Execute the pipeline
 			vkCmdDrawIndexed(CommandBuffers[i], SEGame.GameMeshes[j].GetIndexCount(), 1, 0, 0, 0);
 		}
@@ -1052,6 +1172,14 @@ void Renderer::RecordCommands()
 		if (Result != VK_SUCCESS)
 			throw std::runtime_error("Failed to stop recording a command buffer!");
 	}
+}
+
+void Renderer::UpdateUniformBuffer(uint32_t inImageIndex)
+{
+	void* data;
+	vkMapMemory(Devices.LogicalDevice, uniformBufferMemory[inImageIndex], 0, sizeof(ModelViewProjection), 0, &data);
+	memcpy(data, &modelViewProjection, sizeof(ModelViewProjection));
+	vkUnmapMemory(Devices.LogicalDevice, uniformBufferMemory[inImageIndex]);
 }
 
 VkSurfaceFormatKHR Renderer::ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& InSurfaceFormats)
@@ -1139,7 +1267,7 @@ QueueFamilyIndicies Renderer::GetQueueFamilies(VkPhysicalDevice InPhysicalDevice
 	{
 		if (QueueFamily.queueCount > 0 && QueueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
-			Indicies.GraphicsFamily = Index;
+			Indicies.graphicsFamily = Index;
 		}
 
 		// Check if the Queue Family supports presentation
@@ -1147,7 +1275,7 @@ QueueFamilyIndicies Renderer::GetQueueFamilies(VkPhysicalDevice InPhysicalDevice
 		vkGetPhysicalDeviceSurfaceSupportKHR(InPhysicalDevice, Index, VulkanSurface, &PresentationSupport);
 
 		if (QueueFamily.queueCount > 0 && PresentationSupport)
-			Indicies.PresentationFamily = Index;
+			Indicies.presentationFamily = Index;
 
 		// Check if queue family indicies are valid and then stop searching.
 		if (Indicies.IsValid())
@@ -1163,15 +1291,15 @@ SwapchainDetails Renderer::GetSwapchainDetails(VkPhysicalDevice InPhysicalDevice
 {
 	SwapchainDetails SwapChainInfo;
 
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(InPhysicalDevice, VulkanSurface, &SwapChainInfo.SurfaceCapabilities);
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(InPhysicalDevice, VulkanSurface, &SwapChainInfo.surfaceCapabilities);
 
 	uint32_t FormatCount = 0;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(InPhysicalDevice, VulkanSurface, &FormatCount, nullptr);
 
 	if (FormatCount != 0)
 	{
-		SwapChainInfo.SurfaceFormats.resize(FormatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(InPhysicalDevice, VulkanSurface, &FormatCount, SwapChainInfo.SurfaceFormats.data());
+		SwapChainInfo.surfaceFormats.resize(FormatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(InPhysicalDevice, VulkanSurface, &FormatCount, SwapChainInfo.surfaceFormats.data());
 	}
 
 	uint32_t PresentationCount = 0;
@@ -1179,8 +1307,8 @@ SwapchainDetails Renderer::GetSwapchainDetails(VkPhysicalDevice InPhysicalDevice
 
 	if (PresentationCount != 0)
 	{
-		SwapChainInfo.PresentationModes.resize(PresentationCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(InPhysicalDevice, VulkanSurface, &PresentationCount, SwapChainInfo.PresentationModes.data());
+		SwapChainInfo.presentationModes.resize(PresentationCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(InPhysicalDevice, VulkanSurface, &PresentationCount, SwapChainInfo.presentationModes.data());
 	}
 
 

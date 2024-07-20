@@ -1,8 +1,5 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 // Standard Library
 #include <stdexcept>
 #include <vector>
@@ -10,6 +7,13 @@
 #include <iostream>
 #include <set>
 #include <algorithm>
+
+// Third Party
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 // Project includes
 #include "Utilities.h"
@@ -61,8 +65,20 @@ private:
 	std::vector<VkSemaphore> RenderingCompleteSemaphores;
 	std::vector<VkFence> DrawFences;
 
+	// Descriptors
+	VkDescriptorSetLayout descriptorSetLayout;
+
+	VkDescriptorPool descriptorPool;
+	std::vector<VkDescriptorSet> descriptorSets;
+
+	std::vector<VkBuffer> uniformBuffers;
+	std::vector<VkDeviceMemory> uniformBufferMemory;
+
+	// Scene
+	ModelViewProjection modelViewProjection;
+
 	// Vulkan Validation Layers
-	const std::vector<const char*> ValidationLayers = 
+	const std::vector<const char*> validationLayers = 
 	{
 	"VK_LAYER_KHRONOS_validation"
 	};
@@ -83,17 +99,22 @@ public:
 	void CreateVulkanSurface();
 	void CreateSwapChain();
 	void CreateRenderpass();
+	void CreateDescriptorSetLayout();
 	void CreateGraphicsPipeline();
 	void CreateFramebuffers();
 	void CreateCommandPool();
 	void CreateSynchronizationPrimatives();
+	void CreateUniformBuffers();
+	void CreateDescriptorPool();
 
+	void AllocateDescriptorSets();
 	void AllocateCommandBuffers();
 
 	VkImageView CreateImageView(VkImage InImage, VkFormat InFormat, VkImageAspectFlags InAspectFlags);
 	VkShaderModule CreateShaderModule(const std::vector<char>& InCode);
 
 	void RecordCommands();
+	void UpdateUniformBuffer(uint32_t inImageIndex);
 
 	// Not allocating memory, no need to delete.
 	void GetPhysicalDevice();
