@@ -31,8 +31,8 @@ class Renderer
 	/* Variables */
 public:
 	// Scene (TODO: MOVE)
-	ModelViewProjection modelViewProjection;
-	void UpdateModelPosition(glm::mat4 inModelMatrix);
+	UniformBufferObjectViewProjection uboViewProjection;
+	void UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix);
 
 private:
 	GLFWwindow* Window;
@@ -74,8 +74,15 @@ private:
 	VkDescriptorPool descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
 
-	std::vector<VkBuffer> uniformBuffers;
-	std::vector<VkDeviceMemory> uniformBufferMemory;
+	std::vector<VkBuffer> viewProjectionUniformBuffers;
+	std::vector<VkDeviceMemory> viewProjectionUniformBufferMemory;	
+	
+	std::vector<VkBuffer> modelDynamicUniformBuffers;
+	std::vector<VkDeviceMemory> modelDynamicUniformBufferMemory;
+
+	VkDeviceSize minUniformBufferOffset;
+	size_t modelUniformAlignment;
+	UniformBufferObjectModel* modelTransferSpace;
 
 	// Vulkan Validation Layers
 	const std::vector<const char*> validationLayers = 
@@ -109,12 +116,13 @@ public:
 
 	void AllocateDescriptorSets();
 	void AllocateCommandBuffers();
+	void AllocateDynamicBufferTransferSpace();
 
 	VkImageView CreateImageView(VkImage InImage, VkFormat InFormat, VkImageAspectFlags InAspectFlags);
 	VkShaderModule CreateShaderModule(const std::vector<char>& InCode);
 
 	void RecordCommands();
-	void UpdateUniformBuffer(uint32_t inImageIndex);
+	void UpdateUniformBuffers(uint32_t inImageIndex);
 
 	// Not allocating memory, no need to delete.
 	void GetPhysicalDevice();

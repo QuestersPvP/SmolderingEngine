@@ -2,6 +2,7 @@
 
 // Third Party
 #include "GLM/glm.hpp"
+#include <glm/gtc/matrix_transform.hpp>
 
 // Engine
 #include "Engine/Public/Rendering/Mesh.h"

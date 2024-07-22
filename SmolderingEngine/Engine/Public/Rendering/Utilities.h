@@ -8,6 +8,7 @@
 #include <fstream>
 
 const int MAX_FRAME_DRAWS = 2;
+const int MAX_OBJECTS = 32;
 
 const std::vector<const char*> deviceExtensions =
 {
@@ -46,10 +47,14 @@ struct SwapchainImage
 	VkImageView imageView;
 };
 
-struct ModelViewProjection
+struct UniformBufferObjectViewProjection
 {
 	glm::mat4 projection;
 	glm::mat4 view;
+};
+
+struct UniformBufferObjectModel
+{
 	glm::mat4 model;
 };
 

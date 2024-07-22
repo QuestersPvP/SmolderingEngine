@@ -52,9 +52,13 @@ int main()
 		deltaTime = now - lastTime;
 		lastTime = now;
 		modelRotation += 10.0f * deltaTime;
+
 		if (modelRotation > 360.0f)
 			modelRotation -= 360.0f;
-		SERenderer.UpdateModelPosition(glm::rotate(glm::mat4(1.0f), glm::radians(modelRotation), glm::vec3(0.0f, 0.0f, 1.0f)));
+
+		glm::mat4 modelMatrix(1.0f);
+		modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation), glm::vec3(0.0f, 0.0f, 1.0f));
+		SERenderer.UpdateModelPosition(0, modelMatrix);
 
 
 		SERenderer.Draw();

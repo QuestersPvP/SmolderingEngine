@@ -30,12 +30,17 @@ private:
 	VkDevice LogicalDevice;
 	VkPhysicalDevice PhysicalDevice;
 
+	UniformBufferObjectModel uboModel;
+
 	/* Functions */
 public:
 	Mesh();
 	Mesh(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevice, VkQueue InTransferQueue, VkCommandPool InTransferCommandPool,
 		std::vector<Vertex>* InVerticies, std::vector<uint32_t>* InIndicies);
 	void DestroyMesh();
+
+	void SetModel(glm::mat4 inModel);
+	UniformBufferObjectModel GetModel();
 	
 	int GetVertexCount();
 	VkBuffer GetVertexBuffer();	
