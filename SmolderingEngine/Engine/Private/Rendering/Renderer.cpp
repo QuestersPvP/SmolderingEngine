@@ -31,12 +31,14 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game InGame)
 		CreateSwapChain();
 		CreateRenderpass();
 		CreateDescriptorSetLayout();
+		CreatePushConstantRange();
 		CreateGraphicsPipeline();
 		CreateFramebuffers();
 		CreateCommandPool();
 
 		// Matrix creation									//FOV						// Aspect ratio									// near, far plane
 		uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 100.f);
+		//uboViewProjection.projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
 												// where camera is				// where we are looking			// Y is up
 		uboViewProjection.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -47,11 +49,10 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game InGame)
 		SEGame.LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
 
 		AllocateCommandBuffers();
-		AllocateDynamicBufferTransferSpace();
+		//AllocateDynamicBufferTransferSpace();
 		CreateUniformBuffers();
 		CreateDescriptorPool();
 		AllocateDescriptorSets();
-		RecordCommands();
 		CreateSynchronizationPrimatives();
 	}
 	catch(const std::runtime_error& error)
@@ -76,6 +77,7 @@ void Renderer::Draw()
 	if (Result != VK_SUCCESS)
 		throw std::runtime_error("Failed to acquire next image!");
 
+	RecordCommands(ImageIndex);
 	UpdateUniformBuffers(ImageIndex);
 
 	// Submit the command buffer we want to render
@@ -117,7 +119,7 @@ void Renderer::DestroyRenderer()
 {
 	vkDeviceWaitIdle(Devices.LogicalDevice); // Wait until queues and all operations are done before cleaning up
 
-	_aligned_free(modelTransferSpace);
+	//_aligned_free(modelTransferSpace);
 
 	vkDestroyDescriptorPool(Devices.LogicalDevice, descriptorPool, nullptr);
 	vkDestroyDescriptorSetLayout(Devices.LogicalDevice, descriptorSetLayout, nullptr);
@@ -125,8 +127,8 @@ void Renderer::DestroyRenderer()
 	{
 		vkDestroyBuffer(Devices.LogicalDevice, viewProjectionUniformBuffers[i], nullptr);
 		vkFreeMemory(Devices.LogicalDevice, viewProjectionUniformBufferMemory[i], nullptr);		
-		vkDestroyBuffer(Devices.LogicalDevice, modelDynamicUniformBuffers[i], nullptr);
-		vkFreeMemory(Devices.LogicalDevice, modelDynamicUniformBufferMemory[i], nullptr);
+		//vkDestroyBuffer(Devices.LogicalDevice, modelDynamicUniformBuffers[i], nullptr);
+		//vkFreeMemory(Devices.LogicalDevice, modelDynamicUniformBufferMemory[i], nullptr);
 	}
 
 	SEGame.DestroyMeshes();
@@ -495,14 +497,14 @@ void Renderer::CreateDescriptorSetLayout()
 	viewProjectionLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;			// it is bound in the vertex shader
 	viewProjectionLayoutBinding.pImmutableSamplers = nullptr;
 
-	VkDescriptorSetLayoutBinding modelLayoutBinding = {};
+	/*VkDescriptorSetLayoutBinding modelLayoutBinding = {};
 	modelLayoutBinding.binding = 1;
 	modelLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	modelLayoutBinding.descriptorCount = 1;
 	modelLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	modelLayoutBinding.pImmutableSamplers = nullptr;
+	modelLayoutBinding.pImmutableSamplers = nullptr;*/
 
-	std::vector<VkDescriptorSetLayoutBinding> layoutBindings = { viewProjectionLayoutBinding, modelLayoutBinding };
+	std::vector<VkDescriptorSetLayoutBinding> layoutBindings = { viewProjectionLayoutBinding/*, modelLayoutBinding*/ };
 
 	// Create descripor set layout with given bindings
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {};
@@ -514,6 +516,14 @@ void Renderer::CreateDescriptorSetLayout()
 	VkResult result = vkCreateDescriptorSetLayout(Devices.LogicalDevice, &descriptorSetLayoutCreateInfo, nullptr, &descriptorSetLayout);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create descriptor set layout!");
+}
+
+void Renderer::CreatePushConstantRange()
+{
+	// Define push constant values
+	pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;	// push constant will be in vertex shader
+	pushConstantRange.offset = 0;								// start at begining of data
+	pushConstantRange.size = sizeof(Model);						// hold the size of the Models data
 }
 
 void Renderer::CreateGraphicsPipeline()
@@ -737,8 +747,8 @@ void Renderer::CreateGraphicsPipeline()
 	PipelineCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	PipelineCreateInfo.setLayoutCount = 1;
 	PipelineCreateInfo.pSetLayouts = &descriptorSetLayout;
-	PipelineCreateInfo.pushConstantRangeCount = 0;
-	PipelineCreateInfo.pPushConstantRanges = nullptr;
+	PipelineCreateInfo.pushConstantRangeCount = 1;
+	PipelineCreateInfo.pPushConstantRanges = &pushConstantRange;
 
 	VkResult Result = vkCreatePipelineLayout(Devices.LogicalDevice, &PipelineCreateInfo, nullptr, &PipelineLayout);
 	if (Result != VK_SUCCESS)
@@ -837,19 +847,19 @@ void Renderer::AllocateCommandBuffers()
 		throw std::runtime_error("Failed to allocate command buffers!");
 }
 
-void Renderer::AllocateDynamicBufferTransferSpace()
-{
-	// Basically all models need to be aligned based off of minUniformBufferOffset. So for example if it is 32 but the object is
-	// 48 bits we would need to allocate 64 bits of memory for it. If the model is only 16 bits then we only need 32 bits for it etc.
-	modelUniformAlignment = (sizeof(UniformBufferObjectModel) + minUniformBufferOffset) & ~(minUniformBufferOffset - 1);
-
-	// Create a chunk of memory to hold our dynamic buffer that is aligned to our modelUniformAlignment and holds a maximum number of objects (MAX_OBJECTS)
-	modelTransferSpace = (UniformBufferObjectModel*)_aligned_malloc(modelUniformAlignment * MAX_OBJECTS, modelUniformAlignment);
-}
+//void Renderer::AllocateDynamicBufferTransferSpace()
+//{
+//	// Basically all models need to be aligned based off of minUniformBufferOffset. So for example if it is 32 but the object is
+//	// 48 bits we would need to allocate 64 bits of memory for it. If the model is only 16 bits then we only need 32 bits for it etc.
+//	modelUniformAlignment = (sizeof(Model) + minUniformBufferOffset) & ~(minUniformBufferOffset - 1);
+//
+//	// Create a chunk of memory to hold our dynamic buffer that is aligned to our modelUniformAlignment and holds a maximum number of objects (MAX_OBJECTS)
+//	modelTransferSpace = (Model*)_aligned_malloc(modelUniformAlignment * MAX_OBJECTS, modelUniformAlignment);
+//}
 
 void Renderer::CreateCommandPool()
 {
-	QueueFamilyIndicies FamilyIndicies = GetQueueFamilies(Devices.PhysicalDevice);
+	QueueFamilyIndicies familyIndicies = GetQueueFamilies(Devices.PhysicalDevice);
 
 	/*
 	VkStructureType             sType;
@@ -857,13 +867,14 @@ void Renderer::CreateCommandPool()
     VkCommandPoolCreateFlags    flags;
     uint32_t                    queueFamilyIndex;
 	*/
-	VkCommandPoolCreateInfo CommandPoolInfo = {};
-	CommandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	CommandPoolInfo.queueFamilyIndex = FamilyIndicies.graphicsFamily;	// Queue family type that buffers from this command pool will use
+	VkCommandPoolCreateInfo commandPoolInfo = {};
+	commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;	// resets the pools anytime a command buffer begins recording
+	commandPoolInfo.queueFamilyIndex = familyIndicies.graphicsFamily;	// Queue family type that buffers from this command pool will use
 	
-	VkResult Result = vkCreateCommandPool(Devices.LogicalDevice, &CommandPoolInfo, nullptr, &GraphicsCommandPool);
+	VkResult result = vkCreateCommandPool(Devices.LogicalDevice, &commandPoolInfo, nullptr, &GraphicsCommandPool);
 
-	if (Result != VK_SUCCESS)
+	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create a command pool!");
 }
 
@@ -892,21 +903,21 @@ void Renderer::CreateSynchronizationPrimatives()
 void Renderer::CreateUniformBuffers()
 {
 	VkDeviceSize viewProjectionBufferSize = sizeof(UniformBufferObjectViewProjection);
-	VkDeviceSize modelBufferSize = modelUniformAlignment * MAX_OBJECTS;
+	//VkDeviceSize modelBufferSize = modelUniformAlignment * MAX_OBJECTS;
 
 	viewProjectionUniformBuffers.resize(SwapchainImages.size());
 	viewProjectionUniformBufferMemory.resize(SwapchainImages.size());	
 	
-	modelDynamicUniformBuffers.resize(SwapchainImages.size());
-	modelDynamicUniformBufferMemory.resize(SwapchainImages.size());
+	//modelDynamicUniformBuffers.resize(SwapchainImages.size());
+	//modelDynamicUniformBufferMemory.resize(SwapchainImages.size());
 
 	for (size_t i = 0; i < SwapchainImages.size(); i++)
 	{
 		CreateBuffer(Devices.PhysicalDevice, Devices.LogicalDevice, viewProjectionBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &viewProjectionUniformBuffers[i], &viewProjectionUniformBufferMemory[i]);		
 		
-		CreateBuffer(Devices.PhysicalDevice, Devices.LogicalDevice, modelBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,	// even though this is dynamic uniform buffer, it is treated same as uniform buffer.
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &modelDynamicUniformBuffers[i], &modelDynamicUniformBufferMemory[i]);
+		//CreateBuffer(Devices.PhysicalDevice, Devices.LogicalDevice, modelBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,	// even though this is dynamic uniform buffer, it is treated same as uniform buffer.
+		//	VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &modelDynamicUniformBuffers[i], &modelDynamicUniformBufferMemory[i]);
 	}
 }
 
@@ -918,12 +929,12 @@ void Renderer::CreateDescriptorPool()
 	viewProjectionDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	viewProjectionDescriptorPoolSize.descriptorCount = static_cast<uint32_t>(viewProjectionUniformBuffers.size());	
 	
-	// Dynamic model pool
-	VkDescriptorPoolSize modelDescriptorPoolSize = {};
-	modelDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	modelDescriptorPoolSize.descriptorCount = static_cast<uint32_t>(modelDynamicUniformBuffers.size());
+	//// Dynamic model pool
+	//VkDescriptorPoolSize modelDescriptorPoolSize = {};
+	//modelDescriptorPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	//modelDescriptorPoolSize.descriptorCount = static_cast<uint32_t>(modelDynamicUniformBuffers.size());
 
-	std::vector<VkDescriptorPoolSize> descriptorPoolSizes = { viewProjectionDescriptorPoolSize, modelDescriptorPoolSize };
+	std::vector<VkDescriptorPoolSize> descriptorPoolSizes = { viewProjectionDescriptorPoolSize/*, modelDescriptorPoolSize*/ };
 
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
 	descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -972,22 +983,22 @@ void Renderer::AllocateDescriptorSets()
 		viewProjectionSetWrite.descriptorCount = 1;
 		viewProjectionSetWrite.pBufferInfo = &viewProjectionBufferInfo;
 
-		// Model descriptor
-		VkDescriptorBufferInfo modelBufferInfo = {};
-		modelBufferInfo.buffer = modelDynamicUniformBuffers[i];
-		modelBufferInfo.offset = 0;
-		modelBufferInfo.range = modelUniformAlignment;
+		//// Model descriptor
+		//VkDescriptorBufferInfo modelBufferInfo = {};
+		//modelBufferInfo.buffer = modelDynamicUniformBuffers[i];
+		//modelBufferInfo.offset = 0;
+		//modelBufferInfo.range = modelUniformAlignment;
 
-		VkWriteDescriptorSet modelSetWrite = {};
-		modelSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		modelSetWrite.dstSet = descriptorSets[i];
-		modelSetWrite.dstBinding = 1;
-		modelSetWrite.dstArrayElement = 0;
-		modelSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-		modelSetWrite.descriptorCount = 1;
-		modelSetWrite.pBufferInfo = &modelBufferInfo;
+		//VkWriteDescriptorSet modelSetWrite = {};
+		//modelSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		//modelSetWrite.dstSet = descriptorSets[i];
+		//modelSetWrite.dstBinding = 1;
+		//modelSetWrite.dstArrayElement = 0;
+		//modelSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		//modelSetWrite.descriptorCount = 1;
+		//modelSetWrite.pBufferInfo = &modelBufferInfo;
 
-		std::vector<VkWriteDescriptorSet> writeDescriptors = { viewProjectionSetWrite, modelSetWrite };
+		std::vector<VkWriteDescriptorSet> writeDescriptors = { viewProjectionSetWrite/*, modelSetWrite*/ };
 
 		// update the descriptor sets with the new buffer binding info
 		vkUpdateDescriptorSets(Devices.LogicalDevice, static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
@@ -1021,7 +1032,7 @@ void Renderer::GetPhysicalDevice()
 	vkGetPhysicalDeviceProperties(Devices.PhysicalDevice, &deviceProperties);
 
 	// get min uniform buffer offset alignment
-	minUniformBufferOffset = deviceProperties.limits.minUniformBufferOffsetAlignment;
+	//minUniformBufferOffset = deviceProperties.limits.minUniformBufferOffsetAlignment;
 }
 
 bool Renderer::CheckInstanceExtensionSupport(std::vector<const char*>* InExtensionsToCheck)
@@ -1186,66 +1197,67 @@ VkShaderModule Renderer::CreateShaderModule(const std::vector<char>& InCode)
 	return ShaderModule;
 }
 
-void Renderer::RecordCommands()
+void Renderer::RecordCommands(uint32_t inImageIndex)
 {
-	VkCommandBufferBeginInfo BufferBeginInfo = {};
-	BufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	VkCommandBufferBeginInfo bufferBeginInfo = {};
+	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
 	// Info on how to begin a render pass (for graphical applications)
-	VkRenderPassBeginInfo RenderPassBeginInfo = {};
-	RenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	RenderPassBeginInfo.renderPass = RenderPass;
-	RenderPassBeginInfo.renderArea.offset = { 0, 0 };
-	RenderPassBeginInfo.renderArea.extent = SwapchainExtent;
-	VkClearValue ClearValues[] = { {0.6f, 0.6f, 0.4f, 1.0f} };
-	RenderPassBeginInfo.pClearValues = ClearValues;				// Clear values, only 1 currently because we only have 1 attachment
-	RenderPassBeginInfo.clearValueCount = 1;
+	VkRenderPassBeginInfo renderPassBeginInfo = {};
+	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassBeginInfo.renderPass = RenderPass;
+	renderPassBeginInfo.renderArea.offset = { 0, 0 };
+	renderPassBeginInfo.renderArea.extent = SwapchainExtent;
+	VkClearValue clearValues[] = { {0.6f, 0.6f, 0.4f, 1.0f} };
+	renderPassBeginInfo.pClearValues = clearValues;				// Clear values, only 1 currently because we only have 1 attachment
+	renderPassBeginInfo.clearValueCount = 1;
 
-	for (size_t i = 0; i < CommandBuffers.size(); i++)
+
+	// Start recording
+	VkResult result = vkBeginCommandBuffer(CommandBuffers[inImageIndex],&bufferBeginInfo);
+	if (result != VK_SUCCESS)
+		throw std::runtime_error("Failed to start recording a command buffer!");
+
+	// start the render pass
+	renderPassBeginInfo.framebuffer = SwapchainFramebuffers[inImageIndex];
+	vkCmdBeginRenderPass(CommandBuffers[inImageIndex], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	// Bind the pipeline to render pass 
+	vkCmdBindPipeline(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipeline);
+	
+	// Bind more stuff here
+
+	for (size_t j = 0; j < SEGame.GameMeshes.size(); j++)
 	{
-		// Start recording
-		VkResult Result = vkBeginCommandBuffer(CommandBuffers[i],&BufferBeginInfo);
-		if (Result != VK_SUCCESS)
-			throw std::runtime_error("Failed to start recording a command buffer!");
+		// bind mesh vertex buffer
+		VkBuffer vertexBuffers[] = { SEGame.GameMeshes[j].GetVertexBuffer()}; // Buffers to bind
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(CommandBuffers[inImageIndex], 0, 1, vertexBuffers, offsets);
 
-		// start the render pass
-		RenderPassBeginInfo.framebuffer = SwapchainFramebuffers[i];
-		vkCmdBeginRenderPass(CommandBuffers[i], &RenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		// Bind mesh index buffer
+		vkCmdBindIndexBuffer(CommandBuffers[inImageIndex], SEGame.GameMeshes[j].GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-		// Bind the pipeline to render pass 
-		vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipeline);
-		
-		// Bind more stuff here
+		// Dynamic offset amount
+		//uint32_t dynamicOffset = static_cast<uint32_t>(modelUniformAlignment) * j;
 
-		for (size_t j = 0; j < SEGame.GameMeshes.size(); j++)
-		{
-			// bind mesh vertex buffer
-			VkBuffer VertexBuffers[] = { SEGame.GameMeshes[j].GetVertexBuffer()}; // Buffers to bind
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(CommandBuffers[i], 0, 1, VertexBuffers, offsets);
+		// Push constants to given shader stage directly
+		vkCmdPushConstants(CommandBuffers[inImageIndex], PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Model), &SEGame.GameMeshes[j].GetModel());
 
-			// Bind mesh index buffer
-			vkCmdBindIndexBuffer(CommandBuffers[i], SEGame.GameMeshes[j].GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		// Bind descriptor sets
+		vkCmdBindDescriptorSets(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &descriptorSets[inImageIndex], 0/*1*/, nullptr/*&dynamicOffset*/);
 
-			// Dynamic offset amount
-			uint32_t dynamicOffset = static_cast<uint32_t>(modelUniformAlignment) * j;
-
-			// Bind descriptor sets
-			vkCmdBindDescriptorSets(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &descriptorSets[i], 1, &dynamicOffset);
-
-			// Execute the pipeline
-			vkCmdDrawIndexed(CommandBuffers[i], SEGame.GameMeshes[j].GetIndexCount(), 1, 0, 0, 0);
-		}
-		
-		// you can draw more stuff here also
-
-		vkCmdEndRenderPass(CommandBuffers[i]);
-
-		// Stop recording
-		Result = vkEndCommandBuffer(CommandBuffers[i]);
-		if (Result != VK_SUCCESS)
-			throw std::runtime_error("Failed to stop recording a command buffer!");
+		// Execute the pipeline
+		vkCmdDrawIndexed(CommandBuffers[inImageIndex], SEGame.GameMeshes[j].GetIndexCount(), 1, 0, 0, 0);
 	}
+	
+	// you can draw more stuff here also
+
+	vkCmdEndRenderPass(CommandBuffers[inImageIndex]);
+
+	// Stop recording
+	result = vkEndCommandBuffer(CommandBuffers[inImageIndex]);
+	if (result != VK_SUCCESS)
+		throw std::runtime_error("Failed to stop recording a command buffer!");
 }
 
 void Renderer::UpdateUniformBuffers(uint32_t inImageIndex)
@@ -1256,20 +1268,20 @@ void Renderer::UpdateUniformBuffers(uint32_t inImageIndex)
 	memcpy(data, &uboViewProjection, sizeof(UniformBufferObjectViewProjection));
 	vkUnmapMemory(Devices.LogicalDevice, viewProjectionUniformBufferMemory[inImageIndex]);
 
-	// TODO: Ensure gamemeshes.size() is less than MAX_OBJECTS
-	// copy model data
-	for (size_t i = 0; i < SEGame.GameMeshes.size(); i++)
-	{
-		// get the memory address at which this models memory will be updated at within the modelTransferSpace
-		UniformBufferObjectModel* model = (UniformBufferObjectModel*)((uint64_t)modelTransferSpace + (i * modelUniformAlignment));
-		// update the data.
-		*model = SEGame.GameMeshes[i].GetModel();
-	}
+	//// Future - Ensure gamemeshes.size() is less than MAX_OBJECTS
+	//// copy model data
+	//for (size_t i = 0; i < SEGame.GameMeshes.size(); i++)
+	//{
+	//	// get the memory address at which this models memory will be updated at within the modelTransferSpace
+	//	Model* model = (Model*)((uint64_t)modelTransferSpace + (i * modelUniformAlignment));
+	//	// update the data.
+	//	*model = SEGame.GameMeshes[i].GetModel();
+	//}
 
-	// copy the model data to the model buffer.
-	vkMapMemory(Devices.LogicalDevice, modelDynamicUniformBufferMemory[inImageIndex], 0, modelUniformAlignment * SEGame.GameMeshes.size(), 0, &data);
-	memcpy(data, modelTransferSpace, modelUniformAlignment * SEGame.GameMeshes.size());
-	vkUnmapMemory(Devices.LogicalDevice, modelDynamicUniformBufferMemory[inImageIndex]);
+	//// copy the model data to the model buffer.
+	//vkMapMemory(Devices.LogicalDevice, modelDynamicUniformBufferMemory[inImageIndex], 0, modelUniformAlignment * SEGame.GameMeshes.size(), 0, &data);
+	//memcpy(data, modelTransferSpace, modelUniformAlignment * SEGame.GameMeshes.size());
+	//vkUnmapMemory(Devices.LogicalDevice, modelDynamicUniformBufferMemory[inImageIndex]);
 }
 
 VkSurfaceFormatKHR Renderer::ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& InSurfaceFormats)

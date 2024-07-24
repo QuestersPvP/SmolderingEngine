@@ -16,7 +16,7 @@ Mesh::Mesh(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevice, VkQueue 
 	CreateVertexBuffer(InTransferQueue, InTransferCommandPool, InVerticies);
 	CreateIndexBuffer(InTransferQueue, InTransferCommandPool, InIndicies);
 
-	uboModel.model = glm::mat4(1.0f);
+	model.model = glm::mat4(1.0f);
 }
 
 void Mesh::DestroyMesh()
@@ -29,12 +29,12 @@ void Mesh::DestroyMesh()
 
 void Mesh::SetModel(glm::mat4 inModel)
 {
-	uboModel.model = inModel;
+	model.model = inModel;
 }
 
-UniformBufferObjectModel Mesh::GetModel()
+Model Mesh::GetModel()
 {
-	return uboModel;
+	return model;
 }
 
 int Mesh::GetVertexCount()

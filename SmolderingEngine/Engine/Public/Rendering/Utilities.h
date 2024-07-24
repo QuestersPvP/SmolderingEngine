@@ -53,7 +53,7 @@ struct UniformBufferObjectViewProjection
 	glm::mat4 view;
 };
 
-struct UniformBufferObjectModel
+struct Model
 {
 	glm::mat4 model;
 };

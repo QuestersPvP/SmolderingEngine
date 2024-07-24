@@ -98,17 +98,34 @@ void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevic
 		10, 11, 12
 	};
 
-	Mesh PlayerMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &PlayerMeshVerticies, &SquareMeshIndicies);
-	Mesh FloorMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &FloorMeshVerticies, &SquareMeshIndicies);
-	Mesh WinMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &WinMeshVerticies, &SquareMeshIndicies);
-	Mesh TrapMeshOne = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &TrapMeshOneVertices, &TrapMeshIndices);
-	Mesh TrapMeshTwo = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &TrapMeshTwoVertices, &TrapMeshIndices);
+	std::vector<Vertex> testMeshVerticies =
+	{
+		{{-0.5f, -0.5f, 0.0f }, {1.0, 0.0, 0.0}},	
+		{{0.5f, -0.5f, 0.0f}, {0.0, 1.0, 0.0}},		
+		{{0.5f, 0.5f, 0.0f}, {0.0, 0.0, 1.0}},	
+		{{-0.5f, 0.5f, 0.0f}, {1.0, 1.0, 0.0}}
+	};
 
-	GameMeshes.push_back(PlayerMesh);
-	GameMeshes.push_back(FloorMesh);
-	GameMeshes.push_back(WinMesh);
-	GameMeshes.push_back(TrapMeshOne);
-	GameMeshes.push_back(TrapMeshTwo);
+	std::vector<uint32_t> testMeshIndicies = // (Can work for any square or rectangle)
+	{
+		0,1,2,	// triangle 0
+		2,3,0	// triangle 1
+	};
+
+	Mesh testMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &testMeshVerticies, &testMeshIndicies);
+	GameMeshes.push_back(testMesh);
+
+	//Mesh PlayerMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &PlayerMeshVerticies, &SquareMeshIndicies);
+	//Mesh FloorMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &FloorMeshVerticies, &SquareMeshIndicies);
+	//Mesh WinMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &WinMeshVerticies, &SquareMeshIndicies);
+	//Mesh TrapMeshOne = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &TrapMeshOneVertices, &TrapMeshIndices);
+	//Mesh TrapMeshTwo = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &TrapMeshTwoVertices, &TrapMeshIndices);
+
+	//GameMeshes.push_back(PlayerMesh);
+	//GameMeshes.push_back(FloorMesh);
+	//GameMeshes.push_back(WinMesh);
+	//GameMeshes.push_back(TrapMeshOne);
+	//GameMeshes.push_back(TrapMeshTwo);
 }
 
 void Game::DestroyMeshes()

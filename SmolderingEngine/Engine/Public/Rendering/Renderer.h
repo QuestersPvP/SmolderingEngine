@@ -77,12 +77,15 @@ private:
 	std::vector<VkBuffer> viewProjectionUniformBuffers;
 	std::vector<VkDeviceMemory> viewProjectionUniformBufferMemory;	
 	
-	std::vector<VkBuffer> modelDynamicUniformBuffers;
-	std::vector<VkDeviceMemory> modelDynamicUniformBufferMemory;
+	VkPushConstantRange pushConstantRange;
 
-	VkDeviceSize minUniformBufferOffset;
-	size_t modelUniformAlignment;
-	UniformBufferObjectModel* modelTransferSpace;
+	//std::vector<VkBuffer> modelDynamicUniformBuffers;
+	//std::vector<VkDeviceMemory> modelDynamicUniformBufferMemory;
+
+	// Dynamic uniform buffer stuff, not needed currently
+	//VkDeviceSize minUniformBufferOffset;
+	//size_t modelUniformAlignment;
+	//Model* modelTransferSpace;
 
 	// Vulkan Validation Layers
 	const std::vector<const char*> validationLayers = 
@@ -107,6 +110,7 @@ public:
 	void CreateSwapChain();
 	void CreateRenderpass();
 	void CreateDescriptorSetLayout();
+	void CreatePushConstantRange();
 	void CreateGraphicsPipeline();
 	void CreateFramebuffers();
 	void CreateCommandPool();
@@ -116,12 +120,12 @@ public:
 
 	void AllocateDescriptorSets();
 	void AllocateCommandBuffers();
-	void AllocateDynamicBufferTransferSpace();
+	//void AllocateDynamicBufferTransferSpace();
 
 	VkImageView CreateImageView(VkImage InImage, VkFormat InFormat, VkImageAspectFlags InAspectFlags);
 	VkShaderModule CreateShaderModule(const std::vector<char>& InCode);
 
-	void RecordCommands();
+	void RecordCommands(uint32_t inImageIndex);
 	void UpdateUniformBuffers(uint32_t inImageIndex);
 
 	// Not allocating memory, no need to delete.

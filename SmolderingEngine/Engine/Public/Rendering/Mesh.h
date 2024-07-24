@@ -30,7 +30,7 @@ private:
 	VkDevice LogicalDevice;
 	VkPhysicalDevice PhysicalDevice;
 
-	UniformBufferObjectModel uboModel;
+	Model model;
 
 	/* Functions */
 public:
@@ -40,7 +40,7 @@ public:
 	void DestroyMesh();
 
 	void SetModel(glm::mat4 inModel);
-	UniformBufferObjectModel GetModel();
+	Model GetModel();
 	
 	int GetVertexCount();
 	VkBuffer GetVertexBuffer();	

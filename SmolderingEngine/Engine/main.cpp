@@ -58,7 +58,7 @@ int main()
 
 		glm::mat4 modelMatrix(1.0f);
 		modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation), glm::vec3(0.0f, 0.0f, 1.0f));
-		SERenderer.UpdateModelPosition(0, modelMatrix);
+		//SERenderer.UpdateModelPosition(0, modelMatrix);
 
 
 		SERenderer.Draw();
