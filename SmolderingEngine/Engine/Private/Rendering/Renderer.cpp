@@ -3,9 +3,9 @@
 void Renderer::UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix)
 {
 	//uboViewProjection.model = inModelMatrix;
-	if (inModelId >= SEGame.GameMeshes.size() || inModelId > MAX_OBJECTS) return;
+	if (inModelId >= SEGame->GameMeshes.size() || inModelId > MAX_OBJECTS) return;
 
-	SEGame.GameMeshes[inModelId].SetModel(inModelMatrix);
+	SEGame->GameMeshes[inModelId].SetModel(inModelMatrix);
 }
 
 Renderer::Renderer()
@@ -16,7 +16,7 @@ Renderer::~Renderer()
 {
 }
 
-int Renderer::InitRenderer(GLFWwindow* InWindow, Game InGame)
+int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 {
 	Window = InWindow;
 	SEGame = InGame;
@@ -38,15 +38,16 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game InGame)
 
 		// Matrix creation									//FOV						// Aspect ratio									// near, far plane
 		uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 100.f);
-		//uboViewProjection.projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
+		//uboViewProjection.projection = glm::ortho(0.0f, 1.0f, 1.0f, 0.0f, 0.1f, 100.0f);
 												// where camera is				// where we are looking			// Y is up
-		uboViewProjection.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboViewProjection.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//uboViewProjection.view = glm::mat4(1.0f);
 
 		// invert the Y (Vulkan treats Y as downwards, so if we invert it then Y is up.)
 		uboViewProjection.projection[1][1] *= -1;
 
 		// Mesh creation
-		SEGame.LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
+		SEGame->LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
 
 		AllocateCommandBuffers();
 		//AllocateDynamicBufferTransferSpace();
@@ -131,7 +132,7 @@ void Renderer::DestroyRenderer()
 		//vkFreeMemory(Devices.LogicalDevice, modelDynamicUniformBufferMemory[i], nullptr);
 	}
 
-	SEGame.DestroyMeshes();
+	SEGame->DestroyMeshes();
 
 	for (size_t i = 0; i < MAX_FRAME_DRAWS; i++)
 	{
@@ -1227,27 +1228,27 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 	
 	// Bind more stuff here
 
-	for (size_t j = 0; j < SEGame.GameMeshes.size(); j++)
+	for (size_t j = 0; j < SEGame->GameMeshes.size(); j++)
 	{
 		// bind mesh vertex buffer
-		VkBuffer vertexBuffers[] = { SEGame.GameMeshes[j].GetVertexBuffer()}; // Buffers to bind
+		VkBuffer vertexBuffers[] = { SEGame->GameMeshes[j].GetVertexBuffer()}; // Buffers to bind
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(CommandBuffers[inImageIndex], 0, 1, vertexBuffers, offsets);
 
 		// Bind mesh index buffer
-		vkCmdBindIndexBuffer(CommandBuffers[inImageIndex], SEGame.GameMeshes[j].GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(CommandBuffers[inImageIndex], SEGame->GameMeshes[j].GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 		// Dynamic offset amount
 		//uint32_t dynamicOffset = static_cast<uint32_t>(modelUniformAlignment) * j;
 
 		// Push constants to given shader stage directly
-		vkCmdPushConstants(CommandBuffers[inImageIndex], PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Model), &SEGame.GameMeshes[j].GetModel());
+		vkCmdPushConstants(CommandBuffers[inImageIndex], PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Model), &SEGame->GameMeshes[j].GetModel());
 
 		// Bind descriptor sets
 		vkCmdBindDescriptorSets(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &descriptorSets[inImageIndex], 0/*1*/, nullptr/*&dynamicOffset*/);
 
 		// Execute the pipeline
-		vkCmdDrawIndexed(CommandBuffers[inImageIndex], SEGame.GameMeshes[j].GetIndexCount(), 1, 0, 0, 0);
+		vkCmdDrawIndexed(CommandBuffers[inImageIndex], SEGame->GameMeshes[j].GetIndexCount(), 1, 0, 0, 0);
 	}
 	
 	// you can draw more stuff here also

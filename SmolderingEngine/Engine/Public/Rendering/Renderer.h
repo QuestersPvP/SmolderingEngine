@@ -36,9 +36,9 @@ public:
 
 private:
 	GLFWwindow* Window;
+	Game* SEGame;
 	int CurrentFrame = 0;
 
-	Game SEGame;
 
 	// Vulkan Components
 	VkInstance VulkanInstance;
@@ -99,7 +99,7 @@ public:
 	Renderer();
 	~Renderer();
 
-	int InitRenderer(GLFWwindow* InWindow, Game InGame);
+	int InitRenderer(GLFWwindow* InWindow, Game* InGame);
 	void Draw();
 	void DestroyRenderer();
 

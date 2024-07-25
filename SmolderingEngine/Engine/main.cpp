@@ -10,10 +10,20 @@
 // Project Includes
 #include "Engine/Public/Rendering/Renderer.h"
 
+Renderer* seRenderer;
+Game* seGame;
+GLFWwindow* seWindow;
+
+float deltaTime = 0.0f;
+float lastTime = 0.0f;
+
+float modelY = 0.0f;
+float xMovementSpeed = 100.0f;
+float modelX = 0.0f;
+
 
 // TODO: make a class to handle window operations / input
 #pragma region WINDOW STUFFz
-GLFWwindow* Window;
 
 void InitWindow(std::string InWindowName = "Smoldering Engine", const int InWidth = 800, const int InHeight = 600)
 {
@@ -24,26 +34,61 @@ void InitWindow(std::string InWindowName = "Smoldering Engine", const int InWidt
 	// TODO: make window able to be resizable
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-	Window = glfwCreateWindow(InWidth, InHeight, InWindowName.c_str(), nullptr, nullptr);
+	seWindow = glfwCreateWindow(InWidth, InHeight, InWindowName.c_str(), nullptr, nullptr);
 
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) 
+{
+	if (action == GLFW_PRESS || action == GLFW_REPEAT) 
+	{
+		/*static Game* gameInstance = nullptr;*/
+		if (key == GLFW_KEY_W || key == GLFW_KEY_A || key == GLFW_KEY_S || key == GLFW_KEY_D) 
+		{
+			//if (!gameInstance) 
+			//{
+			//	// Find Game instance, assuming it's a global variable or you have a method to get it.
+			//	// This is a placeholder; you need to adjust it based on how you manage the Game instance.
+			//	gameInstance = static_cast<Game*>(glfwGetWindowUserPointer(window));
+			//}
+			glm::mat4 modelMatrix(1.0f);
+
+			switch (key) {
+			case GLFW_KEY_W: // Jump
+				break;
+			case GLFW_KEY_A: // Go left
+				modelX += -xMovementSpeed * deltaTime;
+				modelMatrix = glm::translate(modelMatrix, glm::vec3(modelX, 0.0f, 0.0f));
+				seRenderer->UpdateModelPosition(seGame->GameMeshes.size() - 1, modelMatrix);
+				break;
+			case GLFW_KEY_D: // Go right
+				modelX += xMovementSpeed * deltaTime;
+				modelMatrix = glm::translate(modelMatrix, glm::vec3(modelX, 0.0f, 0.0f));
+				seRenderer->UpdateModelPosition(seGame->GameMeshes.size() - 1, modelMatrix);
+				break;
+			default:
+				break;
+			}
+		}
+	}
 }
 #pragma endregion
 
 int main()
 {
-	Game SEGame;
-	Renderer SERenderer;
+	seRenderer = new Renderer();
+	seGame = new Game();
 
 	// Setup the window
 	InitWindow("Smoldering Engine", 800, 600);
+	glfwSetKeyCallback(seWindow, key_callback);
+	glfwSetWindowUserPointer(seWindow, &seGame);
 
 	// Setup the renderer
-	if (SERenderer.InitRenderer(Window, SEGame) == EXIT_FAILURE)
+	if (seRenderer->InitRenderer(seWindow, seGame) == EXIT_FAILURE)
 		return EXIT_FAILURE;
 
-	float deltaTime = 0.0f, lastTime = 0.0f , modelRotation = 0.0f;
-
-	while (!glfwWindowShouldClose(Window))
+	while (!glfwWindowShouldClose(seWindow))
 	{
 		glfwPollEvents();
 
@@ -51,25 +96,29 @@ int main()
 		float now = glfwGetTime();
 		deltaTime = now - lastTime;
 		lastTime = now;
-		modelRotation += 10.0f * deltaTime;
+		//modelRotation += 0.05f * deltaTime;
 
-		if (modelRotation > 360.0f)
-			modelRotation -= 360.0f;
+		//if (modelRotation > 5.0f)
+		//	modelRotation -= 5.0f;
 
-		glm::mat4 modelMatrix(1.0f);
-		modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation), glm::vec3(0.0f, 0.0f, 1.0f));
-		//SERenderer.UpdateModelPosition(0, modelMatrix);
+		//glm::mat4 modelMatrix(1.0f);
+		//modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation), glm::vec3(0.0f, 0.0f, 1.0f));
+		//modelMatrix = glm::translate(modelMatrix, glm::vec3(modelRotation, 0.0f, 0.0f));
+		//seRenderer.UpdateModelPosition(0, modelMatrix);
 
 
-		SERenderer.Draw();
+		seRenderer->Draw();
 	}
 
 	// Destroys all Renderer resources and the Game meshes
-	SERenderer.DestroyRenderer();
+	seRenderer->DestroyRenderer();
 
 	// Destroy GLFW window / GLFW
-	glfwDestroyWindow(Window);
+	glfwDestroyWindow(seWindow);
 	glfwTerminate();
+
+	delete(seGame);
+	delete(seRenderer);
 
 	return EXIT_SUCCESS;
 }
