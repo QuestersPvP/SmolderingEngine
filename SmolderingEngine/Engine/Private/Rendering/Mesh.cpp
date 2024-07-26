@@ -4,32 +4,41 @@ Mesh::Mesh()
 {
 }
 
-Mesh::Mesh(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevice, VkQueue InTransferQueue, VkCommandPool InTransferCommandPool,
-	std::vector<Vertex>* InVerticies, std::vector<uint32_t>* InIndicies)
+Mesh::Mesh(VkPhysicalDevice inPhysicalDevice, VkDevice inLogicalDevice, VkQueue inTransferQueue, VkCommandPool inTransferCommandPool,
+	std::vector<Vertex>* inVertices, std::vector<uint32_t>* inIndicies)
 {
-	PhysicalDevice = InPhysicalDevice;
-	LogicalDevice = InLogicalDevice;
+	physicalDevice = inPhysicalDevice;
+	logicalDevice = inLogicalDevice;
 
-	VertexCount = InVerticies->size();
-	IndexCount = InIndicies->size();
+	vertexCount = inVertices->size();
+	indexCount = inIndicies->size();
 
-	CreateVertexBuffer(InTransferQueue, InTransferCommandPool, InVerticies);
-	CreateIndexBuffer(InTransferQueue, InTransferCommandPool, InIndicies);
+	CreateVertexBuffer(inTransferQueue, inTransferCommandPool, inVertices);
+	CreateIndexBuffer(inTransferQueue, inTransferCommandPool, inIndicies);
 
-	model.model = glm::mat4(1.0f);
+	// Define the model matrix and then calculate the AABB in world space.
+	initialVertexPositions.reserve(inVertices->size());
+	// this algorithm just copies the position data of from the Vertex struct instead of having to loop
+	std::transform(inVertices->begin(), inVertices->end(), std::back_inserter(initialVertexPositions),
+		[](const Vertex& vertex) {
+			return glm::vec3(vertex.position[0], vertex.position[1], vertex.position[2]);
+		});
+
+	model.modelMatrix = glm::mat4(1.0f);
 }
 
 void Mesh::DestroyMesh()
 {
-	vkDestroyBuffer(LogicalDevice, IndexBuffer, nullptr);
-	vkFreeMemory(LogicalDevice, IndexBufferMemory, nullptr);
-	vkDestroyBuffer(LogicalDevice, VertexBuffer, nullptr);	
-	vkFreeMemory(LogicalDevice, VertexBufferMemory, nullptr);
+	vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
+	vkFreeMemory(logicalDevice, indexBufferMemory, nullptr);
+	vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);	
+	vkFreeMemory(logicalDevice, vertexBufferMemory, nullptr);
 }
 
 void Mesh::SetModel(glm::mat4 inModel)
 {
-	model.model = inModel;
+	model.modelMatrix = inModel;
+	//CalculateMeshAABB(initialVertexPositions);
 }
 
 Model Mesh::GetModel()
@@ -39,84 +48,89 @@ Model Mesh::GetModel()
 
 int Mesh::GetVertexCount()
 {
-	return VertexCount;
+	return vertexCount;
 }
 
 VkBuffer Mesh::GetVertexBuffer()
 {
-	return VertexBuffer;
+	return vertexBuffer;
+}
+
+std::vector<glm::vec3> Mesh::GetVertices()
+{
+	return initialVertexPositions;
 }
 
 int Mesh::GetIndexCount()
 {
-	return IndexCount;
+	return indexCount;
 }
 
 VkBuffer Mesh::GetIndexBuffer()
 {
-	return IndexBuffer;
+	return indexBuffer;
 }
 
-void Mesh::CreateVertexBuffer(VkQueue InTransferQueue, VkCommandPool InTransferCommandPool, std::vector<Vertex>* InVerticies)
+void Mesh::CreateVertexBuffer(VkQueue inTransferQueue, VkCommandPool inTransferCommandPool, std::vector<Vertex>* inVertices)
 {
 	// size of buffer needed to hold all verticies
-	VkDeviceSize BufferSize = sizeof(Vertex) * InVerticies->size();
+	VkDeviceSize bufferSize = sizeof(Vertex) * inVertices->size();
 
 	// Temporary buffer to stage vretex data before transferring to the GPU
-	VkBuffer StagingBuffer;
-	VkDeviceMemory StagingBufferMemory;
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
 
 	// Create a staging buffer and allocate memory to it
-	CreateBuffer(PhysicalDevice, LogicalDevice, BufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	CreateBuffer(physicalDevice, logicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		&StagingBuffer, &StagingBufferMemory);
+		&stagingBuffer, &stagingBufferMemory);
 
 	// Map memory to the vertex buffer
 	void* data;																				// create pointer to memory
-	vkMapMemory(LogicalDevice, StagingBufferMemory, 0, BufferSize, 0, &data);				// map the vertex buffer memory to the pointer
-	memcpy(data, InVerticies->data(), (size_t)BufferSize);									// Copy memory from InVerticies vector to that point
-	vkUnmapMemory(LogicalDevice, StagingBufferMemory);										// unmap the vertex buffer memory
+	vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);				// map the vertex buffer memory to the pointer
+	memcpy(data, inVertices->data(), (size_t)bufferSize);									// Copy memory from InVerticies vector to that point
+	vkUnmapMemory(logicalDevice, stagingBufferMemory);										// unmap the vertex buffer memory
 
 	// Create buffer with TRANSFER_DST_BIT and VERTEX_BUFFER_BIT so it can receive transfer data used for vertex buffer
 	// this memory is DEVICE_LOCAL because the memory is on the GPU and only accessible by the GPU (we do not want CPU to have access) 
-	CreateBuffer(PhysicalDevice, LogicalDevice, BufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &VertexBuffer, &VertexBufferMemory);
+	CreateBuffer(physicalDevice, logicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertexBuffer, &vertexBufferMemory);
 
 	// Copy the staging buffer to vertex buffer on the GPU
-	CopyBuffer(LogicalDevice, InTransferQueue, InTransferCommandPool, StagingBuffer, VertexBuffer, BufferSize);
+	CopyBuffer(logicalDevice, inTransferQueue, inTransferCommandPool, stagingBuffer, vertexBuffer, bufferSize);
 
 	// destroy the staging buffer and free the memory
-	vkDestroyBuffer(LogicalDevice, StagingBuffer, nullptr);
-	vkFreeMemory(LogicalDevice, StagingBufferMemory, nullptr);
+	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
 }
 
-void Mesh::CreateIndexBuffer(VkQueue InTransferQueue, VkCommandPool InTransferCommandPool, std::vector<uint32_t>* InIndicies)
+void Mesh::CreateIndexBuffer(VkQueue inTransferQueue, VkCommandPool inTransferCommandPool, std::vector<uint32_t>* inIndicies)
 {
-	VkDeviceSize BufferSize = sizeof(uint32_t) * InIndicies->size();
+	VkDeviceSize bufferSize = sizeof(uint32_t) * inIndicies->size();
 
 	// Temporary buffer to stage index data before transferring to GPU
-	VkBuffer StagingBuffer;
-	VkDeviceMemory StagingBufferMemory;
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
 
 	// Create a staging buffer and allocate memory to it
-	CreateBuffer(PhysicalDevice, LogicalDevice, BufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	CreateBuffer(physicalDevice, logicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		&StagingBuffer, &StagingBufferMemory);
+		&stagingBuffer, &stagingBufferMemory);
 
 	// Map memory to the index buffer
 	void* data;																
-	vkMapMemory(LogicalDevice, StagingBufferMemory, 0, BufferSize, 0, &data);
-	memcpy(data, InIndicies->data(), (size_t)BufferSize);					
-	vkUnmapMemory(LogicalDevice, StagingBufferMemory);
+	vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, inIndicies->data(), (size_t)bufferSize);					
+	vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
 	// Create buffer for index data for GPU access only
-	CreateBuffer(PhysicalDevice, LogicalDevice, BufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &IndexBuffer, &IndexBufferMemory);
+	CreateBuffer(physicalDevice, logicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &indexBuffer, &indexBufferMemory);
 
 	// copy from staging buffer to gpu access buffer
-	CopyBuffer(LogicalDevice, InTransferQueue, InTransferCommandPool, StagingBuffer, IndexBuffer, BufferSize);
+	CopyBuffer(logicalDevice, inTransferQueue, inTransferCommandPool, stagingBuffer, indexBuffer, bufferSize);
 
 	// destroy/free staging buffer
-	vkDestroyBuffer(LogicalDevice, StagingBuffer, nullptr);
-	vkFreeMemory(LogicalDevice, StagingBufferMemory, nullptr);
+	vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
 }

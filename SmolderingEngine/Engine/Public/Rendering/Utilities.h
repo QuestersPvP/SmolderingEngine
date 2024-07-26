@@ -64,7 +64,7 @@ struct AABB
 
 struct Model
 {
-	glm::mat4 model;
+	glm::mat4 modelMatrix;
 };
 
 static std::vector<char> ReadFile(const std::string& inFileName)

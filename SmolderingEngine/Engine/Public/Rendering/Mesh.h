@@ -2,6 +2,7 @@
 
 // Standard Library
 #include <vector>
+#include <algorithm>
 
 // Third Party
 #define GLFW_INCLUDE_VULKAN
@@ -17,26 +18,27 @@ class Mesh
 	/* Variables */
 private:
 	// Vertex
-	int VertexCount;
-	VkBuffer VertexBuffer;
-	VkDeviceMemory VertexBufferMemory;
+	std::vector<glm::vec3> initialVertexPositions;
+	int vertexCount;
+	VkBuffer vertexBuffer;
+	VkDeviceMemory vertexBufferMemory;
 
 	// Index
-	int IndexCount;
-	VkBuffer IndexBuffer;
-	VkDeviceMemory IndexBufferMemory;
+	int indexCount;
+	VkBuffer indexBuffer;
+	VkDeviceMemory indexBufferMemory;
 
 	// VK devices
-	VkDevice LogicalDevice;
-	VkPhysicalDevice PhysicalDevice;
+	VkDevice logicalDevice;
+	VkPhysicalDevice physicalDevice;
 
 	Model model;
 
 	/* Functions */
 public:
 	Mesh();
-	Mesh(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevice, VkQueue InTransferQueue, VkCommandPool InTransferCommandPool,
-		std::vector<Vertex>* InVerticies, std::vector<uint32_t>* InIndicies);
+	Mesh(VkPhysicalDevice inPhysicalDevice, VkDevice inLogicalDevice, VkQueue inTransferQueue, VkCommandPool inTransferCommandPool,
+		std::vector<Vertex>* inVertices, std::vector<uint32_t>* inIndicies);
 	void DestroyMesh();
 
 	void SetModel(glm::mat4 inModel);
@@ -44,11 +46,13 @@ public:
 	
 	int GetVertexCount();
 	VkBuffer GetVertexBuffer();	
+	std::vector<glm::vec3> GetVertices();
 	
 	int GetIndexCount();
 	VkBuffer GetIndexBuffer();
 
 private:
-	void CreateVertexBuffer(VkQueue InTransferQueue, VkCommandPool InTransferCommandPool, std::vector<Vertex>* InVerticies);
-	void CreateIndexBuffer(VkQueue InTransferQueue, VkCommandPool InTransferCommandPool, std::vector<uint32_t>* InIndicies);
+	// For rendering
+	void CreateVertexBuffer(VkQueue inTransferQueue, VkCommandPool inTransferCommandPool, std::vector<Vertex>* inVertices);
+	void CreateIndexBuffer(VkQueue inTransferQueue, VkCommandPool inTransferCommandPool, std::vector<uint32_t>* inIndicies);
 };

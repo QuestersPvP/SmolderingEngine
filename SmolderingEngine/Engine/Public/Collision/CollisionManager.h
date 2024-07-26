@@ -17,6 +17,6 @@ public:
 	void CheckForCollisions(Game* inGame);
 
 private:
-	AABB CalculateAABB(Model inModel);
+	AABB CalculateMeshAABB(Mesh inMesh);
 	bool AABBIntersect(AABB first, AABB second);
 };

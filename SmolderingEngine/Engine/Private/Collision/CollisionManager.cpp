@@ -6,31 +6,57 @@ void CollisionManager::CheckForCollisions(Game* inGame)
 	for (size_t i = 1; i < inGame->GameMeshes.size()-1; i++)
 	{
         // Get the player
-        Model player = inGame->GameMeshes[inGame->GameMeshes.size() - 1].GetModel();
-        AABB playerAABB = CalculateAABB(player);
+        Mesh playerMesh = inGame->GameMeshes[inGame->GameMeshes.size() - 1];
+		AABB playerAABB = CalculateMeshAABB(playerMesh);
 
-        // find AABB of other object
-		AABB otherAABB = CalculateAABB(inGame->GameMeshes[i].GetModel());
+        // Get other object
+        Mesh otherMesh = inGame->GameMeshes[i];
+        AABB otherAABB = CalculateMeshAABB(otherMesh);
 
         bool detectedCollision = AABBIntersect(playerAABB, otherAABB);
 
         // everything else = you die
-        if (detectedCollision)
+		if (detectedCollision && (i != inGame->GameMeshes.size() - 2))
+		{
             std::cout << "you died" << std::endl;
-
-        // inGame->GameMeshes.size()-2 = win mesh, so you win
+		}
+		else if (detectedCollision && (i == inGame->GameMeshes.size() - 2))
+		{
+			std::cout << "you win" << std::endl;
+		}
 	}
-
-
 }
 
-AABB CollisionManager::CalculateAABB(Model inModel)
+AABB CollisionManager::CalculateMeshAABB(Mesh inMesh)
 {
-    return AABB();
+	float minX = std::numeric_limits<float>::max();
+	float minY = std::numeric_limits<float>::max();
+	float maxX = std::numeric_limits<float>::lowest();
+	float maxY = std::numeric_limits<float>::lowest();
+
+	for (const auto vertex : inMesh.GetVertices())
+	{
+		glm::vec4 transformedPosition = inMesh.GetModel().modelMatrix * glm::vec4(vertex.x, vertex.y, vertex.z, 1.0f);
+
+		if (transformedPosition.x < minX) minX = transformedPosition.x;
+		if (transformedPosition.y < minY) minY = transformedPosition.y;
+		if (transformedPosition.x > maxX) maxX = transformedPosition.x;
+		if (transformedPosition.y > maxY) maxY = transformedPosition.y;
+	}
+
+	AABB modelAABB;
+	modelAABB.minimumX = minX;
+	modelAABB.maximumX = maxX;
+	modelAABB.minimumY = minY;
+	modelAABB.maximumY = maxY;
+
+	return modelAABB;
 }
 
 bool CollisionManager::AABBIntersect(AABB first, AABB second)
 {
-	return	(first.minimumX <= second.maximumX && first.maximumX >= second.minimumX) &&
-			(first.minimumY <= second.maximumY && first.maximumY >= second.minimumY);
+    bool xOverlap = (first.minimumX <= second.maximumX) && (first.maximumX >= second.minimumX);
+    bool yOverlap = (first.minimumY <= second.maximumY) && (first.maximumY >= second.minimumY);
+
+    return xOverlap && yOverlap;
 }

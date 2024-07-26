@@ -98,18 +98,18 @@ void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevic
 		10, 11, 12
 	};
 
-	Mesh FloorMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &FloorMeshVerticies, &SquareMeshIndicies);
+	Mesh& FloorMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &FloorMeshVerticies, &SquareMeshIndicies);
 	GameMeshes.push_back(FloorMesh);
 	
-	Mesh TrapMeshOne = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &TrapMeshOneVertices, &TrapMeshIndices);
-	Mesh TrapMeshTwo = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &TrapMeshTwoVertices, &TrapMeshIndices);
+	Mesh& TrapMeshOne = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &TrapMeshOneVertices, &TrapMeshIndices);
+	Mesh& TrapMeshTwo = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &TrapMeshTwoVertices, &TrapMeshIndices);
 	GameMeshes.push_back(TrapMeshOne);
 	GameMeshes.push_back(TrapMeshTwo);
 
-	Mesh WinMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &WinMeshVerticies, &SquareMeshIndicies);
+	Mesh& WinMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &WinMeshVerticies, &SquareMeshIndicies);
 	GameMeshes.push_back(WinMesh);
 
-	Mesh PlayerMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &PlayerMeshVerticies, &SquareMeshIndicies);
+	Mesh& PlayerMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &PlayerMeshVerticies, &SquareMeshIndicies);
 	GameMeshes.push_back(PlayerMesh);
 }
 
