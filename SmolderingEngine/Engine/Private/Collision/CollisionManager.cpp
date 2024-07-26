@@ -24,6 +24,7 @@ void CollisionManager::CheckForCollisions(Game* inGame)
 		{
 			std::cout << "you win" << std::endl;
 		}
+		
 	}
 }
 
