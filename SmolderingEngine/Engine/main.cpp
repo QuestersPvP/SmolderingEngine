@@ -23,6 +23,7 @@ float lastTime = 0.0f;
 
 float modelY = 0.0f;
 float xMovementSpeed = 100.0f;
+float yMovementSpeed = 100.0f;
 float modelX = 0.0f;
 
 
@@ -57,19 +58,23 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			//}
 			glm::mat4 modelMatrix(1.0f);
 
-			switch (key) {
-			case GLFW_KEY_W:		// Jump
+			switch (key)
+			{
+			case GLFW_KEY_W:        // Jump
 				break;
-			case GLFW_KEY_SPACE:	// Jump
-				break;
-			case GLFW_KEY_A:		// Go left
-				modelX += -xMovementSpeed * deltaTime;
-				modelMatrix = glm::translate(modelMatrix, glm::vec3(modelX, 0.0f, 0.0f));
+			case GLFW_KEY_SPACE:    // Jump
+				modelY += yMovementSpeed * deltaTime;
+				modelMatrix = glm::translate(modelMatrix, glm::vec3(modelX, modelY, 0.0f));
 				seRenderer->UpdateModelPosition(seGame->GameMeshes.size() - 1, modelMatrix);
 				break;
-			case GLFW_KEY_D:		// Go right
+			case GLFW_KEY_A:        // Go left
+				modelX += -xMovementSpeed * deltaTime;
+				modelMatrix = glm::translate(modelMatrix, glm::vec3(modelX, modelY, 0.0f));
+				seRenderer->UpdateModelPosition(seGame->GameMeshes.size() - 1, modelMatrix);
+				break;
+			case GLFW_KEY_D:        // Go right
 				modelX += xMovementSpeed * deltaTime;
-				modelMatrix = glm::translate(modelMatrix, glm::vec3(modelX, 0.0f, 0.0f));
+				modelMatrix = glm::translate(modelMatrix, glm::vec3(modelX, modelY, 0.0f));
 				seRenderer->UpdateModelPosition(seGame->GameMeshes.size() - 1, modelMatrix);
 				break;
 			default:
