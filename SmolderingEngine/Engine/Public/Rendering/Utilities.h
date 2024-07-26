@@ -53,6 +53,15 @@ struct UniformBufferObjectViewProjection
 	glm::mat4 view;
 };
 
+struct AABB
+{
+	float minimumX;
+	float maximumX;
+
+	float minimumY;
+	float maximumY;
+};
+
 struct Model
 {
 	glm::mat4 model;

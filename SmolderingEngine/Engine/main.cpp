@@ -9,10 +9,14 @@
 
 // Project Includes
 #include "Engine/Public/Rendering/Renderer.h"
+#include "Engine/Public/Collision/CollisionManager.h"
+#include "Game/Public/Game.h"
 
 Renderer* seRenderer;
 Game* seGame;
 GLFWwindow* seWindow;
+
+CollisionManager seCollision;
 
 float deltaTime = 0.0f;
 float lastTime = 0.0f;
@@ -43,7 +47,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (action == GLFW_PRESS || action == GLFW_REPEAT) 
 	{
 		/*static Game* gameInstance = nullptr;*/
-		if (key == GLFW_KEY_W || key == GLFW_KEY_A || key == GLFW_KEY_S || key == GLFW_KEY_D) 
+		if (key == GLFW_KEY_W || key == GLFW_KEY_SPACE || key == GLFW_KEY_A || key == GLFW_KEY_D)
 		{
 			//if (!gameInstance) 
 			//{
@@ -54,14 +58,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			glm::mat4 modelMatrix(1.0f);
 
 			switch (key) {
-			case GLFW_KEY_W: // Jump
+			case GLFW_KEY_W:		// Jump
 				break;
-			case GLFW_KEY_A: // Go left
+			case GLFW_KEY_SPACE:	// Jump
+				break;
+			case GLFW_KEY_A:		// Go left
 				modelX += -xMovementSpeed * deltaTime;
 				modelMatrix = glm::translate(modelMatrix, glm::vec3(modelX, 0.0f, 0.0f));
 				seRenderer->UpdateModelPosition(seGame->GameMeshes.size() - 1, modelMatrix);
 				break;
-			case GLFW_KEY_D: // Go right
+			case GLFW_KEY_D:		// Go right
 				modelX += xMovementSpeed * deltaTime;
 				modelMatrix = glm::translate(modelMatrix, glm::vec3(modelX, 0.0f, 0.0f));
 				seRenderer->UpdateModelPosition(seGame->GameMeshes.size() - 1, modelMatrix);
@@ -82,7 +88,7 @@ int main()
 	// Setup the window
 	InitWindow("Smoldering Engine", 800, 600);
 	glfwSetKeyCallback(seWindow, key_callback);
-	glfwSetWindowUserPointer(seWindow, &seGame);
+	glfwSetWindowUserPointer(seWindow, seGame);
 
 	// Setup the renderer
 	if (seRenderer->InitRenderer(seWindow, seGame) == EXIT_FAILURE)
@@ -90,24 +96,18 @@ int main()
 
 	while (!glfwWindowShouldClose(seWindow))
 	{
-		glfwPollEvents();
-
-		// TODO: MOVE THIS
+		// Calculate time since last frame
 		float now = glfwGetTime();
 		deltaTime = now - lastTime;
 		lastTime = now;
-		//modelRotation += 0.05f * deltaTime;
 
-		//if (modelRotation > 5.0f)
-		//	modelRotation -= 5.0f;
-
-		//glm::mat4 modelMatrix(1.0f);
-		//modelMatrix = glm::rotate(modelMatrix, glm::radians(modelRotation), glm::vec3(0.0f, 0.0f, 1.0f));
-		//modelMatrix = glm::translate(modelMatrix, glm::vec3(modelRotation, 0.0f, 0.0f));
-		//seRenderer.UpdateModelPosition(0, modelMatrix);
-
-
+		// Check for window inputs
+		glfwPollEvents();
+		// Draw all objects
 		seRenderer->Draw();
+		// Check for any collisions
+		seCollision.CheckForCollisions(seGame);
+
 	}
 
 	// Destroys all Renderer resources and the Game meshes
