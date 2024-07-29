@@ -14,7 +14,7 @@ public:
 
 	/* Functions */
 public:
-	void CheckForCollisions(Game* inGame);
+	bool CheckForCollisions(Game* inGame);
 
 private:
 	AABB CalculateMeshAABB(Mesh inMesh);

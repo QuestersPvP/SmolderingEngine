@@ -24,7 +24,10 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 	try
 	{
 		CreateVulkanInstance();
-		SetupDebugMessenger();
+
+		if (ENABLE_VULKAN_DEBUG_VALIDATION_LAYERS)
+			SetupDebugMessenger();
+
 		CreateVulkanSurface();
 		GetPhysicalDevice();
 		CreateLogicalDevice();
@@ -151,7 +154,10 @@ void Renderer::DestroyRenderer()
 	vkDestroySwapchainKHR(Devices.LogicalDevice, Swapchain, nullptr);
 	vkDestroySurfaceKHR(VulkanInstance, VulkanSurface, nullptr);
 	vkDestroyDevice(Devices.LogicalDevice, nullptr);
-	DestroyDebugUtilsMessengerEXT(VulkanInstance, DebugMessenger, nullptr);
+
+	if (ENABLE_VULKAN_DEBUG_VALIDATION_LAYERS)
+		DestroyDebugUtilsMessengerEXT(VulkanInstance, DebugMessenger, nullptr);
+
 	vkDestroyInstance(VulkanInstance, nullptr);
 }
 
@@ -173,9 +179,12 @@ void Renderer::CreateVulkanInstance()
 	ApplicationInfo.engineVersion = VK_MAKE_API_VERSION(0, 0, 0, 1);
 	ApplicationInfo.apiVersion = VK_API_VERSION_1_3; // TODO: ANY ISSUES MAY BE CAUSED BY API_VERSION_1_3
 
-	// Check that validation layers are supported
-	if (!CheckValidationLayerSupport())
-		throw std::runtime_error("Validation layers that were requested are not available on your PC!");
+	if (ENABLE_VULKAN_DEBUG_VALIDATION_LAYERS)
+	{
+		// Check that validation layers are supported
+		if (!CheckValidationLayerSupport())
+			throw std::runtime_error("Validation layers that were requested are not available on your PC!");
+	}
 
 	// Hold instance extensions
 	uint32_t glfwExtensionCount = 0;
@@ -205,8 +214,16 @@ void Renderer::CreateVulkanInstance()
 	VkInstanceCreateInfo CreateInfo = {};
 	CreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	CreateInfo.pApplicationInfo = &ApplicationInfo;
-	CreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-	CreateInfo.ppEnabledLayerNames = validationLayers.data();
+	if (ENABLE_VULKAN_DEBUG_VALIDATION_LAYERS)
+	{
+		CreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+		CreateInfo.ppEnabledLayerNames = validationLayers.data();
+	}
+	else
+	{
+		CreateInfo.enabledLayerCount = 0;
+		CreateInfo.ppEnabledLayerNames = nullptr;
+	}
 	CreateInfo.enabledExtensionCount = static_cast<uint32_t>(InstanceExtensions.size());
 	CreateInfo.ppEnabledExtensionNames = InstanceExtensions.data();
 
@@ -360,14 +377,14 @@ void Renderer::CreateSwapChain()
 	SwapchainCreateInfo.clipped = VK_TRUE;													// Wether to clip parts of image behind other windows / off screen.
 	SwapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	std::cout << std::endl << std::endl << "v v v v Ignore these 4 errors, Will fix that shit some year v v v v" << std::endl << std::endl << std::endl;
+	//std::cout << std::endl << std::endl << "v v v v Ignore these 4 errors, Will fix that shit some year v v v v" << std::endl << std::endl << std::endl;
 
 	VkResult Result = vkCreateSwapchainKHR(Devices.LogicalDevice, &SwapchainCreateInfo, nullptr, &Swapchain);
 
 	if (Result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create a valid swapchain!");
 
-	std::cout << std::endl << std::endl <<"^ ^ ^ ^ Ignore these 4 errors, Will fix that shit some year ^ ^ ^ ^" << std::endl << std::endl << std::endl;
+	//std::cout << std::endl << std::endl <<"^ ^ ^ ^ Ignore these 4 errors, Will fix that shit some year ^ ^ ^ ^" << std::endl << std::endl << std::endl;
 
 	// Store for later use
 	SwapchainImageFormat = SurfaceFormat.format;

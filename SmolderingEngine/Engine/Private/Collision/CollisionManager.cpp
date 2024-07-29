@@ -1,6 +1,6 @@
 #include "Engine/Public/Collision/CollisionManager.h"
 
-void CollisionManager::CheckForCollisions(Game* inGame)
+bool CollisionManager::CheckForCollisions(Game* inGame)
 {
 	// skip the floor (it is index 0) and skip the player (the player is the last index)
 	for (size_t i = 1; i < inGame->GameMeshes.size()-1; i++)
@@ -19,13 +19,16 @@ void CollisionManager::CheckForCollisions(Game* inGame)
 		if (detectedCollision && (i != inGame->GameMeshes.size() - 2))
 		{
             std::cout << "you died" << std::endl;
+			return true;
 		}
 		else if (detectedCollision && (i == inGame->GameMeshes.size() - 2))
 		{
 			std::cout << "you win" << std::endl;
+			return true;
 		}
-		
 	}
+
+	return false;
 }
 
 AABB CollisionManager::CalculateMeshAABB(Mesh inMesh)

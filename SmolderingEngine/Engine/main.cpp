@@ -27,13 +27,16 @@ GLFWwindow* seWindow;
 
 CollisionManager seCollision;
 
+const int JUMP_TIME = 30;
 float deltaTime = 0.0f;
 float lastTime = 0.0f;
 
 float modelY = 0.0f;
-float xMovementSpeed = 1.0f;
-float yMovementSpeed = 1.0f;
 float modelX = 0.0f;
+float xMovementSpeed = 0.20f;
+float yMovementSpeed = 0.20f;
+bool playerJumping = false;
+int jumpTime = JUMP_TIME;
 
 //
 std::unordered_map<int, bool> keyStates;
@@ -75,7 +78,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 }
 
-void processInput(float deltaTime) {
+float ProcessJump(float inDeltaTime)
+{
+	return std::min(((yMovementSpeed + 0.2f) * inDeltaTime) / ((float)jumpTime / (float)JUMP_TIME), 0.1f);
+}
+
+void processInput(float inDeltaTime) {
 	//technically stupid but it happens so fast you cannot see the stupidity
 	float movementX = 0.0f;
 	float movementY = 0.0f;
@@ -85,30 +93,54 @@ void processInput(float deltaTime) {
 		// Currently, no action for W
 	}
 
-	if (keyStates[GLFW_KEY_SPACE]) {
-		movementY += yMovementSpeed * deltaTime;
+	if (keyStates[GLFW_KEY_SPACE] && !playerJumping && modelY == 0.0f) 
+	{
+		playerJumping = true;
+		jumpTime = 1;
+
+		movementY += ProcessJump(inDeltaTime);
+		jumpTime++;
+	}
+	else if (playerJumping && jumpTime < JUMP_TIME)
+	{
+		movementY += ProcessJump(inDeltaTime);
+		jumpTime++;
+
+		if (jumpTime >= JUMP_TIME)
+			playerJumping = false;
+	}
+	else
+	{
+		movementY += -yMovementSpeed * inDeltaTime;
 	}
 
 	if (keyStates[GLFW_KEY_A]) {
-		movementX += -xMovementSpeed * deltaTime;
+		movementX += -xMovementSpeed * inDeltaTime;
 	}
 
 	if (keyStates[GLFW_KEY_D]) {
-		movementX += xMovementSpeed * deltaTime;
+		movementX += xMovementSpeed * inDeltaTime;
 	}
 
 	modelX += movementX;
 	modelY += movementY;
 
-	glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(modelX, modelY, 0.0f)); //dunno
+	glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(modelX, modelY, 0.0f)); // translate the player model
+
+	// stop the player from going under the ground
+	if (modelMatrix[3].y < 0.0f)
+	{
+		modelMatrix[3].y = 0.0f;
+		modelY = 0.0f;
+	}
+
 	seRenderer->UpdateModelPosition(seGame->GameMeshes.size() - 1, modelMatrix); //update in bulk
 }
 #pragma endregion
 
 /**void fixedUpdate()
 {
-	// Your update logic here
-	std::cout << "Fixed Update" << std::endl;
+
 }**/
 
 int main()
@@ -153,6 +185,8 @@ int main()
 		deltaTime = now - lastTime;
 		lastTime = now;**/
 
+
+
 		//process da inputs 30 times per second please 
 		processInput(updateInterval.count());
 		// Check for window inputs
@@ -160,9 +194,15 @@ int main()
 		// Draw all objects
 		seRenderer->Draw();
 		// Check for any collisions
-		seCollision.CheckForCollisions(seGame);
+		bool reset = seCollision.CheckForCollisions(seGame);
 
-		// Optionally sleep to prevent busy waiting
+		if (reset)
+		{
+			modelX = 0.0f;
+			modelY = 0.0f;
+		}
+
+		// Sleep to prevent busy waiting
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
 	}
