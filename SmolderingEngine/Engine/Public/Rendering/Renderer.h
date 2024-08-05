@@ -55,6 +55,12 @@ private:
 	std::vector<VkFramebuffer> SwapchainFramebuffers;
 	std::vector<VkCommandBuffer> CommandBuffers;
 
+	// Depth Buffer
+	VkImage depthBufferImage;
+	VkDeviceMemory depthBufferImageMemory;
+	VkImageView depthBufferImageView;
+	VkFormat depthAttachmentFormat;
+
 	// Vulkan Pools
 	VkCommandPool GraphicsCommandPool;
 
@@ -112,6 +118,7 @@ public:
 	void CreateDescriptorSetLayout();
 	void CreatePushConstantRange();
 	void CreateGraphicsPipeline();
+	void CreateDepthBufferImage();
 	void CreateFramebuffers();
 	void CreateCommandPool();
 	void CreateSynchronizationPrimatives();
@@ -137,7 +144,10 @@ public:
 	bool CheckDeviceExtentionSupport(VkPhysicalDevice InPhysicalDevice);
 	bool CheckValidationLayerSupport();
 
+	VkImage CreateImage(uint32_t inWidth, uint32_t inHeight, VkFormat inFormat, VkImageTiling inTiling,
+		VkImageUsageFlags inUsageFlags, VkMemoryPropertyFlags inPropertyFlags, VkDeviceMemory* outImageMemory);
 
+	VkFormat ChooseSupportedFormat(const std::vector<VkFormat>& inFormats, VkImageTiling inTiling, VkFormatFeatureFlags inFeatureFlags);
 	VkSurfaceFormatKHR ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& InSurfaceFormats);
 	VkPresentModeKHR ChooseBestPresentationMode(const std::vector<VkPresentModeKHR> InPresentationMode);
 	VkExtent2D ChooseSwapChainExtent(const VkSurfaceCapabilitiesKHR& InSurfaceCapabilities);
