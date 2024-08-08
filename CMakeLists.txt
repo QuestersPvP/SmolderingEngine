@@ -31,6 +31,9 @@ set(GLM_INCLUDE_DIR 					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/GLM)
 # Add ImGui
 set(IMGUI_INCLUDE_DIR 					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI)
 
+# Add STB
+set(STB_INCLUDE_DIR 					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/STB)
+
 # Find Vulkan
 find_package(Vulkan REQUIRED)
 
@@ -38,7 +41,8 @@ find_package(Vulkan REQUIRED)
 target_include_directories(SmolderingEngine PRIVATE 	${GLFW_INCLUDE_DIR}
  							${GLM_INCLUDE_DIR}
 							${IMGUI_INCLUDE_DIR}
-							${Vulkan_INCLUDE_DIRS})
+							${Vulkan_INCLUDE_DIRS}
+							${STB_INCLUDE_DIR})
 
 # Link GLFW/Vulkan library
 target_link_libraries(SmolderingEngine 			${GLFW_LIBRARY}

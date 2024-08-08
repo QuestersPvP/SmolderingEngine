@@ -59,7 +59,7 @@ private:
 	VkImage depthBufferImage;
 	VkDeviceMemory depthBufferImageMemory;
 	VkImageView depthBufferImageView;
-	VkFormat depthAttachmentFormat;
+	//VkFormat depthAttachmentFormat;
 
 	// Vulkan Pools
 	VkCommandPool GraphicsCommandPool;

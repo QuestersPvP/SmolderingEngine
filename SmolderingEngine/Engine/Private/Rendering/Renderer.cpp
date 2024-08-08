@@ -39,6 +39,12 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 		CreateGraphicsPipeline();
 		CreateFramebuffers();
 		CreateCommandPool();
+		AllocateCommandBuffers();
+		//AllocateDynamicBufferTransferSpace();
+		CreateUniformBuffers();
+		CreateDescriptorPool();
+		AllocateDescriptorSets();
+		CreateSynchronizationPrimatives();
 
 		// Matrix creation									//FOV						// Aspect ratio									// near, far plane
 		uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 100.f);
@@ -52,13 +58,6 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 
 		// Mesh creation
 		SEGame->LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
-
-		AllocateCommandBuffers();
-		//AllocateDynamicBufferTransferSpace();
-		CreateUniformBuffers();
-		CreateDescriptorPool();
-		AllocateDescriptorSets();
-		CreateSynchronizationPrimatives();
 	}
 	catch(const std::runtime_error& error)
 	{
@@ -440,7 +439,8 @@ void Renderer::CreateRenderpass()
 
 	// Depth attachment of renderpass
 	VkAttachmentDescription depthAttachment = {};
-	depthAttachment.format = depthAttachmentFormat;
+	depthAttachment.format = ChooseSupportedFormat({ VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT,  VK_FORMAT_D24_UNORM_S8_UINT },
+		VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);;
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -839,7 +839,7 @@ void Renderer::CreateGraphicsPipeline()
 void Renderer::CreateDepthBufferImage()
 {
 	// Get supported formats for depth buffer
-	depthAttachmentFormat = ChooseSupportedFormat({ VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT,  VK_FORMAT_D24_UNORM_S8_UINT },
+	VkFormat depthAttachmentFormat = ChooseSupportedFormat({ VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT,  VK_FORMAT_D24_UNORM_S8_UINT },
 		VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 	
 	// Create depth buffer image
