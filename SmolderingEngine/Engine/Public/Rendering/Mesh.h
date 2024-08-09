@@ -33,6 +33,7 @@ private:
 	VkPhysicalDevice physicalDevice;
 
 	Model model;
+	int textureID;
 
 	/* Functions */
 public:
@@ -43,6 +44,9 @@ public:
 
 	void SetModel(glm::mat4 inModel);
 	Model GetModel();
+
+	int GetTextureID();
+	void SetTextureID(int inTextureID);
 	
 	int GetVertexCount();
 	VkBuffer GetVertexBuffer();	

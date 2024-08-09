@@ -46,6 +46,16 @@ Model Mesh::GetModel()
 	return model;
 }
 
+int Mesh::GetTextureID()
+{
+	return textureID;
+}
+
+void Mesh::SetTextureID(int inTextureID)
+{
+	textureID = inTextureID;
+}
+
 int Mesh::GetVertexCount()
 {
 	return vertexCount;

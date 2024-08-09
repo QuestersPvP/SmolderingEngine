@@ -5,10 +5,10 @@ void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevic
 	// Vertex data
 	std::vector<Vertex> PlayerMeshVerticies =
 	{
-		{{-2.6f, -1.9f, 0.0f}, {1.0f, 0.0f, 0.0f}},			// vertex 0, color 0
-		{{-2.4f, -1.9f, 0.0f}, {0.0f, 1.0f, 0.0f}},		// vertex 1, color 1
-		{{-2.4f, -1.7f, 0.0f}, {0.0f, 0.0f, 1.0f}},		// etc...
-		{{-2.6f, -1.7f, 0.0f}, {1.0f, 1.0f, 0.0f}}
+		{{-2.6f, -1.9f, 0.0f},	{1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},			// vertex 0, color 0
+		{{2.4f, -1.9f, 0.0f},	{0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},		// vertex 1, color 1
+		{{2.4f, 1.7f, 0.0f},	{0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},		// etc...
+		{{-2.6f, 1.7f, 0.0f},	{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}
 	};	
 	
 	std::vector<Vertex> FloorMeshVerticies =
@@ -21,10 +21,10 @@ void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevic
 
 	std::vector<Vertex> WinMeshVerticies =
 	{
-		{{2.6, -1.9, 0.0 }, {0, 1.0, 0.0}},
-		{{3.0, -1.9, 0.0}, {0, 1.0, 0.0}},
-		{{3.0, 3.0, 0.0}, {0, 1.0, 0.0}},
-		{{2.6, 3.0, 0.0}, {0, 1.0, 0.0}}
+		{{2.6, -1.9, 0.0 }, {0, 1.0, 0.0}, {0.0f, 0.0f}},
+		{{3.0, -1.9, 0.0},	{0, 1.0, 0.0}, {0.0f, 0.0f}},
+		{{3.0, 3.0, 0.0},	{0, 1.0, 0.0}, {0.0f, 0.0f}},
+		{{2.6, 3.0, 0.0},	{0, 1.0, 0.0}, {0.0f, 0.0f}}
 	};
 
 	std::vector<Vertex> TrapMeshOneVertices =

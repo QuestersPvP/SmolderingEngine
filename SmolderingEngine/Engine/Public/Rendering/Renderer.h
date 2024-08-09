@@ -88,8 +88,13 @@ private:
 	VkPushConstantRange pushConstantRange;
 
 	// TEXTURE
+	std::vector<VkDescriptorSet> samplerDescriptorSets;
+	VkDescriptorPool samplerDescriptorPool;
+	VkDescriptorSetLayout samplerSetLayout;
+	VkSampler textureSampler;
 	std::vector<VkImage> textureImages;
 	std::vector<VkDeviceMemory> textureImageMemory;
+	std::vector<VkImageView> textureImageViews;
 
 
 	//std::vector<VkBuffer> modelDynamicUniformBuffers;
@@ -163,7 +168,10 @@ public:
 	SwapchainDetails GetSwapchainDetails(VkPhysicalDevice InPhysicalDevice);
 
 	// TEXTURE
+	void CreateTextureSampler();
+	int CreateTextureImage(std::string inFileName);
 	int CreateTexture(std::string inFileName);
+	int CreateTextureDescriptor(VkImageView inTextureImage);
 	stbi_uc* LoadTextureFile(std::string inFileName, int* inWidth, int* inHeight, VkDeviceSize* inImageSize);
 
 	// Validation Layer Callback Functions

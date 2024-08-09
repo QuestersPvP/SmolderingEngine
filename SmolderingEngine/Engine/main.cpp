@@ -196,14 +196,15 @@ int main()
 		glfwPollEvents();
 		// Draw all objects
 		seRenderer->Draw();
-		// Check for any collisions
-		bool reset = seCollision.CheckForCollisions(seGame);
 
-		if (reset)
-		{
-			modelX = 0.0f;
-			modelY = 0.0f;
-		}
+		//// Check for any collisions
+		//bool reset = seCollision.CheckForCollisions(seGame);
+		//
+		//if (reset)
+		//{
+		//	modelX = 0.0f;
+		//	modelY = 0.0f;
+		//}
 
 		// Sleep to prevent busy waiting
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
