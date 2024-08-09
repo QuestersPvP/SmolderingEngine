@@ -144,61 +144,140 @@ static void CreateBuffer(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDe
 	vkBindBufferMemory(InLogicalDevice, *InBuffer, *InBufferMemory, 0);
 }
 
-static void CopyBuffer(VkDevice InLogicalDevice, VkQueue InTranferQueue, VkCommandPool InTransferCommandPool,
-	VkBuffer InSourceBuffer, VkBuffer InDestinationBuffer, VkDeviceSize InBufferSize)
+static VkCommandBuffer BeginCommandBuffer(VkDevice inLogicalDevice, VkCommandPool inCommandPool)
 {
 	// Command buffer to hold transfer commands
-	VkCommandBuffer TransferCommandBuffer;
+	VkCommandBuffer commandBuffer;
 
-	// command buffer details
-	VkCommandBufferAllocateInfo CommandBufferAllocateInfo = {};
-	CommandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	CommandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	CommandBufferAllocateInfo.commandPool = InTransferCommandPool;
-	CommandBufferAllocateInfo.commandBufferCount = 1;
-	
-	VkResult Result = vkAllocateCommandBuffers(InLogicalDevice, &CommandBufferAllocateInfo, &TransferCommandBuffer);
-	if (Result != VK_SUCCESS)
-		throw std::runtime_error("Failed to allocate command buffer!");
+	// Command Buffer details
+	VkCommandBufferAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = inCommandPool;
+	allocInfo.commandBufferCount = 1;
 
-	// info to start recording command buffer
-	VkCommandBufferBeginInfo CommandBufferBeginInfo = {};
-	CommandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	CommandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;	// we only want to use this buffer once.
+	// Allocate command buffer from pool
+	vkAllocateCommandBuffers(inLogicalDevice, &allocInfo, &commandBuffer);
+
+	// Information to begin the command buffer record
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;	// We're only using the command buffer once, so set up for one time submit
 
 	// Begin recording transfer commands
-	Result = vkBeginCommandBuffer(TransferCommandBuffer, &CommandBufferBeginInfo);
-	if (Result != VK_SUCCESS)
-		throw std::runtime_error("Failed to begin recording command buffer!");
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
-	// region of data to copy from and to
-	VkBufferCopy BufferCopyRegion = {};
-	BufferCopyRegion.srcOffset = 0;
-	BufferCopyRegion.dstOffset = 0;
-	BufferCopyRegion.size = InBufferSize;
+	return commandBuffer;
+}
 
-	// copy from source to destination buffer
-	vkCmdCopyBuffer(TransferCommandBuffer, InSourceBuffer, InDestinationBuffer, 1, &BufferCopyRegion);
+static void EndAndSubmitCommandBuffer(VkDevice inLogicalDevice, VkCommandPool inCommandPool, VkQueue inQueue, VkCommandBuffer inCommandBuffer)
+{
+	// End commands
+	vkEndCommandBuffer(inCommandBuffer);
 
-	// End recording transfer commands
-	Result = vkEndCommandBuffer(TransferCommandBuffer);
-	if (Result != VK_SUCCESS)
-		throw std::runtime_error("Failed to stop recording command buffer!");
+	// Queue submission information
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &inCommandBuffer;
 
-	VkSubmitInfo SubmitInfo = {};
-	SubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	SubmitInfo.commandBufferCount = 1;
-	SubmitInfo.pCommandBuffers = &TransferCommandBuffer;
+	// Submit transfer command to transfer queue and wait until it finishes
+	vkQueueSubmit(inQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(inQueue);
 
-	// submit transfer command to queue and wait until its done
-	Result = vkQueueSubmit(InTranferQueue, 1, &SubmitInfo, VK_NULL_HANDLE);
-	if (Result != VK_SUCCESS)
-		throw std::runtime_error("Failed to submit queue!");
+	// Free temporary command buffer back to pool
+	vkFreeCommandBuffers(inLogicalDevice, inCommandPool, 1, &inCommandBuffer);
+}
 
-	Result = vkQueueWaitIdle(InTranferQueue);
-	if (Result != VK_SUCCESS)
-		throw std::runtime_error("Failed to wait for queue!");
+static void CopyBuffer(VkDevice inLogicalDevice, VkQueue inTransferQueue, VkCommandPool inTransferCommandPool,
+	VkBuffer inSourceBuffer, VkBuffer inDestinationBuffer, VkDeviceSize inBufferSize)
+{
+	// Create buffer
+	VkCommandBuffer transferCommandBuffer = BeginCommandBuffer(inLogicalDevice, inTransferCommandPool);
 
-	// free temporary command buffer
-	vkFreeCommandBuffers(InLogicalDevice, InTransferCommandPool, 1, &TransferCommandBuffer);
+	// Region of data to copy from and to
+	VkBufferCopy bufferCopyRegion = {};
+	bufferCopyRegion.srcOffset = 0;
+	bufferCopyRegion.dstOffset = 0;
+	bufferCopyRegion.size = inBufferSize;
+
+	// Command to copy src buffer to dst buffer
+	vkCmdCopyBuffer(transferCommandBuffer, inSourceBuffer, inDestinationBuffer, 1, &bufferCopyRegion);
+
+	EndAndSubmitCommandBuffer(inLogicalDevice, inTransferCommandPool, inTransferQueue, transferCommandBuffer);
+}
+
+static void CopyImageBuffer(VkDevice inLogicalDevice, VkQueue inTransferQueue, VkCommandPool inTransferCommandPool,
+	VkBuffer inSourceBuffer, VkImage inImage, uint32_t inWidth, uint32_t inHeight)
+{
+	// Create buffer
+	VkCommandBuffer transferCommandBuffer = BeginCommandBuffer(inLogicalDevice, inTransferCommandPool);
+
+	VkBufferImageCopy imageRegion = {};
+	imageRegion.bufferOffset = 0;											// Offset into data
+	imageRegion.bufferRowLength = 0;										// Row length of data to calculate data spacing
+	imageRegion.bufferImageHeight = 0;										// Image height to calculate data spacing
+	imageRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;	// Which aspect of image to copy
+	imageRegion.imageSubresource.mipLevel = 0;								// Mipmap level to copy
+	imageRegion.imageSubresource.baseArrayLayer = 0;						// Starting array layer (if array)
+	imageRegion.imageSubresource.layerCount = 1;							// Number of layers to copy starting at baseArrayLayer
+	imageRegion.imageOffset = { 0, 0, 0 };									// Offset into image (as opposed to raw data in bufferOffset)
+	imageRegion.imageExtent = { inWidth, inHeight, 1 };							// Size of region to copy as (x, y, z) values
+
+	// Copy buffer to given image
+	vkCmdCopyBufferToImage(transferCommandBuffer, inSourceBuffer, inImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageRegion);
+
+	EndAndSubmitCommandBuffer(inLogicalDevice, inTransferCommandPool, inTransferQueue, transferCommandBuffer);
+}
+
+static void TransitionImageLayout(VkDevice inLogicalDevice, VkQueue inQueue, VkCommandPool inCommandPool, VkImage inImage, VkImageLayout inOldLayout, VkImageLayout inNewLayout)
+{
+	// Create buffer
+	VkCommandBuffer commandBuffer = BeginCommandBuffer(inLogicalDevice, inCommandPool);
+
+	VkImageMemoryBarrier imageMemoryBarrier = {};
+	imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	imageMemoryBarrier.oldLayout = inOldLayout;									// Layout to transition from
+	imageMemoryBarrier.newLayout = inNewLayout;									// Layout to transition to
+	imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;			// Queue family to transition from
+	imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;			// Queue family to transition to
+	imageMemoryBarrier.image = inImage;											// Image being accessed and modified as part of barrier
+	imageMemoryBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;	// Aspect of image being altered
+	imageMemoryBarrier.subresourceRange.baseMipLevel = 0;						// First mip level to start alterations on
+	imageMemoryBarrier.subresourceRange.levelCount = 1;							// Number of mip levels to alter starting from baseMipLevel
+	imageMemoryBarrier.subresourceRange.baseArrayLayer = 0;						// First layer to start alterations on
+	imageMemoryBarrier.subresourceRange.layerCount = 1;							// Number of layers to alter starting from baseArrayLayer
+
+	VkPipelineStageFlags srcStage;
+	VkPipelineStageFlags dstStage;
+
+	// If transitioning from new image to image ready to receive data...
+	if (inOldLayout == VK_IMAGE_LAYOUT_UNDEFINED && inNewLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+	{
+		imageMemoryBarrier.srcAccessMask = 0;								// Memory access stage transition must after...
+		imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;		// Memory access stage transition must before...
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+	// If transitioning from transfer destination to shader readable...
+	else if (inOldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && inNewLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+	{
+		imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+
+	vkCmdPipelineBarrier(
+		commandBuffer,
+		srcStage, dstStage,		// Pipeline stages (match to src and dst AccessMasks)
+		0,						// Dependency flags
+		0, nullptr,				// Memory Barrier count + data
+		0, nullptr,				// Buffer Memory Barrier count + data
+		1, &imageMemoryBarrier	// Image Memory Barrier count + data
+	);
+
+	EndAndSubmitCommandBuffer(inLogicalDevice, inCommandPool, inQueue, commandBuffer);
 }

@@ -46,6 +46,8 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 		AllocateDescriptorSets();
 		CreateSynchronizationPrimatives();
 
+		int firstTexture = CreateTexture("QuestersGamesLogo.jpg");
+
 		// Matrix creation									//FOV						// Aspect ratio									// near, far plane
 		uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 100.f);
 		//uboViewProjection.projection = glm::ortho(0.0f, 1.0f, 1.0f, 0.0f, 0.1f, 100.0f);
@@ -124,6 +126,12 @@ void Renderer::DestroyRenderer()
 	vkDeviceWaitIdle(Devices.LogicalDevice); // Wait until queues and all operations are done before cleaning up
 
 	//_aligned_free(modelTransferSpace);
+
+	for (size_t i = 0; i < textureImages.size(); i++)
+	{
+		vkDestroyImage(Devices.LogicalDevice, textureImages[i], nullptr);
+		vkFreeMemory(Devices.LogicalDevice, textureImageMemory[i], nullptr);
+	}
 
 	vkDestroyImageView(Devices.LogicalDevice, depthBufferImageView, nullptr);
 	vkDestroyImage(Devices.LogicalDevice, depthBufferImage, nullptr);
@@ -1548,6 +1556,80 @@ SwapchainDetails Renderer::GetSwapchainDetails(VkPhysicalDevice InPhysicalDevice
 
 
 	return SwapChainInfo;
+}
+
+int Renderer::CreateTexture(std::string inFileName)
+{
+	// Load image file
+	int width, height;
+	VkDeviceSize imageSize;
+	stbi_uc* imageData = LoadTextureFile(inFileName, &width, &height, &imageSize);
+
+	// Create staging buffer to hold loaded data, ready to copy to device
+	VkBuffer imageStagingBuffer;
+	VkDeviceMemory imageStagingBufferMemory;
+	CreateBuffer(Devices.PhysicalDevice, Devices.LogicalDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		&imageStagingBuffer, &imageStagingBufferMemory);
+
+	// Copy image data to staging buffer
+	void* data;
+	vkMapMemory(Devices.LogicalDevice, imageStagingBufferMemory, 0, imageSize, 0, &data);
+	memcpy(data, imageData, static_cast<size_t>(imageSize));
+	vkUnmapMemory(Devices.LogicalDevice, imageStagingBufferMemory);
+
+	// Free original image data
+	stbi_image_free(imageData);
+
+	// Create image to hold final texture
+	VkImage texImage;
+	VkDeviceMemory texImageMemory;
+	texImage = CreateImage(width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &texImageMemory);
+
+
+	// COPY DATA TO IMAGE
+	// Transition image to be DST for copy operation
+	TransitionImageLayout(Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool,
+		texImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+	// Copy image data
+	CopyImageBuffer(Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool, imageStagingBuffer, texImage, width, height);
+
+	// Transition image to be shader readable for shader usage
+	TransitionImageLayout(Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool,
+		texImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	// Add texture data to vector for reference
+	textureImages.push_back(texImage);
+	textureImageMemory.push_back(texImageMemory);
+
+	// Destroy staging buffers
+	vkDestroyBuffer(Devices.LogicalDevice, imageStagingBuffer, nullptr);
+	vkFreeMemory(Devices.LogicalDevice, imageStagingBufferMemory, nullptr);
+
+	// Return index of new texture image
+	return textureImages.size() - 1;
+}
+
+stbi_uc* Renderer::LoadTextureFile(std::string inFileName, int* inWidth, int* inHeight, VkDeviceSize* inImageSize)
+{
+	// Number of channels image uses
+	int channels;
+
+	// Load pixel data for image
+	std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Textures/" + inFileName);
+	stbi_uc* image = stbi_load(fileLoc.c_str(), inWidth, inHeight, &channels, STBI_rgb_alpha);
+
+	if (!image)
+	{
+		throw std::runtime_error("Failed to load a Texture file! (" + fileLoc + ")");
+	}
+
+	// Calculate image size using given and known data
+	*inImageSize = *inWidth * *inHeight * 4; // *4 because RGBA
+
+	return image;
 }
 
 void Renderer::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& CreateInfo)

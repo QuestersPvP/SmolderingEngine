@@ -12,6 +12,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <stb_image.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -85,6 +87,11 @@ private:
 	
 	VkPushConstantRange pushConstantRange;
 
+	// TEXTURE
+	std::vector<VkImage> textureImages;
+	std::vector<VkDeviceMemory> textureImageMemory;
+
+
 	//std::vector<VkBuffer> modelDynamicUniformBuffers;
 	//std::vector<VkDeviceMemory> modelDynamicUniformBufferMemory;
 
@@ -155,8 +162,11 @@ public:
 	QueueFamilyIndicies GetQueueFamilies(VkPhysicalDevice InPhysicalDevice);
 	SwapchainDetails GetSwapchainDetails(VkPhysicalDevice InPhysicalDevice);
 
-	// Validation Layer Callback Functions
+	// TEXTURE
+	int CreateTexture(std::string inFileName);
+	stbi_uc* LoadTextureFile(std::string inFileName, int* inWidth, int* inHeight, VkDeviceSize* inImageSize);
 
+	// Validation Layer Callback Functions
 	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& CreateInfo);
 	void SetupDebugMessenger();
 
