@@ -1,13 +1,11 @@
 // Third Party
 #define STB_IMAGE_IMPLEMENTATION
 #define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
-//chrono
-#include <chrono>
-#include <thread>
+#include <GLFW/glfw3.h>
+
+#include <imgui.h>
 
 //include these for keyStates
 #include <glm/glm.hpp>
@@ -18,6 +16,8 @@
 #include <stdexcept>
 #include <vector>
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 // Project Includes
 #include "Engine/Public/Rendering/Renderer.h"
@@ -150,6 +150,12 @@ int main()
 {
 	seRenderer = new Renderer();
 	seGame = new Game();
+
+	// imGui
+	//ImGui::CreateContext();
+	//ImGuiIO& imGuiIO = ImGui::GetIO();
+	//// Enable keyboard
+	//imGuiIO.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
 	// Setup the window
 	InitWindow("Smoldering Engine", 800, 600);

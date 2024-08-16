@@ -15,8 +15,19 @@ add_definitions(-DPROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\")
 file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS 		"${CMAKE_CURRENT_SOURCE_DIR}/SmolderingEngine/*.cpp")
 file(GLOB_RECURSE MY_HEADERS CONFIGURE_DEPENDS 		"${CMAKE_CURRENT_SOURCE_DIR}/SmolderingEngine/*.h")
 
+# Add ImGui source files
+set(IMGUI_SOURCES					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI/imgui.cpp
+    							${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI/imgui_draw.cpp
+    							${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI/imgui_widgets.cpp
+							${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI/imgui_tables.cpp
+							${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI/imgui_demo.cpp
+    							${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI/backends/imgui_impl_glfw.cpp
+    							${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI/backends/imgui_impl_vulkan.cpp)
+
 # Add an executable
-add_executable(SmolderingEngine 			${MY_SOURCES} ${MY_HEADERS})
+add_executable(SmolderingEngine 			${MY_SOURCES}
+							${MY_HEADERS}
+							${IMGUI_SOURCES})
 
 # Include directories for source files
 include_directories(SmolderingEngine PRIVATE 		${CMAKE_CURRENT_SOURCE_DIR}/SmolderingEngine)	# To access Engine or Game folders quickly
