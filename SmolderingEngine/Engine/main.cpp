@@ -6,6 +6,8 @@
 #include <GLFW/glfw3.h>
 
 #include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_vulkan.h>
 
 //include these for keyStates
 #include <glm/glm.hpp>
@@ -151,12 +153,6 @@ int main()
 	seRenderer = new Renderer();
 	seGame = new Game();
 
-	// imGui
-	//ImGui::CreateContext();
-	//ImGuiIO& imGuiIO = ImGui::GetIO();
-	//// Enable keyboard
-	//imGuiIO.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-
 	// Setup the window
 	InitWindow("Smoldering Engine", 800, 600);
 	initializeKeyStates();
@@ -165,6 +161,20 @@ int main()
 	// Setup the renderer
 	if (seRenderer->InitRenderer(seWindow, seGame) == EXIT_FAILURE)
 		return EXIT_FAILURE;
+
+	// -------- imGui ------------
+	ImGui::CreateContext();
+	ImGui_ImplGlfw_InitForVulkan(seWindow, true);
+	//ImGuiIO& imGuiIO = ImGui::GetIO();
+	//// Enable keyboard
+	//imGuiIO.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	
+	// Initialize ImGui for Vulkan
+	if (seRenderer->InitImGuiForVulkan() == EXIT_FAILURE)
+		return EXIT_FAILURE;
+
+	
+	// -------- imGui ------------
 
 	//chrono stuff, update it 1/30 per second
 	constexpr int updatesPerSecond = 30; //if you want this to not be initialized in compiler change constexpr to const

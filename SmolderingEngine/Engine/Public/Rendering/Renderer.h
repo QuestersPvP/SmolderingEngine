@@ -17,6 +17,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_vulkan.h>
+
 // Project includes
 #include "Utilities.h"
 #include "Game/Public/Game.h"
@@ -177,6 +181,10 @@ public:
 	// Validation Layer Callback Functions
 	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& CreateInfo);
 	void SetupDebugMessenger();
+
+	// Setup ImGui + Vulkan
+	bool InitImGuiForVulkan();
+	void ImGuiResultCheck(VkResult inError);
 
 	/*
 	https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Validation_layers
