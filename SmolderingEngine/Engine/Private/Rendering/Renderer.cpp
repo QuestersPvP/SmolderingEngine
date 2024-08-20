@@ -47,6 +47,7 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 		AllocateDescriptorSets();
 		CreateSynchronizationPrimatives();
 
+		int blankTexture = CreateTexture("BlankTexture.jpg");
 		int testTexture = CreateTexture("QuestersGamesLogo.jpg");
 
 		// Matrix creation									//FOV						// Aspect ratio									// near, far plane
@@ -64,11 +65,15 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 
 		for (size_t i = 0; i < SEGame->GameMeshes.size(); i++)
 		{
-			SEGame->GameMeshes[i].SetTextureID(-1);
-
 			if (i == SEGame->GameMeshes.size() - 1)
 			{
 				SEGame->GameMeshes[i].SetTextureID(testTexture);
+				SEGame->GameMeshes[i].SetUseTexture(1);
+			}
+			else
+			{
+				SEGame->GameMeshes[i].SetTextureID(blankTexture);
+				SEGame->GameMeshes[i].SetUseTexture(0);
 			}
 		}
 
@@ -1445,12 +1450,9 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 			vkCmdBindDescriptorSets(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout,
 				0, static_cast<uint32_t>(descriptorSetGroup.size()), descriptorSetGroup.data(), 0, nullptr);
 		}
-		else // TODO: FIX
+		else
 		{
-			std::array<VkDescriptorSet, 1> descriptorSetGroup = { descriptorSets[inImageIndex]};
-
-			vkCmdBindDescriptorSets(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout,
-				0, static_cast<uint32_t>(descriptorSetGroup.size()), descriptorSetGroup.data(), 0, nullptr);
+			std::cout << "Error: Game mesh has no texture AND blank texture is not loaded." << std::endl;
 		}
 		//vkCmdBindDescriptorSets(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &descriptorSets[inImageIndex], 0/*1*/, nullptr/*&dynamicOffset*/);
 

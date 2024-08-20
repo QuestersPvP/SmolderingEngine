@@ -34,6 +34,7 @@ private:
 
 	Model model;
 	int textureID;
+	int useTexture;
 
 	/* Functions */
 public:
@@ -47,6 +48,9 @@ public:
 
 	int GetTextureID();
 	void SetTextureID(int inTextureID);
+
+	int GetUseTexture();
+	void SetUseTexture(int inUseTexture);
 	
 	int GetVertexCount();
 	VkBuffer GetVertexBuffer();	

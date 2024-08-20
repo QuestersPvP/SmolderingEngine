@@ -20,7 +20,7 @@ struct Vertex
 {
 	glm::vec3 position;
 	glm::vec3 color;
-	glm::vec2 texture;	// Texture coordinates (U, V)
+	glm::vec2 texture;		// Texture coordinates (U, V)
 };
 
 // Indicies (locations) of Queue families
@@ -67,6 +67,7 @@ struct AABB
 struct Model
 {
 	glm::mat4 modelMatrix;
+	int useTexture = 0;			// 1 = use texture, 0 = do not use texture
 };
 
 static std::vector<char> ReadFile(const std::string& inFileName)

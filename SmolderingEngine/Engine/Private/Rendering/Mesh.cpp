@@ -56,6 +56,16 @@ void Mesh::SetTextureID(int inTextureID)
 	textureID = inTextureID;
 }
 
+int Mesh::GetUseTexture()
+{
+	return model.useTexture;
+}
+
+void Mesh::SetUseTexture(int inUseTexture)
+{
+	model.useTexture = inUseTexture;
+}
+
 int Mesh::GetVertexCount()
 {
 	return vertexCount;
