@@ -46,6 +46,16 @@ Model Mesh::GetModel()
 	return model;
 }
 
+void Mesh::SetTextureFilePath(std::string inFilePath)
+{
+	textureFilePath = inFilePath;
+}
+
+std::string Mesh::GetTextureFilePath()
+{
+	return textureFilePath;
+}
+
 int Mesh::GetTextureID()
 {
 	return textureID;

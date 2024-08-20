@@ -48,7 +48,7 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 		CreateSynchronizationPrimatives();
 
 		int blankTexture = CreateTexture("BlankTexture.jpg");
-		int testTexture = CreateTexture("QuestersGamesLogo.jpg");
+		//int testTexture = CreateTexture("QuestersGamesLogo.jpg");
 
 		// Matrix creation									//FOV						// Aspect ratio									// near, far plane
 		uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 100.f);
@@ -65,9 +65,9 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 
 		for (size_t i = 0; i < SEGame->GameMeshes.size(); i++)
 		{
-			if (i == SEGame->GameMeshes.size() - 1)
+			if (SEGame->GameMeshes[i].GetTextureFilePath() != "BlankTexture.jpg")
 			{
-				SEGame->GameMeshes[i].SetTextureID(testTexture);
+				SEGame->GameMeshes[i].SetTextureID(CreateTexture(SEGame->GameMeshes[i].GetTextureFilePath()));
 				SEGame->GameMeshes[i].SetUseTexture(1);
 			}
 			else
@@ -75,6 +75,16 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 				SEGame->GameMeshes[i].SetTextureID(blankTexture);
 				SEGame->GameMeshes[i].SetUseTexture(0);
 			}
+			//if (i == SEGame->GameMeshes.size() - 1)
+			//{
+			//	SEGame->GameMeshes[i].SetTextureID(testTexture);
+			//	SEGame->GameMeshes[i].SetUseTexture(1);
+			//}
+			//else
+			//{
+			//	SEGame->GameMeshes[i].SetTextureID(blankTexture);
+			//	SEGame->GameMeshes[i].SetUseTexture(0);
+			//}
 		}
 
 	}

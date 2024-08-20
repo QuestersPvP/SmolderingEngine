@@ -33,7 +33,9 @@ private:
 	VkPhysicalDevice physicalDevice;
 
 	Model model;
+	std::string textureFilePath;
 	int textureID;
+
 	int useTexture;
 
 	/* Functions */
@@ -45,6 +47,9 @@ public:
 
 	void SetModel(glm::mat4 inModel);
 	Model GetModel();
+
+	void SetTextureFilePath(std::string inFilePath);
+	std::string GetTextureFilePath();
 
 	int GetTextureID();
 	void SetTextureID(int inTextureID);

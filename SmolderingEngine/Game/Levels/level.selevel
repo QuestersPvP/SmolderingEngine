@@ -1,0 +1,37 @@
+# File loader v0.0.1
+#
+#   	Note: Vertex follow this order: position, vertex color, textureCoord.
+#   	They are separated by a %, the loader ignores white space.
+#	
+#	If useTexture is 1 the texture will be used, if it is 0 the texture will not be used.
+#	Texture files should be located in your/filepath/SmolderingEngine/Game/Textures
+#
+# All objects should follow this format:
+# -
+# @vertex
+# ~-2.6,-1.9,0.0	%1.0,0.0,0.0	%1.0,1.0		
+# ~2.4,-1.9,0.0		%0.0,1.0f,0.0	%1.0,0.0	
+# ~2.4,1.7,0.0		%0.0,0.0,1.0	%0.0,0.0	
+# ~-2.6,1.7,0.0		%1.0,1.0,0.0	%0.0,1.0
+# @index
+# ~{0,1,2,2,3,0}
+# @useTexture
+# ~1
+# @texture
+# ~QuestersGamesLogo.jpg
+# -
+# @vertex etc...
+
+-
+@vertex
+~-2.6,-1.9,0.0	%1.0,0.0,0.0	%1.0,1.0		
+~2.4,-1.9,0.0	%0.0,1.0f,0.0	%1.0,0.0	
+~2.4,1.7,0.0	%0.0,0.0,1.0	%0.0,0.0	
+~-2.6,1.7,0.0	%1.0,1.0,0.0	%0.0,1.0
+@index
+~0,1,2,2,3,0
+@useTexture
+~1
+@texture
+~QuestersGamesLogo.jpg
+-
