@@ -2,115 +2,160 @@
 
 void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevice, VkQueue InTransferQueue, VkCommandPool InTransferCommandPool)
 {
-	// Vertex data
-	std::vector<Vertex> PlayerMeshVerticies =
+	std::ifstream file(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Levels/level.selevel");
+	if (!file.is_open())
 	{
-		{{-2.6f, -1.9f, 0.0f},	{1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},			// vertex 0, color 0
-		{{2.4f, -1.9f, 0.0f},	{0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},		// vertex 1, color 1
-		{{2.4f, 1.7f, 0.0f},	{0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},		// etc...
-		{{-2.6f, 1.7f, 0.0f},	{1.0f, 1.0f, 0.0f}, {0.0f, 1.0f}}
-	};	
-	
-	std::vector<Vertex> FloorMeshVerticies =
+		std::cerr << "Failed to open file: " << std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Levels/level.selevel" << std::endl;
+		return;
+	}
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
+	//int useTexture;
+	std::string texture;
+
+	std::string line;
+	while (std::getline(file, line))
 	{
-		{{-3.0, -2.5, 0.0 },	{0.4f, 0.2f, 0.0f}},
-		{{3.0, -2.5, 0.0},		{0.4f, 0.2f, 0.0f}},
-		{{3.0, -1.9, 0.0},		{0.4f, 0.2f, 0.0f}},
-		{{-3.0, -1.9, 0.0},		{0.4f, 0.2f, 0.0f}}
-	};
+		if (line.empty()) continue;
 
-	std::vector<Vertex> WinMeshVerticies =
-	{
-		{{2.6, -1.9, 0.0 }, {0, 1.0, 0.0}, {0.0f, 0.0f}},
-		{{3.0, -1.9, 0.0},	{0, 1.0, 0.0}, {0.0f, 0.0f}},
-		{{3.0, 3.0, 0.0},	{0, 1.0, 0.0}, {0.0f, 0.0f}},
-		{{2.6, 3.0, 0.0},	{0, 1.0, 0.0}, {0.0f, 0.0f}}
-	};
+		vertices.clear();
+		indices.clear();
+		//useTexture = 0;
+		texture.clear();
 
-	std::vector<Vertex> TrapMeshOneVertices =
-	{
-		// Base square (half the width)
-		{{0.9f, -1.9f, 0.0f}, {0.1f, 0.1f, 0.1f}},  // Bottom-left
-		{{1.5f, -1.9f, 0.0f}, {0.1f, 0.1f, 0.1f}},   // Bottom-right
-		{{1.5f, -1.8f, 0.0f}, {0.1f, 0.1f, 0.1f}},   // Top-right
-		{{0.9f, -1.8f, 0.0f}, {0.1f, 0.1f, 0.1f}},  // Top-left
+		if (line[0] == '@') // Determine what is being loaded
+		{
+			std::string keyword = line.substr(1);
+			if (keyword == "vertex")
+			{
+				// Load vertices
+				while (std::getline(file, line))
+				{
+					if (line.empty())
+						continue;
+					else if (line[0] == '@')
+					{
+						keyword = line.substr(1);
+						break;
+					}
+					else if (line[0] == '~')
+					{
+						line = line.substr(1); // Remove '~'
+						std::replace(line.begin(), line.end(), '\t', ' '); // Replace tabs with spaces
 
-		// First spike
-		{{0.9f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Bottom-left of first spike
-		{{1.1f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Bottom-right of first spike
-		{{1.0f, -1.6f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Top of first spike
+						std::istringstream iss(line);
+						std::string segment;
+						Vertex vertex;
 
-		// Second spike
-		{{1.1f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Bottom-left of second spike
-		{{1.3f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},   // Bottom-right of second spike
-		{{1.2f, -1.6f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Top of second spike
+						// Parse position
+						std::getline(iss, segment, '%');
+						std::replace(segment.begin(), segment.end(), ',', ' '); // Replace commas with spaces
+						std::istringstream posStream(segment);
+						posStream >> vertex.position.x >> vertex.position.y >> vertex.position.z;
 
-		// Third spike
-		{{1.3f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},   // Bottom-left of third spike
-		{{1.5f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},   // Bottom-right of third spike
-		{{1.4f, -1.6f, 0.0f}, {1.0f, 0.0f, 0.0f}},   // Top of third spike
-	};
+						// Parse color
+						std::getline(iss, segment, '%');
+						std::replace(segment.begin(), segment.end(), ',', ' '); // Replace commas with spaces
+						std::istringstream colorStream(segment);
+						colorStream >> vertex.color.r >> vertex.color.g >> vertex.color.b;
 
-	std::vector<Vertex> TrapMeshTwoVertices =
-	{
-		// Base square (half the width)
-		{{0.9f - 2.0f, -1.9f, 0.0f}, {0.1f, 0.1f, 0.1f}},  // Bottom-left
-		{{1.5f - 2.0f, -1.9f, 0.0f}, {0.1f, 0.1f, 0.1f}},   // Bottom-right
-		{{1.5f - 2.0f, -1.8f, 0.0f}, {0.1f, 0.1f, 0.1f}},   // Top-right
-		{{0.9f - 2.0f, -1.8f, 0.0f}, {0.1f, 0.1f, 0.1f}},  // Top-left
+						// Parse texture coordinates
+						std::getline(iss, segment, '%');
+						std::replace(segment.begin(), segment.end(), ',', ' '); // Replace commas with spaces
+						std::istringstream texStream(segment);
+						texStream >> vertex.texture.x >> vertex.texture.y;
 
-		// First spike
-		{{0.9f - 2.0f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Bottom-left of first spike
-		{{1.1f - 2.0f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Bottom-right of first spike
-		{{1.0f - 2.0f, -1.6f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Top of first spike
+						vertices.push_back(vertex);
+					}
+					else
+						std::cout << "Strange line encountered while reading in file" + line + "\n";
+				}
+			}
+			if (keyword == "index")
+			{
+				// Load indices
+				while (std::getline(file, line))
+				{
+					if (line.empty())
+						continue;
+					else if (line[0] == '@')
+					{
+						keyword = line.substr(1);
+						break;
+					}
+					else if (line[0] == '~')
+					{
+						line = line.substr(1); // Remove '~'
 
-		// Second spike
-		{{1.1f - 2.0f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Bottom-left of second spike
-		{{1.3f - 2.0f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},   // Bottom-right of second spike
-		{{1.2f - 2.0f, -1.6f, 0.0f}, {1.0f, 0.0f, 0.0f}},  // Top of second spike
+						std::istringstream iss(line);
+						uint32_t index;
+						while (iss >> index)
+						{
+							indices.push_back(index);
+							if (iss.peek() == ',') iss.ignore(); // Handle commas
+						}
+					}
+					else
+						std::cout << "Strange line encountered while reading in file" + line + "\n";
+				}
+			}
+			if (keyword == "useTexture")
+			{
+				//TODO: FIX! TURNS INTO JUNK VALUE
+				// Load useTexture flag
+				while (std::getline(file, line))
+				{
+					if (line.empty())
+						continue;
+					else if (line[0] == '@')
+					{
+						keyword = line.substr(1);
+						break;
+					}
+					else if (line[0] == '~')
+					{
+						//line = line.substr(1); // Remove '~'
+						//useTexture = std::stoi(line);
+					}
+					else
+						std::cout << "Strange line encountered while reading in file" + line + "\n";
+				}
+			}
+			if (keyword == "texture")
+			{
+				// Load texture filename
+				while (std::getline(file, line))
+				{
+					if (line.empty())
+						continue;
+					else if (line[0] == '-')
+					{
+						// Create the mesh
+						Mesh& tempMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &vertices, &indices);
+						tempMesh.SetTextureFilePath(texture);
 
-		// Third spike
-		{{1.3f - 2.0f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},   // Bottom-left of third spike
-		{{1.5f - 2.0f, -1.8f, 0.0f}, {1.0f, 0.0f, 0.0f}},   // Bottom-right of third spike
-		{{1.4f - 2.0f, -1.6f, 0.0f}, {1.0f, 0.0f, 0.0f}},   // Top of third spike
-	};
+						GameMeshes.push_back(tempMesh);
+						break;
+					}
+					else if (line[0] == '@')
+					{
+						keyword = line.substr(1);
+						break;
+					}
+					else if (line[0] == '~')
+					{
+						line = line.substr(1); // Remove '~'
+						texture = line;
+						texture.erase(texture.find_last_not_of(" \n\r\t") + 1); // Trim any trailing whitespace
+					}
+					else
+						std::cout << "Strange line encountered while reading in file: " + line + "\n";
+				}
+			}
+		}
+	}
 
-	// Index Data
-	std::vector<uint32_t> SquareMeshIndicies = // (Can work for any square or rectangle)
-	{
-		0,1,2,	// triangle 0
-		2,3,0	// triangle 1
-	};
-
-	std::vector<uint32_t> TrapMeshIndices =
-	{
-		// Base rectangle
-		0, 1, 2,
-		2, 3, 0,
-
-		// Left triangle
-		4, 5, 6,
-
-		// Middle triangle
-		7, 8, 9,
-
-		// Right triangle
-		10, 11, 12
-	};
-
-	Mesh& FloorMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &FloorMeshVerticies, &SquareMeshIndicies);
-	GameMeshes.push_back(FloorMesh);
-	
-	Mesh& TrapMeshOne = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &TrapMeshOneVertices, &TrapMeshIndices);
-	Mesh& TrapMeshTwo = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &TrapMeshTwoVertices, &TrapMeshIndices);
-	GameMeshes.push_back(TrapMeshOne);
-	GameMeshes.push_back(TrapMeshTwo);
-
-	Mesh& WinMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &WinMeshVerticies, &SquareMeshIndicies);
-	GameMeshes.push_back(WinMesh);
-
-	Mesh& PlayerMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &PlayerMeshVerticies, &SquareMeshIndicies);
-	GameMeshes.push_back(PlayerMesh);
+	file.close();
 }
 
 void Game::DestroyMeshes()
