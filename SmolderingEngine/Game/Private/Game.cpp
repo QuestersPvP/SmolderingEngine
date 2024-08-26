@@ -131,10 +131,12 @@ void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevic
 					else if (line[0] == '-')
 					{
 						// Create the mesh
+						GameObject* loadedGameObject = new GameObject();
 						Mesh& tempMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &vertices, &indices);
 						tempMesh.SetTextureFilePath(texture);
+						loadedGameObject->objectMesh = tempMesh;
 
-						GameMeshes.push_back(tempMesh);
+						gameObjects.push_back(loadedGameObject);
 						break;
 					}
 					else if (line[0] == '@')
@@ -160,6 +162,9 @@ void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevic
 
 void Game::DestroyMeshes()
 {
-	for (size_t i = 0; i < GameMeshes.size(); i++)
-		GameMeshes[i].DestroyMesh();
+	for (int i = gameObjects.size()-1; i >= 0; i--)
+	{
+		gameObjects[i]->objectMesh.DestroyMesh();
+		delete gameObjects[i];
+	}
 }

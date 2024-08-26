@@ -43,6 +43,10 @@ float yMovementSpeed = 0.20f;
 bool playerJumping = false;
 int jumpTime = JUMP_TIME;
 
+// temp
+float angle = 0.0f;
+bool rotateLeft = true;
+
 //
 std::unordered_map<int, bool> keyStates;
 
@@ -139,7 +143,7 @@ void processInput(float inDeltaTime) {
 		modelY = 0.0f;
 	}
 
-	seRenderer->UpdateModelPosition(seGame->GameMeshes.size() - 1, modelMatrix); //update in bulk
+	seRenderer->UpdateModelPosition(seGame->gameObjects.size() - 1, modelMatrix , 0); //update in bulk
 }
 #pragma endregion
 
@@ -172,8 +176,6 @@ int main()
 	// Initialize ImGui for Vulkan
 	if (seRenderer->InitImGuiForVulkan() == EXIT_FAILURE)
 		return EXIT_FAILURE;
-
-	
 	// -------- imGui ------------
 
 	//chrono stuff, update it 1/30 per second
@@ -208,6 +210,36 @@ int main()
 
 		//process da inputs 30 times per second please 
 		processInput(updateInterval.count());
+
+
+		// temp
+		glm::mat4 modelMatrix = glm::mat4(1.0f);
+
+		if (rotateLeft)
+		{
+			// Rotate the mesh around the global Y-axis at the origin
+			angle -= 0.05f;
+			modelMatrix = glm::rotate(modelMatrix, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
+
+			// Apply this transformation to the mesh
+			seRenderer->UpdateModelPosition(0, modelMatrix, angle);
+
+			if (angle <= -90.0f)
+				rotateLeft = false;
+		}
+		else if (!rotateLeft)
+		{
+			// Rotate the mesh around the global Y-axis at the origin
+			angle += 0.05f;
+			modelMatrix = glm::rotate(modelMatrix, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
+
+			// Apply this transformation to the mesh
+			seRenderer->UpdateModelPosition(0, modelMatrix, angle);
+
+			if (angle >= 0.0f)
+				rotateLeft = true;
+		}
+
 		// Check for window inputs
 		glfwPollEvents();
 		// Draw all objects

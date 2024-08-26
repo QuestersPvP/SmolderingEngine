@@ -1,34 +1,41 @@
 #include "Engine/Public/Collision/CollisionManager.h"
 
-bool CollisionManager::CheckForCollisions(Game* inGame)
+void CollisionManager::SubscribeObjectToCollisionManager(Mesh* inObject, CollisionTypes inCollisionType)
 {
-	// skip the floor (it is index 0) and skip the player (the player is the last index)
-	for (size_t i = 1; i < inGame->GameMeshes.size()-1; i++)
+	collisionObserver[inCollisionType].push_back(inObject);
+}
+
+void CollisionManager::UnsubscribeObjectFromCollisionManager(Mesh* inObject)
+{
+	// TODO: Work on object / mesh / game object classes then worry about this stuff
+}
+
+void CollisionManager::NotifyCollisionManagerOfMovement(Mesh* inObject)
+{
+	// Check if the object is movable and then run collision detection
+	auto it = std::find(collisionObserver[CollisionTypes::MovableCollision].begin(), collisionObserver[CollisionTypes::MovableCollision].end(), inObject);
+	
+	if (it != collisionObserver[CollisionTypes::MovableCollision].end())
+		CheckForCollisions();
+}
+
+void CollisionManager::CheckForCollisions()
+{
+	const auto& movableObjects = collisionObserver[CollisionTypes::MovableCollision];
+	const auto& staticObjects = collisionObserver[CollisionTypes::StaticCollision];
+
+	for (Mesh* moveableObject : movableObjects)
 	{
-        // Get the player
-        Mesh playerMesh = inGame->GameMeshes[inGame->GameMeshes.size() - 1];
-		AABB playerAABB = CalculateMeshAABB(playerMesh);
+		AABB movableAABB = CalculateMeshAABB(*moveableObject);
 
-        // Get other object
-        Mesh otherMesh = inGame->GameMeshes[i];
-        AABB otherAABB = CalculateMeshAABB(otherMesh);
-
-        bool detectedCollision = AABBIntersect(playerAABB, otherAABB);
-
-        // everything else = you die
-		if (detectedCollision && (i != inGame->GameMeshes.size() - 2))
+		for (Mesh* staticObject : staticObjects)
 		{
-            std::cout << "you died" << std::endl;
-			return true;
-		}
-		else if (detectedCollision && (i == inGame->GameMeshes.size() - 2))
-		{
-			std::cout << "you win" << std::endl;
-			return true;
+			AABB staticAABB = CalculateMeshAABB(*staticObject);
+
+			if (AABBIntersect(movableAABB, staticAABB))
+				std::cout << "Collision detected!" << std::endl;
 		}
 	}
-
-	return false;
 }
 
 AABB CollisionManager::CalculateMeshAABB(Mesh inMesh)
@@ -38,15 +45,15 @@ AABB CollisionManager::CalculateMeshAABB(Mesh inMesh)
 	float maxX = std::numeric_limits<float>::lowest();
 	float maxY = std::numeric_limits<float>::lowest();
 
-	for (const auto vertex : inMesh.GetVertices())
-	{
-		glm::vec4 transformedPosition = inMesh.GetModel().modelMatrix * glm::vec4(vertex.x, vertex.y, vertex.z, 1.0f);
+	//for (const auto vertex : inMesh.GetVertices())
+	//{
+	//	glm::vec4 transformedPosition = inMesh.GetModel().modelMatrix * glm::vec4(vertex.x, vertex.y, vertex.z, 1.0f);
 
-		if (transformedPosition.x < minX) minX = transformedPosition.x;
-		if (transformedPosition.y < minY) minY = transformedPosition.y;
-		if (transformedPosition.x > maxX) maxX = transformedPosition.x;
-		if (transformedPosition.y > maxY) maxY = transformedPosition.y;
-	}
+	//	if (transformedPosition.x < minX) minX = transformedPosition.x;
+	//	if (transformedPosition.y < minY) minY = transformedPosition.y;
+	//	if (transformedPosition.x > maxX) maxX = transformedPosition.x;
+	//	if (transformedPosition.y > maxY) maxY = transformedPosition.y;
+	//}
 
 	AABB modelAABB;
 	modelAABB.minimumX = minX;

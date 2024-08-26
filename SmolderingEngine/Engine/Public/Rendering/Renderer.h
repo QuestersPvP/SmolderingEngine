@@ -25,6 +25,8 @@
 #include "Utilities.h"
 #include "Game/Public/Game.h"
 #include "Mesh.h"
+#include "Engine/Public/Object/Object.h"
+#include "Engine/Public/Object/GameObject.h"
 
 struct VulkanDevices
 {
@@ -38,7 +40,7 @@ class Renderer
 public:
 	// Scene (TODO: MOVE)
 	UniformBufferObjectViewProjection uboViewProjection;
-	void UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix);
+	void UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix, float inRotation);
 
 private:
 	GLFWwindow* Window;
@@ -60,6 +62,8 @@ private:
 	std::vector<SwapchainImage> SwapchainImages;
 	std::vector<VkFramebuffer> SwapchainFramebuffers;
 	std::vector<VkCommandBuffer> CommandBuffers;
+
+	VkDescriptorPool imguiDescriptorPool;
 
 	// Depth Buffer
 	VkImage depthBufferImage;

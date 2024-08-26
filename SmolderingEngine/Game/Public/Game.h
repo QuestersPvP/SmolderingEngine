@@ -14,6 +14,7 @@
 
 // Engine
 #include "Engine/Public/Rendering/Mesh.h"
+#include "Engine/Public/Object/GameObject.h"
 
 
 /*
@@ -38,7 +39,7 @@ class Game
 {
     /* Variables */
 public:
-    std::vector<Mesh> GameMeshes;
+    std::vector<GameObject*> gameObjects;
 
     /* Functions */
 public:

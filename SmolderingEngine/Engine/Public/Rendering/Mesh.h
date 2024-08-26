@@ -32,7 +32,6 @@ private:
 	VkDevice logicalDevice;
 	VkPhysicalDevice physicalDevice;
 
-	Model model;
 	std::string textureFilePath;
 	int textureID;
 
@@ -45,17 +44,11 @@ public:
 		std::vector<Vertex>* inVertices, std::vector<uint32_t>* inIndicies);
 	void DestroyMesh();
 
-	void SetModel(glm::mat4 inModel);
-	Model GetModel();
-
 	void SetTextureFilePath(std::string inFilePath);
 	std::string GetTextureFilePath();
 
 	int GetTextureID();
 	void SetTextureID(int inTextureID);
-
-	int GetUseTexture();
-	void SetUseTexture(int inUseTexture);
 	
 	int GetVertexCount();
 	VkBuffer GetVertexBuffer();	

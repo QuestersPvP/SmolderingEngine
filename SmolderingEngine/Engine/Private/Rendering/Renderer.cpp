@@ -1,11 +1,22 @@
 #include "Engine/Public/Rendering/Renderer.h"
 
-void Renderer::UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix)
+void Renderer::UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix, float inRotation)
 {
 	//uboViewProjection.model = inModelMatrix;
-	if (inModelId >= SEGame->GameMeshes.size() || inModelId > MAX_OBJECTS) return;
 
-	SEGame->GameMeshes[inModelId].SetModel(inModelMatrix);
+	// TODO: FIX THIS SHIT
+
+	if (inModelId >= SEGame->gameObjects.size() || inModelId > MAX_OBJECTS) return;
+
+	SEGame->gameObjects[inModelId]->ApplyLocalYRotation(inRotation);
+	//SEGame->gameObjects[inModelId]->objectMesh.SetModel(inModelMatrix);
+
+	//if (SEGame->gameObjects[inModelId]->HasChildObjects())
+	//	SEGame->gameObjects[inModelId]->ApplyLocalRotation(inRotation);
+
+	//SEGame->gameObjects[1]->objectMesh.SetModel(inModelMatrix * SEGame->gameObjects[1]->objectMesh.GetModel().modelMatrix);
+
+	//SEGame->gameObjects[inModelId]->objectMesh->SetModel(inModelMatrix);
 }
 
 Renderer::Renderer()
@@ -63,17 +74,20 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 		// Mesh creation
 		SEGame->LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
 
-		for (size_t i = 0; i < SEGame->GameMeshes.size(); i++)
+		SEGame->gameObjects[0]->AddChildObject(SEGame->gameObjects[1]);
+
+		for (size_t i = 0; i < SEGame->gameObjects.size(); i++)
 		{
-			if (SEGame->GameMeshes[i].GetTextureFilePath() != "BlankTexture.jpg")
+			if (!SEGame->gameObjects[i]->objectMesh.GetTextureFilePath().empty() &&				// not empty
+				SEGame->gameObjects[i]->objectMesh.GetTextureFilePath() != "BlankTexture.jpg")	// not blank texture
 			{
-				SEGame->GameMeshes[i].SetTextureID(CreateTexture(SEGame->GameMeshes[i].GetTextureFilePath()));
-				SEGame->GameMeshes[i].SetUseTexture(1);
+				SEGame->gameObjects[i]->objectMesh.SetTextureID(CreateTexture(SEGame->gameObjects[i]->objectMesh.GetTextureFilePath()));
+				SEGame->gameObjects[i]->SetUseTexture(1);
 			}
 			else
 			{
-				SEGame->GameMeshes[i].SetTextureID(blankTexture);
-				SEGame->GameMeshes[i].SetUseTexture(0);
+				SEGame->gameObjects[i]->objectMesh.SetTextureID(blankTexture);
+				SEGame->gameObjects[i]->SetUseTexture(0);
 			}
 			//if (i == SEGame->GameMeshes.size() - 1)
 			//{
@@ -153,6 +167,13 @@ void Renderer::DestroyRenderer()
 	vkDeviceWaitIdle(Devices.LogicalDevice); // Wait until queues and all operations are done before cleaning up
 
 	//_aligned_free(modelTransferSpace);
+
+	//  --- Destroy ImGui --- 
+	ImGui_ImplVulkan_Shutdown();
+	vkDestroyDescriptorPool(Devices.LogicalDevice, imguiDescriptorPool, nullptr);
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+	//  --- Destroy ImGui --- 
 
 	vkDestroyDescriptorPool(Devices.LogicalDevice, samplerDescriptorPool, nullptr);
 	vkDestroyDescriptorSetLayout(Devices.LogicalDevice, samplerSetLayout, nullptr);
@@ -1435,27 +1456,27 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 	
 	// Bind more stuff here
 
-	for (size_t j = 0; j < SEGame->GameMeshes.size(); j++)
+	for (size_t j = 0; j < SEGame->gameObjects.size(); j++)
 	{
 		// bind mesh vertex buffer
-		VkBuffer vertexBuffers[] = { SEGame->GameMeshes[j].GetVertexBuffer()}; // Buffers to bind
+		VkBuffer vertexBuffers[] = { SEGame->gameObjects[j]->objectMesh.GetVertexBuffer()}; // Buffers to bind
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(CommandBuffers[inImageIndex], 0, 1, vertexBuffers, offsets);
 
 		// Bind mesh index buffer
-		vkCmdBindIndexBuffer(CommandBuffers[inImageIndex], SEGame->GameMeshes[j].GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(CommandBuffers[inImageIndex], SEGame->gameObjects[j]->objectMesh.GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 		// Dynamic offset amount
 		//uint32_t dynamicOffset = static_cast<uint32_t>(modelUniformAlignment) * j;
 
 		// Push constants to given shader stage directly
-		vkCmdPushConstants(CommandBuffers[inImageIndex], PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Model), &SEGame->GameMeshes[j].GetModel());
+		vkCmdPushConstants(CommandBuffers[inImageIndex], PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Model), &SEGame->gameObjects[j]->GetModel());
 
 		// Bind descriptor sets
-		if (SEGame->GameMeshes[j].GetTextureID() >= 0)
+		if (SEGame->gameObjects[j]->objectMesh.GetTextureID() >= 0)
 		{
 			std::array<VkDescriptorSet, 2> descriptorSetGroup = { descriptorSets[inImageIndex],
-				samplerDescriptorSets[SEGame->GameMeshes[j].GetTextureID()] };
+				samplerDescriptorSets[SEGame->gameObjects[j]->objectMesh.GetTextureID()] };
 
 			vkCmdBindDescriptorSets(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout,
 				0, static_cast<uint32_t>(descriptorSetGroup.size()), descriptorSetGroup.data(), 0, nullptr);
@@ -1467,7 +1488,7 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 		//vkCmdBindDescriptorSets(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &descriptorSets[inImageIndex], 0/*1*/, nullptr/*&dynamicOffset*/);
 
 		// Execute the pipeline
-		vkCmdDrawIndexed(CommandBuffers[inImageIndex], SEGame->GameMeshes[j].GetIndexCount(), 1, 0, 0, 0);
+		vkCmdDrawIndexed(CommandBuffers[inImageIndex], SEGame->gameObjects[j]->objectMesh.GetIndexCount(), 1, 0, 0, 0);
 	}
 	
 	// you can draw more stuff here also
@@ -1883,7 +1904,6 @@ bool Renderer::InitImGuiForVulkan()
 	poolInfo.poolSizeCount = static_cast<uint32_t>(std::size(poolSizes));
 	poolInfo.pPoolSizes = poolSizes;
 
-	VkDescriptorPool imguiDescriptorPool;
 	if (vkCreateDescriptorPool(Devices.LogicalDevice, &poolInfo, nullptr, &imguiDescriptorPool) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create ImGui descriptor pool!");
 

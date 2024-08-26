@@ -23,8 +23,6 @@ Mesh::Mesh(VkPhysicalDevice inPhysicalDevice, VkDevice inLogicalDevice, VkQueue 
 		[](const Vertex& vertex) {
 			return glm::vec3(vertex.position[0], vertex.position[1], vertex.position[2]);
 		});
-
-	model.modelMatrix = glm::mat4(1.0f);
 }
 
 void Mesh::DestroyMesh()
@@ -33,17 +31,6 @@ void Mesh::DestroyMesh()
 	vkFreeMemory(logicalDevice, indexBufferMemory, nullptr);
 	vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);	
 	vkFreeMemory(logicalDevice, vertexBufferMemory, nullptr);
-}
-
-void Mesh::SetModel(glm::mat4 inModel)
-{
-	model.modelMatrix = inModel;
-	//CalculateMeshAABB(initialVertexPositions);
-}
-
-Model Mesh::GetModel()
-{
-	return model;
 }
 
 void Mesh::SetTextureFilePath(std::string inFilePath)
@@ -64,16 +51,6 @@ int Mesh::GetTextureID()
 void Mesh::SetTextureID(int inTextureID)
 {
 	textureID = inTextureID;
-}
-
-int Mesh::GetUseTexture()
-{
-	return model.useTexture;
-}
-
-void Mesh::SetUseTexture(int inUseTexture)
-{
-	model.useTexture = inUseTexture;
 }
 
 int Mesh::GetVertexCount()
