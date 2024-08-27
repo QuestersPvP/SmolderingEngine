@@ -10,12 +10,21 @@ void GameObject::ApplyLocalYRotation(float inAngle)
 	glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(inAngle), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	// Apply the rotation to the parent object
-	SetModel(rotationMatrix);
+	SetModel(rotationMatrix * GetModel().modelMatrix);
 
-	// Apply the rotation to all child objects
-	for (auto& child : childObjects)
+	std::vector<Object*> objectsToRotate = childObjects;
+
+	while (!objectsToRotate.empty())
 	{
-		child->SetModel(GetModel().modelMatrix * child->GetModel().modelMatrix);
+		Object* currObject = objectsToRotate.back();
+		objectsToRotate.pop_back();
+
+		currObject->SetModel(rotationMatrix * currObject->GetModel().modelMatrix);
+
+		for (Object* grandchild : currObject->GetChildObjects())
+		{
+			objectsToRotate.push_back(grandchild);
+		}
 	}
 }
 

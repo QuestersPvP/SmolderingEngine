@@ -2,14 +2,11 @@
 
 void Renderer::UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix, float inRotation)
 {
-	//uboViewProjection.model = inModelMatrix;
-
-	// TODO: FIX THIS SHIT
-
+	// TODO: FIX THIS SHIT - should not even be in renderer
 	if (inModelId >= SEGame->gameObjects.size() || inModelId > MAX_OBJECTS) return;
 
-	SEGame->gameObjects[inModelId]->ApplyLocalYRotation(inRotation);
-	//SEGame->gameObjects[inModelId]->objectMesh.SetModel(inModelMatrix);
+	//SEGame->gameObjects[inModelId]->ApplyLocalYRotation(inRotation);
+	SEGame->gameObjects[inModelId]->SetModel(inModelMatrix);
 
 	//if (SEGame->gameObjects[inModelId]->HasChildObjects())
 	//	SEGame->gameObjects[inModelId]->ApplyLocalRotation(inRotation);
@@ -65,7 +62,7 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 		uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 100.f);
 		//uboViewProjection.projection = glm::ortho(0.0f, 1.0f, 1.0f, 0.0f, 0.1f, 100.0f);
 												// where camera is				// where we are looking			// Y is up
-		uboViewProjection.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		uboViewProjection.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		//uboViewProjection.view = glm::mat4(1.0f);
 
 		// invert the Y (Vulkan treats Y as downwards, so if we invert it then Y is up.)
@@ -73,8 +70,6 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 
 		// Mesh creation
 		SEGame->LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
-
-		SEGame->gameObjects[0]->AddChildObject(SEGame->gameObjects[1]);
 
 		for (size_t i = 0; i < SEGame->gameObjects.size(); i++)
 		{
@@ -89,16 +84,6 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 				SEGame->gameObjects[i]->objectMesh.SetTextureID(blankTexture);
 				SEGame->gameObjects[i]->SetUseTexture(0);
 			}
-			//if (i == SEGame->GameMeshes.size() - 1)
-			//{
-			//	SEGame->GameMeshes[i].SetTextureID(testTexture);
-			//	SEGame->GameMeshes[i].SetUseTexture(1);
-			//}
-			//else
-			//{
-			//	SEGame->GameMeshes[i].SetTextureID(blankTexture);
-			//	SEGame->GameMeshes[i].SetUseTexture(0);
-			//}
 		}
 
 	}

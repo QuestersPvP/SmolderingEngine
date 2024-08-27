@@ -41,7 +41,8 @@ protected:
 	std::vector<Object*> childObjects;
 
 private:
-
+	int objectID;
+	int parentObjectID;
 
 	/* Functions */
 
@@ -49,7 +50,13 @@ public:
 
 	void AddChildObject(Object* inChild);
 	void RemoveChildObject(Object* inChild);
+	std::vector<Object*> GetChildObjects();
 	bool HasChildObjects();
+
+	void SetObjectID(int inObjectID); // TODO: REMOVE THIS
+	const int GetObjectID();
+	void SetObjectParentID(int inParentObjectID);
+	const int GetParentObjectID();
 
 	/* Overridable Fucntions */
 public:

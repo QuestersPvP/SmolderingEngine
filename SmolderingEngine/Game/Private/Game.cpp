@@ -10,8 +10,10 @@ void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevic
 	}
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
-	//int useTexture;
 	std::string texture;
+	int useTexture = 0;
+	int objectID = -1;
+	int parentID = -1;
 
 	std::string line;
 	while (std::getline(file, line))
@@ -20,12 +22,52 @@ void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevic
 
 		vertices.clear();
 		indices.clear();
-		//useTexture = 0;
 		texture.clear();
+
+		useTexture = 0;
+		objectID = -1;
+		parentID = -1;
+
 
 		if (line[0] == '@') // Determine what is being loaded
 		{
 			std::string keyword = line.substr(1);
+			if (keyword == "objectid")
+			{
+				while (std::getline(file, line))
+				{
+					if (line.empty())
+						continue;
+					else if (line[0] == '@')
+					{
+						keyword = line.substr(1);
+						break;
+					}
+					else if (line[0] == '~')
+					{
+						line = line.substr(1); // Remove '~'
+						objectID = std::stoi(line); // Parse the object ID
+					}
+				}
+			}
+			if (keyword == "parentid")
+			{
+				while (std::getline(file, line))
+				{
+					if (line.empty())
+						continue;
+					else if (line[0] == '@')
+					{
+						keyword = line.substr(1);
+						break;
+					}
+					else if (line[0] == '~')
+					{
+						line = line.substr(1); // Remove '~'
+						parentID = std::stoi(line); // Parse the parent ID
+					}
+				}
+			}
 			if (keyword == "vertex")
 			{
 				// Load vertices
@@ -132,9 +174,18 @@ void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevic
 					{
 						// Create the mesh
 						GameObject* loadedGameObject = new GameObject();
+
 						Mesh& tempMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &vertices, &indices);
 						tempMesh.SetTextureFilePath(texture);
+
 						loadedGameObject->objectMesh = tempMesh;
+						loadedGameObject->SetUseTexture(useTexture);
+						loadedGameObject->SetObjectID(objectID);
+						loadedGameObject->SetObjectParentID(parentID);
+
+						// TODO: This is unsafe, adjust this asap
+						if (parentID >= 0)
+							gameObjects[parentID]->AddChildObject(loadedGameObject);
 
 						gameObjects.push_back(loadedGameObject);
 						break;

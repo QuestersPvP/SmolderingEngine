@@ -143,14 +143,9 @@ void processInput(float inDeltaTime) {
 		modelY = 0.0f;
 	}
 
-	seRenderer->UpdateModelPosition(seGame->gameObjects.size() - 1, modelMatrix , 0); //update in bulk
+	//seRenderer->UpdateModelPosition(seGame->gameObjects.size() - 1, modelMatrix , 0); //update in bulk
 }
 #pragma endregion
-
-/**void fixedUpdate()
-{
-
-}**/
 
 int main()
 {
@@ -169,10 +164,6 @@ int main()
 	// -------- imGui ------------
 	ImGui::CreateContext();
 	ImGui_ImplGlfw_InitForVulkan(seWindow, true);
-	//ImGuiIO& imGuiIO = ImGui::GetIO();
-	//// Enable keyboard
-	//imGuiIO.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	
 	// Initialize ImGui for Vulkan
 	if (seRenderer->InitImGuiForVulkan() == EXIT_FAILURE)
 		return EXIT_FAILURE;
@@ -188,7 +179,7 @@ int main()
 	{
 		
 
-		//Need to account for lag
+		//TODO: work on this to account account for lag
 		/**
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<float> elapsedTime = currentTime - previousTime;
@@ -201,10 +192,10 @@ int main()
 			lag -= updateInterval;
 		}**/
 
-		/** //Calculate time since last frame
-		float now = glfwGetTime();
-		deltaTime = now - lastTime;
-		lastTime = now;**/
+		////Calculate time since last frame
+		//float now = glfwGetTime();
+		//deltaTime = now - lastTime;
+		//lastTime = now;
 
 
 
@@ -213,41 +204,34 @@ int main()
 
 
 		// temp
-		glm::mat4 modelMatrix = glm::mat4(1.0f);
-
+		float rotationSpeed = 2.5f;
 		if (rotateLeft)
 		{
-			// Rotate the mesh around the global Y-axis at the origin
-			angle -= 0.05f;
-			modelMatrix = glm::rotate(modelMatrix, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
-
-			// Apply this transformation to the mesh
-			seRenderer->UpdateModelPosition(0, modelMatrix, angle);
+			angle -= rotationSpeed * updateInterval.count();
+			float rotateAmount = -rotationSpeed * updateInterval.count();
+			seGame->gameObjects[0]->ApplyLocalYRotation(rotateAmount);
 
 			if (angle <= -90.0f)
 				rotateLeft = false;
 		}
-		else if (!rotateLeft)
-		{
-			// Rotate the mesh around the global Y-axis at the origin
-			angle += 0.05f;
-			modelMatrix = glm::rotate(modelMatrix, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
+		//else if (!rotateLeft)
+		//{
+		//	angle += rotationSpeed * updateInterval.count();
+		//	float rotateAmount = rotationSpeed * updateInterval.count();
+		//	seGame->gameObjects[0]->ApplyLocalYRotation(rotateAmount);
 
-			// Apply this transformation to the mesh
-			seRenderer->UpdateModelPosition(0, modelMatrix, angle);
-
-			if (angle >= 0.0f)
-				rotateLeft = true;
-		}
+		//	if (angle >= 0.0f)
+		//		rotateLeft = true;
+		//}
 
 		// Check for window inputs
 		glfwPollEvents();
 		// Draw all objects
 		seRenderer->Draw();
 
-		//// Check for any collisions
-		//bool reset = seCollision.CheckForCollisions(seGame);
-		//
+		// Check for any collisions
+		seCollision.CheckForCollisions();
+		
 		//if (reset)
 		//{
 		//	modelX = 0.0f;
