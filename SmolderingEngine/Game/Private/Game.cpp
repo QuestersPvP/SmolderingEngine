@@ -219,3 +219,21 @@ void Game::DestroyMeshes()
 		delete gameObjects[i];
 	}
 }
+
+void Game::SubscribeObjectsToCollisionManager(CollisionManager* inManager, int inParent)
+{
+	for (GameObject* object : gameObjects)
+	{
+		if (object->GetParentObjectID() == inParent && object->GetObjectID() == 11)
+			inManager->SubscribeObjectToCollisionManager(object, CollisionTypes::MovableCollision);
+		else if (object->GetParentObjectID() == inParent)
+			inManager->SubscribeObjectToCollisionManager(object, CollisionTypes::StaticCollision);
+	}
+}
+
+void Game::UnsubscribeObjectsFromCollisionManager(CollisionManager* inManager)
+{
+	for (GameObject* object : gameObjects)
+			inManager->UnsubscribeObjectFromCollisionManager(object);
+
+}

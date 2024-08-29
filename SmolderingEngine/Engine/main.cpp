@@ -28,9 +28,9 @@
 
 Renderer* seRenderer;
 Game* seGame;
+CollisionManager* seCollision;
 GLFWwindow* seWindow;
 
-CollisionManager seCollision;
 
 const int JUMP_TIME = 30;
 float deltaTime = 0.0f;
@@ -42,6 +42,7 @@ float xMovementSpeed = 0.20f;
 float yMovementSpeed = 0.20f;
 bool playerJumping = false;
 int jumpTime = JUMP_TIME;
+float floorHeight = -2.4f;
 
 // temp
 float angle = 0.0f;
@@ -92,17 +93,22 @@ float ProcessJump(float inDeltaTime)
 	return std::min(((yMovementSpeed + 0.2f) * inDeltaTime) / ((float)jumpTime / (float)JUMP_TIME), 0.1f);
 }
 
-void processInput(float inDeltaTime) {
+void processInput(float inDeltaTime) 
+{
 	//technically stupid but it happens so fast you cannot see the stupidity
 	float movementX = 0.0f;
 	float movementY = 0.0f;
 
 	//every delta time it takes all key inputs and then applies them at the same time XD
-	if (keyStates[GLFW_KEY_W]) {
-		// Currently, no action for W
-	}
+	if (keyStates[GLFW_KEY_W]) 
+		{} // Currently, no action for W
+	if (keyStates[GLFW_KEY_A])
+		movementX += -xMovementSpeed * inDeltaTime;
+	if (keyStates[GLFW_KEY_D])
+		movementX += xMovementSpeed * inDeltaTime;
 
-	if (keyStates[GLFW_KEY_SPACE] && !playerJumping && modelY == 0.0f) 
+	// Handle jumping
+	if ((keyStates[GLFW_KEY_SPACE] && !playerJumping) && (modelY == (floorHeight + 2.4f) || (modelY == (floorHeight + 1.0f) && !rotateLeft)))
 	{
 		playerJumping = true;
 		jumpTime = 1;
@@ -118,17 +124,9 @@ void processInput(float inDeltaTime) {
 		if (jumpTime >= JUMP_TIME)
 			playerJumping = false;
 	}
-	else
+	else //if (!playerJumping && modelY != (floorHeight + 2.4f))
 	{
 		movementY += -yMovementSpeed * inDeltaTime;
-	}
-
-	if (keyStates[GLFW_KEY_A]) {
-		movementX += -xMovementSpeed * inDeltaTime;
-	}
-
-	if (keyStates[GLFW_KEY_D]) {
-		movementX += xMovementSpeed * inDeltaTime;
 	}
 
 	modelX += movementX;
@@ -136,21 +134,40 @@ void processInput(float inDeltaTime) {
 
 	glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(modelX, modelY, 0.0f)); // translate the player model
 
-	// stop the player from going under the ground
-	if (modelMatrix[3].y < 0.0f)
+	std::pair<float, float> yAdjust;
+
+	if (rotateLeft)
+		yAdjust = seCollision->NotifyCollisionManagerOfMovement(seGame->gameObjects[seGame->gameObjects.size() - 2]);
+	else
+		yAdjust = seCollision->NotifyCollisionManagerOfMovement(seGame->gameObjects[seGame->gameObjects.size() - 1]);
+
+
+	if (yAdjust.second > 0.0f)
 	{
-		modelMatrix[3].y = 0.0f;
-		modelY = 0.0f;
+		// Handle falling through the floor
+		//modelMatrix[3].y += yAdjust.second;
+
+		// Figure out the floor height
+		floorHeight = yAdjust.first;
+
+		if (rotateLeft && (floorHeight + 2.4f) - modelY)
+			modelY = 2.4f + floorHeight;
+		else
+			modelY = 1.0f + floorHeight;
 	}
 
-	//seRenderer->UpdateModelPosition(seGame->gameObjects.size() - 1, modelMatrix , 0); //update in bulk
+	if (rotateLeft)
+		seRenderer->UpdateModelPosition(seGame->gameObjects.size() - 2, modelMatrix, 0); //update in bulk
+	else
+		seGame->gameObjects[seGame->gameObjects.size() - 1]->ApplyLocalTransform({modelMatrix[3].x,modelMatrix[3].y, modelMatrix[3].z});
 }
 #pragma endregion
 
 int main()
 {
 	seRenderer = new Renderer();
-	seGame = new Game();
+	seGame = new Game(); // TODO: this should be broken into 2 classes at least - 1 for game management (engine side), 1 more focused directly gameplay
+	seCollision = new CollisionManager();
 
 	// Setup the window
 	InitWindow("Smoldering Engine", 800, 600);
@@ -160,6 +177,9 @@ int main()
 	// Setup the renderer
 	if (seRenderer->InitRenderer(seWindow, seGame) == EXIT_FAILURE)
 		return EXIT_FAILURE;
+
+	// Setup the game
+	seGame->SubscribeObjectsToCollisionManager(seCollision, 1); // subscribe all objects that are children to the first face of the game
 
 	// -------- imGui ------------
 	ImGui::CreateContext();
@@ -197,22 +217,31 @@ int main()
 		//deltaTime = now - lastTime;
 		//lastTime = now;
 
-
-
-		//process da inputs 30 times per second please 
-		processInput(updateInterval.count());
-
-
 		// temp
 		float rotationSpeed = 2.5f;
-		if (rotateLeft)
+		if (rotateLeft && floorHeight == -1.f)
 		{
 			angle -= rotationSpeed * updateInterval.count();
 			float rotateAmount = -rotationSpeed * updateInterval.count();
 			seGame->gameObjects[0]->ApplyLocalYRotation(rotateAmount);
 
 			if (angle <= -90.0f)
+			{
+				for (GameObject* object : seGame->gameObjects)
+				{
+					if (object->GetParentObjectID() == 1)
+						seCollision->UnsubscribeObjectFromCollisionManager(object);
+					if (object->GetParentObjectID() == 2 && object->GetObjectID() == 12)
+						seCollision->SubscribeObjectToCollisionManager(object, CollisionTypes::MovableCollision);
+					else if (object->GetParentObjectID() == 2)
+						seCollision->SubscribeObjectToCollisionManager(object, CollisionTypes::StaticCollision);
+				}
+
+				modelX = 0.0f;
+				modelY = 0.0f;
+
 				rotateLeft = false;
+			}
 		}
 		//else if (!rotateLeft)
 		//{
@@ -224,13 +253,17 @@ int main()
 		//		rotateLeft = true;
 		//}
 
+		//process da inputs 30 times per second please 
+		if (angle >= 0.0f || angle <= -90.0f)
+			processInput(updateInterval.count());
+
 		// Check for window inputs
 		glfwPollEvents();
 		// Draw all objects
 		seRenderer->Draw();
 
-		// Check for any collisions
-		seCollision.CheckForCollisions();
+		// Depreciated- Check for any collisions
+		//seCollision.CheckForCollisions();
 		
 		//if (reset)
 		//{
@@ -250,6 +283,7 @@ int main()
 	glfwDestroyWindow(seWindow);
 	glfwTerminate();
 
+	delete(seCollision);
 	delete(seGame);
 	delete(seRenderer);
 

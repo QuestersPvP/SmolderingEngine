@@ -5,6 +5,13 @@ GameObject::GameObject()
 	objectModel.modelMatrix = glm::mat4(1.0f);
 }
 
+void GameObject::ApplyLocalTransform(glm::vec3 inTransform)
+{
+	objectModel.modelMatrix[3].x = inTransform.x;
+	objectModel.modelMatrix[3].y = inTransform.y;
+	objectModel.modelMatrix[3].z = inTransform.z;
+}
+
 void GameObject::ApplyLocalYRotation(float inAngle)
 {
 	glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(inAngle), glm::vec3(0.0f, 1.0f, 0.0f));

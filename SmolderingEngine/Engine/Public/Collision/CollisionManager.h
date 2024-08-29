@@ -1,13 +1,15 @@
 #pragma once
 
 // Standard Library
-#include <iostream>
+#include <iostream>s
 #include <vector>
 #include <unordered_map>
 
 // Project includes
 #include "Game/Public/Game.h"
 #include "Engine/Public/Rendering/Utilities.h"
+#include "Engine/Public/Object/GameObject.h"
+#include "Engine/Public/Rendering/Mesh.h"
 
 class CollisionManager
 {
@@ -15,21 +17,21 @@ class CollisionManager
 public:
 
 private:
-	std::unordered_map<CollisionTypes, std::vector<Mesh*>> collisionObserver;
+	std::unordered_map<CollisionTypes, std::vector<GameObject*>> collisionObserver;
 
 	/* Functions */
 public:
 
 	// Adds an object to the collision manager.
-	void SubscribeObjectToCollisionManager(Mesh* inObject, CollisionTypes inCollisionType);
+	void SubscribeObjectToCollisionManager(GameObject* inObject, CollisionTypes inCollisionType);
 	// Removes a specific object from the collision manager.
-	void UnsubscribeObjectFromCollisionManager(Mesh* inObject);
+	void UnsubscribeObjectFromCollisionManager(GameObject* inObject);
 	// Notifies all objects of a collision
-	void NotifyCollisionManagerOfMovement(Mesh* inObject);
+	std::pair<float, float> NotifyCollisionManagerOfMovement(GameObject* inObject);
 	// Checks for collisions of objects within the collision system
-	void CheckForCollisions();
+	std::pair<float, float> CheckForCollisions();
 
 private:
-	AABB CalculateMeshAABB(Mesh inMesh);
+	AABB CalculateMeshAABB(GameObject* inObject);
 	bool AABBIntersect(AABB first, AABB second);
 };

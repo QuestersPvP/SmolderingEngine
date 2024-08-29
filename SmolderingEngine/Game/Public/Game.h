@@ -15,6 +15,7 @@
 // Engine
 #include "Engine/Public/Rendering/Mesh.h"
 #include "Engine/Public/Object/GameObject.h"
+#include "Engine/Public/Collision/CollisionManager.h"
 
 
 /*
@@ -45,4 +46,7 @@ public:
 public:
     void LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevice, VkQueue InTransferQueue, VkCommandPool InTransferCommandPool);
     void DestroyMeshes();
+
+    void SubscribeObjectsToCollisionManager(class CollisionManager* inManager, int inParent);
+    void UnsubscribeObjectsFromCollisionManager(class CollisionManager* inManager);
 };

@@ -20,9 +20,9 @@ private:
 public:
 	GameObject();
 
-	// void ApplyLocalTransform(glm::vec3 inTransform);
+	void ApplyLocalTransform(glm::vec3 inTransform);
 	void ApplyLocalYRotation(float inAngle);
-	// void ApplyGlobalTransform
+	//void ApplyGlobalTransform(glm::vec3 inTransform);
 	// void ApplyGlobalRotation
 
 
