@@ -48,7 +48,7 @@ std::pair<float, float> CollisionManager::CheckForCollisions()
 
 			if (AABBIntersect(movableAABB, staticAABB))
 			{
-				std::cout << "Collision detected!" << std::endl;
+				//std::cout << "Collision detected!" << std::endl;
 				return std::pair<float, float>(staticAABB.maximumY, std::abs(movableAABB.minimumY - staticAABB.maximumY));
 			}
 		}

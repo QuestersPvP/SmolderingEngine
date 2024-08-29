@@ -144,9 +144,6 @@ void processInput(float inDeltaTime)
 
 	if (yAdjust.second > 0.0f)
 	{
-		// Handle falling through the floor
-		//modelMatrix[3].y += yAdjust.second;
-
 		// Figure out the floor height
 		floorHeight = yAdjust.first;
 
@@ -197,8 +194,6 @@ int main()
 
 	while (!glfwWindowShouldClose(seWindow))
 	{
-		
-
 		//TODO: work on this to account account for lag
 		/**
 		auto currentTime = std::chrono::high_resolution_clock::now();
@@ -217,7 +212,7 @@ int main()
 		//deltaTime = now - lastTime;
 		//lastTime = now;
 
-		// temp
+		// --- temp ---
 		float rotationSpeed = 2.5f;
 		if (rotateLeft && floorHeight == -1.f)
 		{
@@ -243,15 +238,7 @@ int main()
 				rotateLeft = false;
 			}
 		}
-		//else if (!rotateLeft)
-		//{
-		//	angle += rotationSpeed * updateInterval.count();
-		//	float rotateAmount = rotationSpeed * updateInterval.count();
-		//	seGame->gameObjects[0]->ApplyLocalYRotation(rotateAmount);
-
-		//	if (angle >= 0.0f)
-		//		rotateLeft = true;
-		//}
+		// --- temp ---
 
 		//process da inputs 30 times per second please 
 		if (angle >= 0.0f || angle <= -90.0f)
@@ -261,19 +248,31 @@ int main()
 		glfwPollEvents();
 		// Draw all objects
 		seRenderer->Draw();
-
-		// Depreciated- Check for any collisions
-		//seCollision.CheckForCollisions();
 		
-		//if (reset)
-		//{
-		//	modelX = 0.0f;
-		//	modelY = 0.0f;
-		//}
+		// --- temp ---
+		if (rotateLeft && (modelX < -1.0f || modelY < -1.0f))
+		{
+			modelX = 0.f;
+			modelY = 0.f;
+			glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(modelX, modelY, 0.0f));
+			seRenderer->UpdateModelPosition(seGame->gameObjects.size() - 2, modelMatrix, 0);
+		}
+		else if (!rotateLeft && (modelX < -1.0f || modelY < -1.0f))
+		{
+			modelX = 0.f;
+			modelY = 0.f;
+			glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(modelX, modelY, 0.0f));
+			seGame->gameObjects[seGame->gameObjects.size() - 1]->ApplyLocalTransform({ modelMatrix[3].x,modelMatrix[3].y, modelMatrix[3].z });
+		}
+		else if (!rotateLeft && floorHeight > 1.3f)
+		{
+			std::cout << std::endl << std::endl << "You Won! Ending game" << std::endl << std::endl;
+			break;
+		}
+		// --- temp ---
 
 		// Sleep to prevent busy waiting
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
 	}
 
 	// Destroys all Renderer resources and the Game meshes
