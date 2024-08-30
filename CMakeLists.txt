@@ -45,6 +45,10 @@ set(IMGUI_INCLUDE_DIR 					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI)
 # Add STB
 set(STB_INCLUDE_DIR 					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/STB)
 
+# Add ASSIMP
+set(ASSIMP_INCLUDE_DIR 					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/ASSIMP)
+set(ASSIMP_LIBRARY 					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/ASSIMP/lib/Release/assimp-vc143-mt.lib)
+
 # Find Vulkan
 find_package(Vulkan REQUIRED)
 
@@ -53,8 +57,10 @@ target_include_directories(SmolderingEngine PRIVATE 	${GLFW_INCLUDE_DIR}
  							${GLM_INCLUDE_DIR}
 							${IMGUI_INCLUDE_DIR}
 							${Vulkan_INCLUDE_DIRS}
-							${STB_INCLUDE_DIR})
+							${STB_INCLUDE_DIR}
+							${ASSIMP_INCLUDE_DIR})
 
 # Link GLFW/Vulkan library
 target_link_libraries(SmolderingEngine 			${GLFW_LIBRARY}
-							${Vulkan_LIBRARIES})
+							${Vulkan_LIBRARIES}
+							${ASSIMP_LIBRARY})
