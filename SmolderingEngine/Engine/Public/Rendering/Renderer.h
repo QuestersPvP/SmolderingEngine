@@ -40,12 +40,13 @@ class Renderer
 	/* Variables */
 public:
 	// Scene (TODO: MOVE)
-	UniformBufferObjectViewProjection uboViewProjection;
+	//UniformBufferObjectViewProjection uboViewProjection;
 	void UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix, float inRotation);
 
 private:
 	GLFWwindow* Window;
 	Game* SEGame;
+	class Camera* seCamera;
 	int CurrentFrame = 0;
 
 	// Vulkan Components
@@ -125,7 +126,7 @@ public:
 	Renderer();
 	~Renderer();
 
-	int InitRenderer(GLFWwindow* InWindow, Game* InGame);
+	int InitRenderer(GLFWwindow* inWindow, Game* inGame, class Camera* inCamera);
 	void Draw();
 	void DestroyRenderer();
 

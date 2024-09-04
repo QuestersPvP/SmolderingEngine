@@ -1,5 +1,9 @@
 #include "Engine/Public/Rendering/Renderer.h"
 
+// Project Includes
+#include "Engine/Public/Camera/Camera.h"
+
+
 void Renderer::UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix, float inRotation)
 {
 	// TODO: FIX THIS SHIT - should not even be in renderer
@@ -24,10 +28,11 @@ Renderer::~Renderer()
 {
 }
 
-int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
+int Renderer::InitRenderer(GLFWwindow* inWindow, Game* inGame, class Camera* inCamera)
 {
-	Window = InWindow;
-	SEGame = InGame;
+	Window = inWindow;
+	SEGame = inGame;
+	seCamera = inCamera;
 
 	try
 	{
@@ -59,14 +64,14 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 		std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Textures/BlankTexture.jpg");
 		int blankTexture = CreateTexture(fileLoc);
 
-		// Matrix creation									//FOV						// Aspect ratio									// near, far plane
-		uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 1000.f);
-		//uboViewProjection.projection = glm::ortho(0.0f, 1.0f, 1.0f, 0.0f, 0.1f, 100.0f);
-												// where camera is				// where we are looking			// Y is up
-		uboViewProjection.view = glm::lookAt(glm::vec3(0.0f, 20.0f, -50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		//// Matrix creation									//FOV						// Aspect ratio									// near, far plane
+		//uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 1000.f);
+		////uboViewProjection.projection = glm::ortho(0.0f, 1.0f, 1.0f, 0.0f, 0.1f, 100.0f);
+		//										// where camera is				// where we are looking			// Y is up
+		//uboViewProjection.view = glm::lookAt(glm::vec3(0.0f, 20.0f, -50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-		// invert the Y (Vulkan treats Y as downwards, so if we invert it then Y is up.)
-		uboViewProjection.projection[1][1] *= -1;
+		//// invert the Y (Vulkan treats Y as downwards, so if we invert it then Y is up.)
+		//uboViewProjection.projection[1][1] *= -1;
 
 		// Mesh creation
 		//SEGame->LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
@@ -1134,9 +1139,9 @@ void Renderer::AllocateDescriptorSets()
 		// View projection descriptor
 		// Buffer info and data offset info
 		VkDescriptorBufferInfo viewProjectionBufferInfo = {};
-		viewProjectionBufferInfo.buffer = viewProjectionUniformBuffers[i];			// buffer to get data from
-		viewProjectionBufferInfo.offset = 0;										// any offset (e.g. skip any data)
-		viewProjectionBufferInfo.range = sizeof(uboViewProjection);					// bind everything (size of data)
+		viewProjectionBufferInfo.buffer = viewProjectionUniformBuffers[i];						// buffer to get data from
+		viewProjectionBufferInfo.offset = 0;													// any offset (e.g. skip any data)
+		viewProjectionBufferInfo.range = sizeof(seCamera->uboViewProjection);					// bind everything (size of data)
 
 		VkWriteDescriptorSet viewProjectionSetWrite = {};
 		viewProjectionSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1519,7 +1524,7 @@ void Renderer::UpdateUniformBuffers(uint32_t inImageIndex)
 	// copy view projection data
 	void* data;
 	vkMapMemory(Devices.LogicalDevice, viewProjectionUniformBufferMemory[inImageIndex], 0, sizeof(UniformBufferObjectViewProjection), 0, &data);
-	memcpy(data, &uboViewProjection, sizeof(UniformBufferObjectViewProjection));
+	memcpy(data, &seCamera->uboViewProjection, sizeof(UniformBufferObjectViewProjection));
 	vkUnmapMemory(Devices.LogicalDevice, viewProjectionUniformBufferMemory[inImageIndex]);
 
 	//// Future - Ensure gamemeshes.size() is less than MAX_OBJECTS

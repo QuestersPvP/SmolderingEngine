@@ -24,155 +24,32 @@
 // Project Includes
 #include "Engine/Public/Rendering/Renderer.h"
 #include "Engine/Public/Collision/CollisionManager.h"
+#include "Engine/Public/Input/InputManager.h"
+#include "Engine/Public/Camera/Camera.h"
 #include "Game/Public/Game.h"
 
 Renderer* seRenderer;
 Game* seGame;
 CollisionManager* seCollision;
+Camera* seCamera;
+InputManager* seInput;
 GLFWwindow* seWindow;
-
-
-const int JUMP_TIME = 30;
-float deltaTime = 0.0f;
-float lastTime = 0.0f;
-
-float modelY = 0.0f;
-float modelX = 0.0f;
-float xMovementSpeed = 0.20f;
-float yMovementSpeed = 0.20f;
-bool playerJumping = false;
-int jumpTime = JUMP_TIME;
-float floorHeight = -2.4f;
-
-// temp
-float angle = 0.0f;
-bool rotateLeft = true;
-
-//
-std::unordered_map<int, bool> keyStates;
-
-// TODO: make a class to handle window operations / input
-#pragma region WINDOW STUFFz
-
-void InitWindow(std::string InWindowName = "Smoldering Engine", const int InWidth = 800, const int InHeight = 600)
-{
-	// init glfw
-	glfwInit();
-
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	// TODO: make window able to be resizable
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-	seWindow = glfwCreateWindow(InWidth, InHeight, InWindowName.c_str(), nullptr, nullptr);
-
-}
-
-//always initialize
-void initializeKeyStates() {
-	keyStates[GLFW_KEY_W] = false;
-	keyStates[GLFW_KEY_SPACE] = false;
-	keyStates[GLFW_KEY_A] = false;
-	keyStates[GLFW_KEY_D] = false;
-}
-
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-	//simple, if you are touching key it's true if not its false.
-	if (action == GLFW_PRESS)
-	{
-		keyStates[key] = true;
-	}
-	else if (action == GLFW_RELEASE)
-	{
-		keyStates[key] = false;
-	}
-}
-
-float ProcessJump(float inDeltaTime)
-{
-	return std::min(((yMovementSpeed + 0.2f) * inDeltaTime) / ((float)jumpTime / (float)JUMP_TIME), 0.1f);
-}
-
-void processInput(float inDeltaTime) 
-{
-	//technically stupid but it happens so fast you cannot see the stupidity
-	float movementX = 0.0f;
-	float movementY = 0.0f;
-
-	//every delta time it takes all key inputs and then applies them at the same time XD
-	if (keyStates[GLFW_KEY_W]) 
-		{} // Currently, no action for W
-	if (keyStates[GLFW_KEY_A])
-		movementX += -xMovementSpeed * inDeltaTime;
-	if (keyStates[GLFW_KEY_D])
-		movementX += xMovementSpeed * inDeltaTime;
-
-	// Handle jumping
-	if ((keyStates[GLFW_KEY_SPACE] && !playerJumping) && (modelY == (floorHeight + 2.4f) || (modelY == (floorHeight + 1.0f) && !rotateLeft)))
-	{
-		playerJumping = true;
-		jumpTime = 1;
-
-		movementY += ProcessJump(inDeltaTime);
-		jumpTime++;
-	}
-	else if (playerJumping && jumpTime < JUMP_TIME)
-	{
-		movementY += ProcessJump(inDeltaTime);
-		jumpTime++;
-
-		if (jumpTime >= JUMP_TIME)
-			playerJumping = false;
-	}
-	else //if (!playerJumping && modelY != (floorHeight + 2.4f))
-	{
-		movementY += -yMovementSpeed * inDeltaTime;
-	}
-
-	//modelX += movementX;
-	//modelY += movementY;
-
-	//glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(modelX, modelY, 0.0f)); // translate the player model
-
-	//std::pair<float, float> yAdjust;
-
-	//if (rotateLeft)
-	//	yAdjust = seCollision->NotifyCollisionManagerOfMovement(seGame->gameObjects[seGame->gameObjects.size() - 2]);
-	//else
-	//	yAdjust = seCollision->NotifyCollisionManagerOfMovement(seGame->gameObjects[seGame->gameObjects.size() - 1]);
-
-
-	//if (yAdjust.second > 0.0f)
-	//{
-	//	// Figure out the floor height
-	//	floorHeight = yAdjust.first;
-
-	//	if (rotateLeft && (floorHeight + 2.4f) - modelY)
-	//		modelY = 2.4f + floorHeight;
-	//	else
-	//		modelY = 1.0f + floorHeight;
-	//}
-
-	//if (rotateLeft)
-	//	seRenderer->UpdateModelPosition(seGame->gameObjects.size() - 2, modelMatrix, 0); //update in bulk
-	//else
-	//	seGame->gameObjects[seGame->gameObjects.size() - 1]->ApplyLocalTransform({modelMatrix[3].x,modelMatrix[3].y, modelMatrix[3].z});
-}
-#pragma endregion
 
 int main()
 {
+	seInput = new InputManager();
+	seCamera = new Camera();
 	seRenderer = new Renderer();
 	seGame = new Game(); // TODO: this should be broken into 2 classes at least - 1 for game management (engine side), 1 more focused directly gameplay
 	seCollision = new CollisionManager();
 
 	// Setup the window
-	InitWindow("Smoldering Engine", 800, 600);
-	initializeKeyStates();
-    glfwSetKeyCallback(seWindow, key_callback);
+	seInput->InitWindow("Smoldering Engine", 1280, 720);
+	seInput->initializeKeyStates();
+    //glfwSetKeyCallback(seWindow, key_callback);
 
 	// Setup the renderer
-	if (seRenderer->InitRenderer(seWindow, seGame) == EXIT_FAILURE)
+	if (seRenderer->InitRenderer(seInput->window, seGame, seCamera) == EXIT_FAILURE)
 		return EXIT_FAILURE;
 
 	// Setup the game
@@ -180,7 +57,7 @@ int main()
 
 	// -------- imGui ------------
 	ImGui::CreateContext();
-	ImGui_ImplGlfw_InitForVulkan(seWindow, true);
+	ImGui_ImplGlfw_InitForVulkan(seInput->window, true);
 	// Initialize ImGui for Vulkan
 	if (seRenderer->InitImGuiForVulkan() == EXIT_FAILURE)
 		return EXIT_FAILURE;
@@ -192,7 +69,7 @@ int main()
 	auto previousTime = std::chrono::high_resolution_clock::now(); //initialize
 	//auto lag = std::chrono::duration<double>::zero();
 
-	while (!glfwWindowShouldClose(seWindow))
+	while (!glfwWindowShouldClose(seInput->window))
 	{
 		//TODO: work on this to account account for lag
 		/**
@@ -213,7 +90,7 @@ int main()
 		//lastTime = now;
 
 		//process da inputs 30 times per second please 
-		//processInput(updateInterval.count());
+		seInput->processInput(updateInterval.count(), seCamera);
 
 		// Check for window inputs
 		glfwPollEvents();
@@ -226,14 +103,17 @@ int main()
 
 	// Destroys all Renderer resources and the Game meshes
 	seRenderer->DestroyRenderer();
+	seInput->~InputManager();
 
 	// Destroy GLFW window / GLFW
-	glfwDestroyWindow(seWindow);
+	glfwDestroyWindow(seInput->window);
 	glfwTerminate();
 
 	delete(seCollision);
 	delete(seGame);
 	delete(seRenderer);
+	delete(seCamera);
+	delete(seInput);
 
 	return EXIT_SUCCESS;
 }
