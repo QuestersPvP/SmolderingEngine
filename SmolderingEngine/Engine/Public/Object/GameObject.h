@@ -3,14 +3,15 @@
 
 // Engine Includes
 #include "Object.h"
-
 #include "Engine/Public/Rendering/Mesh.h"
+#include "Engine/Public/Rendering/MeshModel.h"
 
 class GameObject : public Object
 {
 	/* Variables */
 public:
 	Mesh objectMesh;
+	MeshModel objectMeshModel;
 
 private:
 	Model objectModel;

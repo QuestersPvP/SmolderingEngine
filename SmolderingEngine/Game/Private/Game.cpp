@@ -1,6 +1,9 @@
 #include "Game/Public/Game.h"
 
-void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevice, VkQueue InTransferQueue, VkCommandPool InTransferCommandPool)
+// Engine includes
+#include "Engine/Public/Rendering/Renderer.h"
+
+void Game::LoadMeshes(VkPhysicalDevice inPhysicalDevice, VkDevice inLogicalDevice, VkQueue inTransferQueue, VkCommandPool inTransferCommandPool)
 {
 	std::ifstream file(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Levels/level.selevel");
 	if (!file.is_open())
@@ -175,7 +178,7 @@ void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevic
 						// Create the mesh
 						GameObject* loadedGameObject = new GameObject();
 
-						Mesh& tempMesh = Mesh(InPhysicalDevice, InLogicalDevice, InTransferQueue, InTransferCommandPool, &vertices, &indices);
+						Mesh& tempMesh = Mesh(inPhysicalDevice, inLogicalDevice, inTransferQueue, inTransferCommandPool, &vertices, &indices);
 						tempMesh.SetTextureFilePath(texture);
 
 						loadedGameObject->objectMesh = tempMesh;
@@ -211,13 +214,57 @@ void Game::LoadMeshes(VkPhysicalDevice InPhysicalDevice, VkDevice InLogicalDevic
 	file.close();
 }
 
+void Game::LoadMeshModel(VkPhysicalDevice inPhysicalDevice, VkDevice inLogicalDevice, VkQueue inTransferQueue, VkCommandPool inTransferCommandPool,
+	std::string inModelFile, Renderer* inRenderer)
+{
+	// Import model scene
+	Assimp::Importer importer;
+
+													// After model included, make sure all faces are triangulated
+													// Also make sure UVs match our UV system, and finally try to remove any duplicate verticies
+	const aiScene* scene = importer.ReadFile(inModelFile, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
+
+	if (!scene)
+		throw std::runtime_error("failed to load the model passed in: " + inModelFile);
+
+	std::vector<std::string> textureNames = MeshModel::LoadMaterials(scene);
+
+	// convert the material list IDs to descriptor array IDs
+	std::vector<int> materialToTexture(textureNames.size());
+
+	for (size_t i = 0; i < textureNames.size(); i++)
+	{
+		if (textureNames[i].empty())
+			materialToTexture[i] = 0;
+		else
+		{
+			//std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Models/Castle/Textures/" + textureNames[i]);
+			//std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Models/Aircraft/textures/" + textureNames[i]);
+			std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Models/House/" + textureNames[i]);
+			materialToTexture[i] = inRenderer->CreateTexture(fileLoc);
+		}
+	}
+
+	// Load in all the meshes
+	std::vector<Mesh> modelMeshes = MeshModel::LoadNode(inPhysicalDevice, inLogicalDevice, inTransferQueue, inTransferCommandPool, scene->mRootNode, scene, materialToTexture);
+
+	MeshModel meshModel = MeshModel(modelMeshes);
+	GameObject* object = new GameObject();
+	object->objectMeshModel = meshModel;
+	object->SetUseTexture(1);
+	object->SetObjectID(0);
+	object->SetObjectParentID(-1);
+	gameObjects.push_back(object);
+}
+
 void Game::DestroyMeshes()
 {
-	for (int i = gameObjects.size()-1; i >= 0; i--)
-	{
-		gameObjects[i]->objectMesh.DestroyMesh();
-		delete gameObjects[i];
-	}
+	// TODO: FIX
+	//for (int i = gameObjects.size()-1; i >= 0; i--)
+	//{
+	//	gameObjects[i]->objectMesh.DestroyMesh();
+	//	delete gameObjects[i];
+	//}
 }
 
 void Game::SubscribeObjectsToCollisionManager(CollisionManager* inManager, int inParent)

@@ -129,34 +129,34 @@ void processInput(float inDeltaTime)
 		movementY += -yMovementSpeed * inDeltaTime;
 	}
 
-	modelX += movementX;
-	modelY += movementY;
+	//modelX += movementX;
+	//modelY += movementY;
 
-	glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(modelX, modelY, 0.0f)); // translate the player model
+	//glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(modelX, modelY, 0.0f)); // translate the player model
 
-	std::pair<float, float> yAdjust;
+	//std::pair<float, float> yAdjust;
 
-	if (rotateLeft)
-		yAdjust = seCollision->NotifyCollisionManagerOfMovement(seGame->gameObjects[seGame->gameObjects.size() - 2]);
-	else
-		yAdjust = seCollision->NotifyCollisionManagerOfMovement(seGame->gameObjects[seGame->gameObjects.size() - 1]);
+	//if (rotateLeft)
+	//	yAdjust = seCollision->NotifyCollisionManagerOfMovement(seGame->gameObjects[seGame->gameObjects.size() - 2]);
+	//else
+	//	yAdjust = seCollision->NotifyCollisionManagerOfMovement(seGame->gameObjects[seGame->gameObjects.size() - 1]);
 
 
-	if (yAdjust.second > 0.0f)
-	{
-		// Figure out the floor height
-		floorHeight = yAdjust.first;
+	//if (yAdjust.second > 0.0f)
+	//{
+	//	// Figure out the floor height
+	//	floorHeight = yAdjust.first;
 
-		if (rotateLeft && (floorHeight + 2.4f) - modelY)
-			modelY = 2.4f + floorHeight;
-		else
-			modelY = 1.0f + floorHeight;
-	}
+	//	if (rotateLeft && (floorHeight + 2.4f) - modelY)
+	//		modelY = 2.4f + floorHeight;
+	//	else
+	//		modelY = 1.0f + floorHeight;
+	//}
 
-	if (rotateLeft)
-		seRenderer->UpdateModelPosition(seGame->gameObjects.size() - 2, modelMatrix, 0); //update in bulk
-	else
-		seGame->gameObjects[seGame->gameObjects.size() - 1]->ApplyLocalTransform({modelMatrix[3].x,modelMatrix[3].y, modelMatrix[3].z});
+	//if (rotateLeft)
+	//	seRenderer->UpdateModelPosition(seGame->gameObjects.size() - 2, modelMatrix, 0); //update in bulk
+	//else
+	//	seGame->gameObjects[seGame->gameObjects.size() - 1]->ApplyLocalTransform({modelMatrix[3].x,modelMatrix[3].y, modelMatrix[3].z});
 }
 #pragma endregion
 
@@ -212,65 +212,14 @@ int main()
 		//deltaTime = now - lastTime;
 		//lastTime = now;
 
-		// --- temp ---
-		float rotationSpeed = 2.5f;
-		if (rotateLeft && floorHeight == -1.f)
-		{
-			angle -= rotationSpeed * updateInterval.count();
-			float rotateAmount = -rotationSpeed * updateInterval.count();
-			seGame->gameObjects[0]->ApplyLocalYRotation(rotateAmount);
-
-			if (angle <= -90.0f)
-			{
-				for (GameObject* object : seGame->gameObjects)
-				{
-					if (object->GetParentObjectID() == 1)
-						seCollision->UnsubscribeObjectFromCollisionManager(object);
-					if (object->GetParentObjectID() == 2 && object->GetObjectID() == 12)
-						seCollision->SubscribeObjectToCollisionManager(object, CollisionTypes::MovableCollision);
-					else if (object->GetParentObjectID() == 2)
-						seCollision->SubscribeObjectToCollisionManager(object, CollisionTypes::StaticCollision);
-				}
-
-				modelX = 0.0f;
-				modelY = 0.0f;
-
-				rotateLeft = false;
-			}
-		}
-		// --- temp ---
-
 		//process da inputs 30 times per second please 
-		if (angle >= 0.0f || angle <= -90.0f)
-			processInput(updateInterval.count());
+		//processInput(updateInterval.count());
 
 		// Check for window inputs
 		glfwPollEvents();
 		// Draw all objects
 		seRenderer->Draw();
 		
-		// --- temp ---
-		if (rotateLeft && (modelX < -1.0f || modelY < -1.0f))
-		{
-			modelX = 0.f;
-			modelY = 0.f;
-			glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(modelX, modelY, 0.0f));
-			seRenderer->UpdateModelPosition(seGame->gameObjects.size() - 2, modelMatrix, 0);
-		}
-		else if (!rotateLeft && (modelX < -1.0f || modelY < -1.0f))
-		{
-			modelX = 0.f;
-			modelY = 0.f;
-			glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(modelX, modelY, 0.0f));
-			seGame->gameObjects[seGame->gameObjects.size() - 1]->ApplyLocalTransform({ modelMatrix[3].x,modelMatrix[3].y, modelMatrix[3].z });
-		}
-		else if (!rotateLeft && floorHeight > 1.3f)
-		{
-			std::cout << std::endl << std::endl << "You Won! Ending game" << std::endl << std::endl;
-			break;
-		}
-		// --- temp ---
-
 		// Sleep to prevent busy waiting
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}

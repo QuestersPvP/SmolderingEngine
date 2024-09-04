@@ -8,8 +8,8 @@
 #include <fstream>
 
 const int MAX_FRAME_DRAWS = 2;
-const int MAX_OBJECTS = 128;
-const bool ENABLE_VULKAN_DEBUG_VALIDATION_LAYERS = false;
+const int MAX_OBJECTS = 256;
+const bool ENABLE_VULKAN_DEBUG_VALIDATION_LAYERS = true;
 
 const std::vector<const char*> deviceExtensions =
 {

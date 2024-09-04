@@ -55,36 +55,45 @@ int Renderer::InitRenderer(GLFWwindow* InWindow, Game* InGame)
 		AllocateDescriptorSets();
 		CreateSynchronizationPrimatives();
 
-		int blankTexture = CreateTexture("BlankTexture.jpg");
-		//int testTexture = CreateTexture("QuestersGamesLogo.jpg");
+		// TODO: STOP HARDCODING THIS
+		std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Textures/BlankTexture.jpg");
+		int blankTexture = CreateTexture(fileLoc);
 
 		// Matrix creation									//FOV						// Aspect ratio									// near, far plane
-		uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 100.f);
+		uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 1000.f);
 		//uboViewProjection.projection = glm::ortho(0.0f, 1.0f, 1.0f, 0.0f, 0.1f, 100.0f);
 												// where camera is				// where we are looking			// Y is up
-		uboViewProjection.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		//uboViewProjection.view = glm::mat4(1.0f);
+		uboViewProjection.view = glm::lookAt(glm::vec3(0.0f, 20.0f, -50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 		// invert the Y (Vulkan treats Y as downwards, so if we invert it then Y is up.)
 		uboViewProjection.projection[1][1] *= -1;
 
 		// Mesh creation
-		SEGame->LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
+		//SEGame->LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
 
-		for (size_t i = 0; i < SEGame->gameObjects.size(); i++)
-		{
-			if (!SEGame->gameObjects[i]->objectMesh.GetTextureFilePath().empty() &&				// not empty
-				SEGame->gameObjects[i]->objectMesh.GetTextureFilePath() != "BlankTexture.jpg")	// not blank texture
-			{
-				SEGame->gameObjects[i]->objectMesh.SetTextureID(CreateTexture(SEGame->gameObjects[i]->objectMesh.GetTextureFilePath()));
-				SEGame->gameObjects[i]->SetUseTexture(1);
-			}
-			else
-			{
-				SEGame->gameObjects[i]->objectMesh.SetTextureID(blankTexture);
-				SEGame->gameObjects[i]->SetUseTexture(0);
-			}
-		}
+		std::string filePath = std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Models/House/Heilig_Grab_Kapelle_C.obj";
+		SEGame->LoadMeshModel(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool, filePath, this);
+
+		// model was rotated strange - this is just to fix that for now.
+		glm::mat4 modelMatrix = glm::mat4(1.0f);
+		modelMatrix = glm::rotate(modelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		SEGame->gameObjects[0]->SetModel(modelMatrix);
+
+		//for (size_t i = 0; i < SEGame->gameObjects.size(); i++)
+		//{
+		//	if (!SEGame->gameObjects[i]->objectMesh.GetTextureFilePath().empty() &&				// not empty
+		//		SEGame->gameObjects[i]->objectMesh.GetTextureFilePath() != "BlankTexture.jpg")	// not blank texture
+		//	{
+		//		SEGame->gameObjects[i]->objectMesh.SetTextureID(CreateTexture(SEGame->gameObjects[i]->objectMesh.GetTextureFilePath()));
+		//		SEGame->gameObjects[i]->SetUseTexture(1);
+		//	}
+		//	else
+		//	{
+		//		SEGame->gameObjects[i]->objectMesh.SetTextureID(blankTexture);
+		//		SEGame->gameObjects[i]->SetUseTexture(0);
+		//	}
+		//}
 
 	}
 	catch(const std::runtime_error& error)
@@ -1441,39 +1450,39 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 	
 	// Bind more stuff here
 
-	for (size_t j = 0; j < SEGame->gameObjects.size(); j++)
-	{
-		// bind mesh vertex buffer
-		VkBuffer vertexBuffers[] = { SEGame->gameObjects[j]->objectMesh.GetVertexBuffer()}; // Buffers to bind
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(CommandBuffers[inImageIndex], 0, 1, vertexBuffers, offsets);
-
-		// Bind mesh index buffer
-		vkCmdBindIndexBuffer(CommandBuffers[inImageIndex], SEGame->gameObjects[j]->objectMesh.GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-		// Dynamic offset amount
-		//uint32_t dynamicOffset = static_cast<uint32_t>(modelUniformAlignment) * j;
-
+	for (size_t i = 0; i < SEGame->gameObjects.size(); i++)
+	{		
+		MeshModel tempModel = SEGame->gameObjects[i]->objectMeshModel;
 		// Push constants to given shader stage directly
-		vkCmdPushConstants(CommandBuffers[inImageIndex], PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Model), &SEGame->gameObjects[j]->GetModel());
+		vkCmdPushConstants(CommandBuffers[inImageIndex], PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Model), &SEGame->gameObjects[i]->GetModel());
 
-		// Bind descriptor sets
-		if (SEGame->gameObjects[j]->objectMesh.GetTextureID() >= 0)
+		for (size_t j = 0; j < tempModel.GetMeshCount(); j++)
 		{
-			std::array<VkDescriptorSet, 2> descriptorSetGroup = { descriptorSets[inImageIndex],
-				samplerDescriptorSets[SEGame->gameObjects[j]->objectMesh.GetTextureID()] };
-
-			vkCmdBindDescriptorSets(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout,
-				0, static_cast<uint32_t>(descriptorSetGroup.size()), descriptorSetGroup.data(), 0, nullptr);
+			// bind mesh vertex buffer
+			VkBuffer vertexBuffers[] = { tempModel.GetMesh(j)->GetVertexBuffer() }; // Buffers to bind
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(CommandBuffers[inImageIndex], 0, 1, vertexBuffers, offsets);
+			
+			// Bind mesh index buffer
+			vkCmdBindIndexBuffer(CommandBuffers[inImageIndex], tempModel.GetMesh(j)->GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+			
+			// Bind descriptor sets
+			if (tempModel.GetMesh(j)->GetTextureID() >= 0)
+			{
+				std::array<VkDescriptorSet, 2> descriptorSetGroup = { descriptorSets[inImageIndex],
+					samplerDescriptorSets[tempModel.GetMesh(j)->GetTextureID()] };
+			
+				vkCmdBindDescriptorSets(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout,
+					0, static_cast<uint32_t>(descriptorSetGroup.size()), descriptorSetGroup.data(), 0, nullptr);
+			}
+			else
+			{
+				std::cout << "Error: Game mesh has no texture AND blank texture is not loaded." << std::endl;
+			}
+			
+			// Execute the pipeline
+			vkCmdDrawIndexed(CommandBuffers[inImageIndex], tempModel.GetMesh(j)->GetIndexCount(), 1, 0, 0, 0);
 		}
-		else
-		{
-			std::cout << "Error: Game mesh has no texture AND blank texture is not loaded." << std::endl;
-		}
-		//vkCmdBindDescriptorSets(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout, 0, 1, &descriptorSets[inImageIndex], 0/*1*/, nullptr/*&dynamicOffset*/);
-
-		// Execute the pipeline
-		vkCmdDrawIndexed(CommandBuffers[inImageIndex], SEGame->gameObjects[j]->objectMesh.GetIndexCount(), 1, 0, 0, 0);
 	}
 	
 	// you can draw more stuff here also
@@ -1829,12 +1838,11 @@ stbi_uc* Renderer::LoadTextureFile(std::string inFileName, int* inWidth, int* in
 	int channels;
 
 	// Load pixel data for image
-	std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Textures/" + inFileName);
-	stbi_uc* image = stbi_load(fileLoc.c_str(), inWidth, inHeight, &channels, STBI_rgb_alpha);
+	stbi_uc* image = stbi_load(inFileName.c_str(), inWidth, inHeight, &channels, STBI_rgb_alpha);
 
 	if (!image)
 	{
-		throw std::runtime_error("Failed to load a Texture file! (" + fileLoc + ")");
+		throw std::runtime_error("Failed to load a Texture file! (" + inFileName + ")");
 	}
 
 	// Calculate image size using given and known data

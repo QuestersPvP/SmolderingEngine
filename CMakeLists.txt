@@ -24,10 +24,16 @@ set(IMGUI_SOURCES					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI/imgui.cpp
     							${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI/backends/imgui_impl_glfw.cpp
     							${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/IMGUI/backends/imgui_impl_vulkan.cpp)
 
+# Add ASSIMP source files
+set(ASSIMP_SOURCES					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/ASSIMP/assimp/Importer.hpp
+							${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/ASSIMP/assimp/Scene.h
+							${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/ASSIMP/assimp/postprocess.h)
+
 # Add an executable
 add_executable(SmolderingEngine 			${MY_SOURCES}
 							${MY_HEADERS}
-							${IMGUI_SOURCES})
+							${IMGUI_SOURCES}
+							${ASSIMP_SOURCES})
 
 # Include directories for source files
 include_directories(SmolderingEngine PRIVATE 		${CMAKE_CURRENT_SOURCE_DIR}/SmolderingEngine)	# To access Engine or Game folders quickly

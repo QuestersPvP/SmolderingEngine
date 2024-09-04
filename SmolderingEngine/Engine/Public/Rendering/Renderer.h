@@ -25,6 +25,7 @@
 #include "Utilities.h"
 #include "Game/Public/Game.h"
 #include "Mesh.h"
+#include "MeshModel.h"
 #include "Engine/Public/Object/Object.h"
 #include "Engine/Public/Object/GameObject.h"
 
@@ -46,7 +47,6 @@ private:
 	GLFWwindow* Window;
 	Game* SEGame;
 	int CurrentFrame = 0;
-
 
 	// Vulkan Components
 	VkInstance VulkanInstance;
