@@ -103,7 +103,6 @@ int main()
 
 	// Destroys all Renderer resources and the Game meshes
 	seRenderer->DestroyRenderer();
-	seInput->~InputManager();
 
 	// Destroy GLFW window / GLFW
 	glfwDestroyWindow(seInput->window);

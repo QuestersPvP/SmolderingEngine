@@ -19,34 +19,37 @@ class InputManager
 public:
     GLFWwindow* window;
     std::unordered_map<int, bool> keyStates;
+    
+    float keyboardMovementSpeed = 1.00f;
+    float mouseMovementSpeed = 1.0f;
 
-    // TODO: Sort this stuff out
-    const int JUMP_TIME = 30;
-    float deltaTime = 0.0f;
-    float lastTime = 0.0f;
+    float yaw = -90.0f;
+    float pitch = 0.0f;
 
+    float currentMouseX = 0.0f;
+    float currentMouseY = 0.0f;    
+    float lastMouseX = 0.0f;
+    float lastMouseY = 0.0f;
+    
     float modelY = 0.0f;
     float modelX = 0.0f;
-    float xMovementSpeed = 0.20f;
-    float yMovementSpeed = 0.20f;
-    bool playerJumping = false;
-    int jumpTime = JUMP_TIME;
-    float floorHeight = -2.4f;
+    float modelZ = 0.0f;
 
-    // temp
-    float angle = 0.0f;
-    bool rotateLeft = true;
+    // TODO: Sort this stuff out
+    float deltaTime = 0.0f;
+    float lastTime = 0.0f;
+    bool playerJumping = false;;
+    float floorHeight = -2.4f;
 
     /* Functions */
 public:
     InputManager();
-    ~InputManager();
 
-    void InitWindow(const std::string& InWindowName = "Smoldering Engine", int InWidth = 1280, int InHeight = 720);
+    void InitWindow(const std::string& inWindowName = "Smoldering Engine", int inWidth = 1280, int inHeight = 720);
     void initializeKeyStates();
     void processInput(float inDeltaTime, class Camera* inCamera);
-    float ProcessJump(float inDeltaTime);
 
 private:
-    static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void KeyCallback(GLFWwindow* inWindow, int inKey, int inScancode, int inAction, int inMods);
+    static void MouseCallback(GLFWwindow* inWindow, double inXPos, double inYPos);
 };

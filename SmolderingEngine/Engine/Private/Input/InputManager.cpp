@@ -5,27 +5,24 @@ InputManager::InputManager() : window(nullptr)
     initializeKeyStates();
 }
 
-InputManager::~InputManager() 
-{
-    if (window) 
-    {
-        glfwDestroyWindow(window);
-        glfwTerminate();
-    }
-}
-
-void InputManager::InitWindow(const std::string& InWindowName, int InWidth, int InHeight) 
+void InputManager::InitWindow(const std::string& inWindowName, int inWidth, int inHeight) 
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    window = glfwCreateWindow(InWidth, InHeight, InWindowName.c_str(), nullptr, nullptr);
+    window = glfwCreateWindow(inWidth, inHeight, inWindowName.c_str(), nullptr, nullptr);
+
+    // Initialize the mouse position to center of screen
+    lastMouseX = inWidth / 2.f;
+    lastMouseY = inHeight / 2.f;
 
     if (window) 
     {
         glfwSetWindowUserPointer(window, this);
-        glfwSetKeyCallback(window, key_callback);
+        glfwSetKeyCallback(window, KeyCallback);
+        glfwSetCursorPosCallback(window, MouseCallback);
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Capture the mouse cursor
     }
 }
 
@@ -37,60 +34,94 @@ void InputManager::initializeKeyStates()
     keyStates[GLFW_KEY_D] = false;
 }
 
-void InputManager::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) 
+void InputManager::KeyCallback(GLFWwindow* inWindow, int inKey, int inScancode, int inAction, int inMods)
 {
-    InputManager* inputManager = static_cast<InputManager*>(glfwGetWindowUserPointer(window));
+    InputManager* inputManager = static_cast<InputManager*>(glfwGetWindowUserPointer(inWindow));
    
     if (inputManager) 
     {
-        if (action == GLFW_PRESS) 
+        if (inAction == GLFW_PRESS)
         {
-            inputManager->keyStates[key] = true;
+            inputManager->keyStates[inKey] = true;
         }
-        else if (action == GLFW_RELEASE) 
+        else if (inAction == GLFW_RELEASE)
         {
-            inputManager->keyStates[key] = false;
+            inputManager->keyStates[inKey] = false;
         }
     }
 }
 
-float InputManager::ProcessJump(float inDeltaTime) 
+void InputManager::MouseCallback(GLFWwindow* inWindow, double inXPos, double inYPos)
 {
-    return std::min(((yMovementSpeed + 0.2f) * inDeltaTime) / ((float)jumpTime / (float)JUMP_TIME), 0.1f);
+    InputManager* inputManager = static_cast<InputManager*>(glfwGetWindowUserPointer(inWindow));
+    if (inputManager)
+    {
+        inputManager->currentMouseX = inXPos;
+        inputManager->currentMouseY = inYPos;
+    }
 }
 
 void InputManager::processInput(float inDeltaTime, class Camera* inCamera)
 {
-    float movementX = 0.0f;
-    float movementY = 0.0f;
+    // -- MOUSE MOVEMENT -- 
+    float offsetX = currentMouseX - lastMouseX;
+    float offsetY = lastMouseY - currentMouseY; // Inverted Y-axis for pitch
 
-    if (keyStates[GLFW_KEY_A])
-        movementX += -xMovementSpeed * inDeltaTime;
-    if (keyStates[GLFW_KEY_D])
-        movementX += xMovementSpeed * inDeltaTime;
+    // Save the current mouse position for the next frame
+    lastMouseX = currentMouseX;
+    lastMouseY = currentMouseY;
 
-    //if ((keyStates[GLFW_KEY_SPACE] && !playerJumping) && (modelY == (floorHeight + 2.4f) || (modelY == (floorHeight + 1.0f) && !rotateLeft))) 
-    //{
-    //    playerJumping = true;
-    //    jumpTime = 1;
-    //    movementY += ProcessJump(inDeltaTime);
-    //    jumpTime++;
-    //}
-    //else if (playerJumping && jumpTime < JUMP_TIME) {
-    //    movementY += ProcessJump(inDeltaTime);
-    //    jumpTime++;
-    //    if (jumpTime >= JUMP_TIME)
-    //        playerJumping = false;
-    //}
-    //else {
-    //    movementY += -yMovementSpeed * inDeltaTime;
-    //}
+    // Apply sensitivity to the mouse movement and make it frame-rate independent using deltaTime
+    offsetX *= mouseMovementSpeed * inDeltaTime;
+    offsetY *= mouseMovementSpeed * inDeltaTime;
 
-    modelX += movementX;
-    modelY += movementY;
+    // Update yaw and pitch based on mouse movement
+    yaw += offsetX;
+    pitch += offsetY;
 
-    glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(modelX, modelY, 0.0f));
+    // Constrain the pitch to avoid flipping the camera
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+    // -- MOUSE MOVEMENT -- 
 
-    inCamera->uboViewProjection.view = glm::lookAt(glm::vec3(modelMatrix[3].x, modelMatrix[3].y + 20.0f, modelMatrix[3].z-50.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    // Calculate the front direction from where camera is looking
+    glm::vec3 front;
+    front.x = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
+    front.y = sin(glm::radians(pitch));
+    front.z = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
+    front = glm::normalize(front);
+
+    // Calculate the right direction based on the front direction and world up direction
+    glm::vec3 right = glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+    // WSAD for movement
+    glm::vec3 movement(0.0f);
+
+    if (keyStates[GLFW_KEY_W]) // Move forward
+        movement += front * keyboardMovementSpeed * inDeltaTime;
+    if (keyStates[GLFW_KEY_S]) // Move backward
+        movement -= front * keyboardMovementSpeed * inDeltaTime;
+    if (keyStates[GLFW_KEY_A]) // Move left
+        movement -= right * keyboardMovementSpeed * inDeltaTime;
+    if (keyStates[GLFW_KEY_D]) // Move right
+        movement += right * keyboardMovementSpeed * inDeltaTime;
+
+    // Update position based on movement vector
+    modelX += movement.x;
+    modelY += movement.y;
+    modelZ += movement.z;
+
+    // Camera position based on updated model position
+    glm::vec3 cameraPosition = glm::vec3(modelX, modelY, modelZ);
+
+    // Camera target based on the front direction
+    glm::vec3 targetPosition = cameraPosition + front;
+
+    // Define up direction (Y-axis)
+    glm::vec3 upDirection = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    // Update the view matrix
+    inCamera->uboViewProjection.view = glm::lookAt(cameraPosition, targetPosition, upDirection);
 }
