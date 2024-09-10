@@ -28,6 +28,10 @@ void InputManager::InitWindow(const std::string& inWindowName, int inWidth, int 
 
 void InputManager::initializeKeyStates() 
 {
+    // --- ENGINE KEYBINDS ---
+    keyStates[GLFW_KEY_ESCAPE] = false;
+
+    // --- CAMERA MOVEMENT ---
     keyStates[GLFW_KEY_W] = false;
     keyStates[GLFW_KEY_SPACE] = false;
     keyStates[GLFW_KEY_A] = false;
@@ -47,6 +51,9 @@ void InputManager::KeyCallback(GLFWwindow* inWindow, int inKey, int inScancode, 
         else if (inAction == GLFW_RELEASE)
         {
             inputManager->keyStates[inKey] = false;
+
+            if (GLFW_KEY_ESCAPE == inKey)
+                inputManager->mouseModeChanged = false;
         }
     }
 }
@@ -124,4 +131,17 @@ void InputManager::processInput(float inDeltaTime, class Camera* inCamera)
 
     // Update the view matrix
     inCamera->uboViewProjection.view = glm::lookAt(cameraPosition, targetPosition, upDirection);
+
+
+    // --- ENGINE KEYBINDS --- TODO: Separate these functions eventually
+    if (keyStates[GLFW_KEY_ESCAPE] && glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED && !mouseModeChanged)
+    {
+        mouseModeChanged = true;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+    else if (keyStates[GLFW_KEY_ESCAPE] && glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL && !mouseModeChanged)
+    {
+        mouseModeChanged = true;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
 }

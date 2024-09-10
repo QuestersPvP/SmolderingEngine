@@ -2,6 +2,7 @@
 
 // Project Includes
 #include "Engine/Public/Camera/Camera.h"
+#include "Engine/Public/EngineLevel/EngineLevelManager.h"
 
 
 void Renderer::UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix, float inRotation)
@@ -42,7 +43,7 @@ int Renderer::InitRenderer(GLFWwindow* inWindow, Game* inGame, class Camera* inC
 			SetupDebugMessenger();
 
 		CreateVulkanSurface();
-		GetPhysicalDevice();
+		RetrievePhysicalDevice();
 		CreateLogicalDevice();
 		CreateSwapChain();
 		CreateRenderpass();
@@ -76,6 +77,7 @@ int Renderer::InitRenderer(GLFWwindow* inWindow, Game* inGame, class Camera* inC
 		// Mesh creation
 		//SEGame->LoadMeshes(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool);
 
+		/*
 		std::string filePath = std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Models/House/Heilig_Grab_Kapelle_C.obj";
 		SEGame->LoadMeshModel(Devices.PhysicalDevice, Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool, filePath, this);
 
@@ -84,6 +86,7 @@ int Renderer::InitRenderer(GLFWwindow* inWindow, Game* inGame, class Camera* inC
 		modelMatrix = glm::rotate(modelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		SEGame->gameObjects[0]->SetModel(modelMatrix);
+		*/
 
 		//for (size_t i = 0; i < SEGame->gameObjects.size(); i++)
 		//{
@@ -1174,7 +1177,7 @@ void Renderer::AllocateDescriptorSets()
 	}
 }
 
-void Renderer::GetPhysicalDevice()
+void Renderer::RetrievePhysicalDevice()
 {
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(VulkanInstance, &deviceCount, nullptr);
@@ -1501,6 +1504,28 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 	io.DisplaySize = ImVec2((float)SwapchainExtent.width, (float)SwapchainExtent.height);
 
 	// Insert your ImGui code here
+
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("Save Level"))
+			{
+				// TODO: SAVE LOGIC
+			}
+			if (ImGui::MenuItem("Load Level"))
+			{
+				std::string filePath = OpenFileExplorer();
+				// the file path is returned such as C:\\name\\bleh.selvel
+				// all we are doing is replacing all those \\ with a normal /
+				std::replace(filePath.begin(), filePath.end(), '\\', '/');
+				levelManager->LoadLevel(filePath);
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
+
 	ImGui::Begin("Hello, world!");
 	ImGui::Text("This is some text rendered by ImGui.");
 	ImGui::End();
@@ -1970,4 +1995,32 @@ void Renderer::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMe
 	{
 		func(instance, debugMessenger, pAllocator);
 	}
+}
+
+std::string Renderer::OpenFileExplorer()
+{
+	OPENFILENAME ofn;       // Common dialog box structure
+	char szFile[260];       // Buffer for file name
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = nullptr; // Handle to owner window (nullptr for no specific window)
+	ofn.lpstrFile = szFile;
+	// Set initial filename to empty
+	ofn.lpstrFile[0] = '\0';
+	ofn.nMaxFile = sizeof(szFile);
+	// File type filter (show only .obj files)
+	ofn.lpstrFilter = "SmolderingEngine Level Files\0*.selevel\0All Files\0*.*\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = nullptr;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = nullptr;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+	// Display the Open dialog box
+	if (GetOpenFileName(&ofn) == TRUE)
+	{
+		return std::string(ofn.lpstrFile); // Return the selected file path
+	}
+
+	return ""; // Return an empty string if no file is selected
 }

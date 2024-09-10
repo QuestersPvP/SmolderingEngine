@@ -1,0 +1,29 @@
+# File loader v0.0.2
+#
+# Note: File paths will be from the root folder (e.g. SmolderingEngine) The program will find the relative file path to that point.
+#
+# All objects should follow this format:
+# -
+# @objectID
+# ~ 0 (must be unique)
+# @parentID
+# ~ 10 (can be a postive number >= 0, if number is < 0 there is no parent object).
+# @objectPath
+# ~/SmolderingEngine/Game/Models/YourObjectName.obj
+# @texturePath
+# ~/SmolderingEngine/Game/Textures/ # Note: you do not need to provide texture names, all textures for a model must be located in same folder.
+# -
+# @objectID
+# ~ 1
+# ...continues on and on as needed...
+
+-
+@objectID
+~0
+@parentID
+~-1
+@objectPath
+~/SmolderingEngine/Game/Models/House/Heilig_Grab_Kapelle_C.obj
+@texturePath
+~/SmolderingEngine/Game/Models/House/
+-

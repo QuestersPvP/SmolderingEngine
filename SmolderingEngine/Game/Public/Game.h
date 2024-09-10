@@ -6,10 +6,9 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <glm/glm.hpp>
 
 // Third Party
-#include "GLM/glm.hpp"
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <assimp/Importer.hpp>
@@ -49,9 +48,9 @@ public:
 
     /* Functions */
 public:
-    void LoadMeshes(VkPhysicalDevice inPhysicalDevice, VkDevice inLogicalDevice, VkQueue inTransferQueue, VkCommandPool inTransferCommandPool);
-    void LoadMeshModel(VkPhysicalDevice inPhysicalDevice, VkDevice inLogicalDevice, VkQueue inTransferQueue, VkCommandPool inTransferCommandPool,
-        std::string inModelFile, class Renderer* inRenderer);
+    //void LoadMeshes(VkPhysicalDevice inPhysicalDevice, VkDevice inLogicalDevice, VkQueue inTransferQueue, VkCommandPool inTransferCommandPool);
+    //void LoadMeshModel(VkPhysicalDevice inPhysicalDevice, VkDevice inLogicalDevice, VkQueue inTransferQueue, VkCommandPool inTransferCommandPool,
+    //    std::string inModelFile, class Renderer* inRenderer);
     void DestroyMeshes();
 
     void SubscribeObjectsToCollisionManager(class CollisionManager* inManager, int inParent);

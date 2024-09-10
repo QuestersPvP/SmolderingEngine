@@ -38,8 +38,10 @@ public:
     // TODO: Sort this stuff out
     float deltaTime = 0.0f;
     float lastTime = 0.0f;
-    bool playerJumping = false;;
+    bool playerJumping = false;
     float floorHeight = -2.4f;
+
+    bool mouseModeChanged = false;
 
     /* Functions */
 public:

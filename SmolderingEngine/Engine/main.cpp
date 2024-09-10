@@ -26,6 +26,8 @@
 #include "Engine/Public/Collision/CollisionManager.h"
 #include "Engine/Public/Input/InputManager.h"
 #include "Engine/Public/Camera/Camera.h"
+#include "Engine/Public/EngineLevel/EngineLevelManager.h"
+
 #include "Game/Public/Game.h"
 
 Renderer* seRenderer;
@@ -33,6 +35,8 @@ Game* seGame;
 CollisionManager* seCollision;
 Camera* seCamera;
 InputManager* seInput;
+EngineLevelManager* seEngineLevel;
+
 GLFWwindow* seWindow;
 
 int main()
@@ -52,8 +56,18 @@ int main()
 	if (seRenderer->InitRenderer(seInput->window, seGame, seCamera) == EXIT_FAILURE)
 		return EXIT_FAILURE;
 
-	// Setup the game
-	seGame->SubscribeObjectsToCollisionManager(seCollision, 1); // subscribe all objects that are children to the first face of the game
+	seEngineLevel = new EngineLevelManager(seRenderer->GetPhysicalDevice(), seRenderer->GetLogicalDevice(),
+		seRenderer->GetGraphicsQueue(), seRenderer->GetGraphicsCommandPool(), seGame, seRenderer);
+	seRenderer->SetEngineLevelManager(seEngineLevel); // will remove this soon
+	seEngineLevel->LoadLevel(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Levels/newLevel.selevel");
+
+	// --- TEMP ROTATION ETC. UNTIL WE ADD MORE FUNCTIONALITY TO FILE LOAD/SAVER ---
+	// model was rotated strange - this is just to fix that for now.
+	glm::mat4 modelMatrix = glm::mat4(1.0f);
+	modelMatrix = glm::rotate(modelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	seGame->gameObjects[0]->SetModel(modelMatrix);
+	// --- TEMP ROTATION ETC. UNTIL WE ADD MORE FUNCTIONALITY TO FILE LOAD/SAVER ---
 
 	// -------- imGui ------------
 	ImGui::CreateContext();
@@ -100,6 +114,8 @@ int main()
 		// Sleep to prevent busy waiting
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
+
+	delete(seEngineLevel);
 
 	// Destroys all Renderer resources and the Game meshes
 	seRenderer->DestroyRenderer();

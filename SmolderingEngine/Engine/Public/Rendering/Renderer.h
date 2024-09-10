@@ -8,6 +8,10 @@
 #include <set>
 #include <algorithm>
 
+// TEMP STD
+#include <windows.h>
+#include <commdlg.h>
+
 // Third Party
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -47,6 +51,7 @@ private:
 	GLFWwindow* Window;
 	Game* SEGame;
 	class Camera* seCamera;
+	class EngineLevelManager* levelManager;
 	int CurrentFrame = 0;
 
 	// Vulkan Components
@@ -157,7 +162,7 @@ public:
 	void UpdateUniformBuffers(uint32_t inImageIndex);
 
 	// Not allocating memory, no need to delete.
-	void GetPhysicalDevice();
+	void RetrievePhysicalDevice();
 
 	// Support functions
 	bool CheckInstanceExtensionSupport(std::vector<const char*>* InExtensionsToCheck);
@@ -172,9 +177,16 @@ public:
 	VkSurfaceFormatKHR ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& InSurfaceFormats);
 	VkPresentModeKHR ChooseBestPresentationMode(const std::vector<VkPresentModeKHR> InPresentationMode);
 	VkExtent2D ChooseSwapChainExtent(const VkSurfaceCapabilitiesKHR& InSurfaceCapabilities);
-
+	
+	// Getters & setters
+	VkDevice GetLogicalDevice() { return Devices.LogicalDevice; };
+	VkPhysicalDevice GetPhysicalDevice() { return Devices.PhysicalDevice; };
+	VkQueue GetGraphicsQueue() { return GraphicsQueue; };
+	VkCommandPool GetGraphicsCommandPool() { return GraphicsCommandPool; };
 	QueueFamilyIndicies GetQueueFamilies(VkPhysicalDevice InPhysicalDevice);
 	SwapchainDetails GetSwapchainDetails(VkPhysicalDevice InPhysicalDevice);
+
+	void SetEngineLevelManager(class EngineLevelManager* inLevel) { levelManager = inLevel; };
 
 	// TEXTURE
 	void CreateTextureSampler();
@@ -212,5 +224,10 @@ public:
 	void DestroyDebugUtilsMessengerEXT(
 		VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
 		const VkAllocationCallbacks* pAllocator);
+
+
+	// --- TEMP --- TODO: MOVE THIS SOMEWHERE?
+	std::string OpenFileExplorer();
+
 };
 
