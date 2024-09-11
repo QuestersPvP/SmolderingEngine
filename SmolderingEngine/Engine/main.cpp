@@ -85,24 +85,6 @@ int main()
 
 	while (!glfwWindowShouldClose(seInput->window))
 	{
-		//TODO: work on this to account account for lag
-		/**
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<float> elapsedTime = currentTime - previousTime;
-		previousTime = currentTime;
-		lag += elapsedTime;
-
-		while (lag >= updateInterval)
-		{
-			fixedUpdate();
-			lag -= updateInterval;
-		}**/
-
-		////Calculate time since last frame
-		//float now = glfwGetTime();
-		//deltaTime = now - lastTime;
-		//lastTime = now;
-
 		//process da inputs 30 times per second please 
 		seInput->processInput(updateInterval.count(), seCamera);
 
@@ -115,10 +97,10 @@ int main()
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
-	delete(seEngineLevel);
-
-	// Destroys all Renderer resources and the Game meshes
+	// Destroys all Renderer resources, also destroys all game objects currently
 	seRenderer->DestroyRenderer();
+
+	delete(seEngineLevel);
 
 	// Destroy GLFW window / GLFW
 	glfwDestroyWindow(seInput->window);

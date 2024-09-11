@@ -225,9 +225,9 @@ public:
 		VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
 		const VkAllocationCallbacks* pAllocator);
 
+	// TODO: SCENEMANAGER SHOULD HANDLE THIS
+	void DestroyAllRendererTextures();
 
-	// --- TEMP --- TODO: MOVE THIS SOMEWHERE?
-	std::string OpenFileExplorer();
-
+	bool shouldLoadNewLevel = false;
 };
 

@@ -129,6 +129,75 @@ void EngineLevelManager::LoadLevel(std::string inLevelFilePath)
 	file.close();
 }
 
+std::string EngineLevelManager::OpenFileExplorer()
+{
+	OPENFILENAME ofn;       // Common dialog box structure
+	char szFile[260];       // Buffer for file name
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = nullptr; // Handle to owner window (nullptr for no specific window)
+	ofn.lpstrFile = szFile;
+	// Set initial filename to empty
+	ofn.lpstrFile[0] = '\0';
+	ofn.nMaxFile = sizeof(szFile);
+	// File type filter (show only .obj files)
+	ofn.lpstrFilter = "SmolderingEngine Level Files\0*.selevel\0All Files\0*.*\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = nullptr;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = nullptr;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+	// Display the Open dialog box
+	if (GetOpenFileName(&ofn) == TRUE)
+	{
+		return std::string(ofn.lpstrFile); // Return the selected file path
+	}
+
+	return ""; // Return an empty string if no file is selected
+}
+
+void EngineLevelManager::DestroyGameMeshes()
+{
+	// Wait until queues and all operations are done before cleaning up
+	vkDeviceWaitIdle(logicalDevice);
+
+	for (int i = game->gameObjects.size() - 1; i >= 0; i--)
+	{
+		MeshModel tempModel = game->gameObjects[i]->objectMeshModel;
+
+		tempModel.DestroyMeshModel();
+
+		delete game->gameObjects[i];
+		game->gameObjects.pop_back();
+	}
+}
+
+void EngineLevelManager::LoadNewScene()
+{
+	// Wait until queues and all operations are done before cleaning up
+	vkDeviceWaitIdle(logicalDevice);
+
+	// Destroy texture-related Vulkan objects for the current level
+	renderer->DestroyAllRendererTextures();
+
+	// TODO: Eventually we should do this, issue is the DescriptorPool wont allow it unless we modify it some.
+	// it adds an excess of ~3mb of memory but technically doesnt leak it because when the descriptor pool is cleaned up
+	// so it that memory. But in general we should clean it up so if someone uses the program for extended periods it wont
+	// run out of memory because a vector keeps expanding its size.
+	//vkFreeDescriptorSets(Devices.LogicalDevice, samplerDescriptorPool, static_cast<uint32_t>(samplerDescriptorSets.size()), samplerDescriptorSets.data());
+
+	// Destroy current objects
+	DestroyGameMeshes();
+
+	std::string filePath = OpenFileExplorer();
+	// the file path is returned such as C:\\name\\bleh.selvel
+	// all we are doing is replacing all those \\ with a normal /
+	std::replace(filePath.begin(), filePath.end(), '\\', '/');
+
+	LoadLevel(filePath);
+}
+
 void EngineLevelManager::LoadMeshModel(ObjectData inObject)
 {
 	// Import model scene

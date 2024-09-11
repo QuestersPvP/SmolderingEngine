@@ -61,9 +61,9 @@ int Renderer::InitRenderer(GLFWwindow* inWindow, Game* inGame, class Camera* inC
 		AllocateDescriptorSets();
 		CreateSynchronizationPrimatives();
 
-		// TODO: STOP HARDCODING THIS
-		std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Textures/BlankTexture.jpg");
-		int blankTexture = CreateTexture(fileLoc);
+		//// TODO: STOP HARDCODING THIS
+		//std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Textures/BlankTexture.jpg");
+		//int blankTexture = CreateTexture(fileLoc);
 
 		//// Matrix creation									//FOV						// Aspect ratio									// near, far plane
 		//uboViewProjection.projection = glm::perspective(glm::radians(45.0f), (float)SwapchainExtent.width / (float)SwapchainExtent.height, 0.1f, 1000.f);
@@ -115,6 +115,12 @@ int Renderer::InitRenderer(GLFWwindow* inWindow, Game* inGame, class Camera* inC
 
 void Renderer::Draw()
 {
+	if (shouldLoadNewLevel)
+	{
+		levelManager->LoadNewScene();
+		shouldLoadNewLevel = false;
+	}
+
 	// Wait for given fence to signal/open from last draw call before continuing
 	vkWaitForFences(Devices.LogicalDevice, 1, &DrawFences[CurrentFrame], VK_TRUE , std::numeric_limits<uint64_t>::max());
 	// Reset/close the fence again as we work on this new draw call.
@@ -177,6 +183,10 @@ void Renderer::DestroyRenderer()
 	ImGui::DestroyContext();
 	//  --- Destroy ImGui --- 
 
+	// --- Destroy GameObject Meshes ---
+	levelManager->DestroyGameMeshes();
+	// --- Destroy GameObject Meshes ---
+
 	vkDestroyDescriptorPool(Devices.LogicalDevice, samplerDescriptorPool, nullptr);
 	vkDestroyDescriptorSetLayout(Devices.LogicalDevice, samplerSetLayout, nullptr);
 	vkDestroySampler(Devices.LogicalDevice, textureSampler, nullptr);
@@ -201,8 +211,6 @@ void Renderer::DestroyRenderer()
 		//vkDestroyBuffer(Devices.LogicalDevice, modelDynamicUniformBuffers[i], nullptr);
 		//vkFreeMemory(Devices.LogicalDevice, modelDynamicUniformBufferMemory[i], nullptr);
 	}
-
-	SEGame->DestroyMeshes();
 
 	for (size_t i = 0; i < MAX_FRAME_DRAWS; i++)
 	{
@@ -1477,6 +1485,7 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 			// Bind descriptor sets
 			if (tempModel.GetMesh(j)->GetTextureID() >= 0)
 			{
+				// TODO: MEMORY LEAK -> When loading new level, make sure to remove old sampler descriptor set!!
 				std::array<VkDescriptorSet, 2> descriptorSetGroup = { descriptorSets[inImageIndex],
 					samplerDescriptorSets[tempModel.GetMesh(j)->GetTextureID()] };
 			
@@ -1515,11 +1524,7 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 			}
 			if (ImGui::MenuItem("Load Level"))
 			{
-				std::string filePath = OpenFileExplorer();
-				// the file path is returned such as C:\\name\\bleh.selvel
-				// all we are doing is replacing all those \\ with a normal /
-				std::replace(filePath.begin(), filePath.end(), '\\', '/');
-				levelManager->LoadLevel(filePath);
+				shouldLoadNewLevel = true;
 			}
 			ImGui::EndMenu();
 		}
@@ -1997,30 +2002,16 @@ void Renderer::DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMe
 	}
 }
 
-std::string Renderer::OpenFileExplorer()
+void Renderer::DestroyAllRendererTextures()
 {
-	OPENFILENAME ofn;       // Common dialog box structure
-	char szFile[260];       // Buffer for file name
-	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = nullptr; // Handle to owner window (nullptr for no specific window)
-	ofn.lpstrFile = szFile;
-	// Set initial filename to empty
-	ofn.lpstrFile[0] = '\0';
-	ofn.nMaxFile = sizeof(szFile);
-	// File type filter (show only .obj files)
-	ofn.lpstrFilter = "SmolderingEngine Level Files\0*.selevel\0All Files\0*.*\0";
-	ofn.nFilterIndex = 1;
-	ofn.lpstrFileTitle = nullptr;
-	ofn.nMaxFileTitle = 0;
-	ofn.lpstrInitialDir = nullptr;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+	// Wait until queues and all operations are done before cleaning up
+	vkDeviceWaitIdle(Devices.LogicalDevice);
 
-	// Display the Open dialog box
-	if (GetOpenFileName(&ofn) == TRUE)
+	// Destroy texture-related Vulkan objects for the current level
+	for (size_t i = 0; i < textureImages.size(); i++)
 	{
-		return std::string(ofn.lpstrFile); // Return the selected file path
+		vkDestroyImageView(Devices.LogicalDevice, textureImageViews[i], nullptr);
+		vkDestroyImage(Devices.LogicalDevice, textureImages[i], nullptr);
+		vkFreeMemory(Devices.LogicalDevice, textureImageMemory[i], nullptr);
 	}
-
-	return ""; // Return an empty string if no file is selected
 }

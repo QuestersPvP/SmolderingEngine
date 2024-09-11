@@ -43,6 +43,12 @@ public:
 	*/
 	void LoadLevel(std::string inLevelFilePath);
 
+	// TODO: make a class for this
+	std::string OpenFileExplorer();
+
+	// TODO: make private?
+	void DestroyGameMeshes();
+	void LoadNewScene();
 
 private:
 	/*
