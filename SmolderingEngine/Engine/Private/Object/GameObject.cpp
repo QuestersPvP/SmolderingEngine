@@ -38,6 +38,7 @@ void GameObject::ApplyLocalYRotation(float inAngle)
 void GameObject::SetModel(glm::mat4 inModel)
 {
 	objectModel.modelMatrix = inModel;
+	GetObjectData().objectMatrix = inModel;
 	//CalculateMeshAABB(initialVertexPositions);
 }
 

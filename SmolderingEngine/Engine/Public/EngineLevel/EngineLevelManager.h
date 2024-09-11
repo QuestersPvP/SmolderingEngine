@@ -3,20 +3,16 @@
 // Standard Library
 #include <string>
 #include <vector>
+#include <iostream>
+
 #include <fstream>
 #include <sstream>
-#include <iostream>
+#include <iomanip>  // Required for std::setprecision
+#include <limits>   // Required for std::numeric_limits
 
 // Third Party
 #include <vulkan/vulkan.h>
-
-struct ObjectData
-{
-	int objectID = -1;
-	int parentID = -1;
-	std::string objectPath;
-	std::string texturePath;
-};
+#include <glm/glm.hpp>
 
 class EngineLevelManager
 {
@@ -43,8 +39,15 @@ public:
 	*/
 	void LoadLevel(std::string inLevelFilePath);
 
+	/*
+	* Saves a level to wherever you specify
+	*/
+	void SaveLevel(std::string inFileName);
+
 	// TODO: make a class for this
+	std::string MakeRelativePath(const std::string& inPath);
 	std::string OpenFileExplorer();
+	std::string SaveFileExplorer();
 
 	// TODO: make private?
 	void DestroyGameMeshes();
@@ -55,5 +58,5 @@ private:
 	* Loads a MeshModel (e.g. holds multiple meshes to form one model)
 	* From the file path provided!
 	*/
-	void LoadMeshModel(ObjectData inObject);
+	void LoadMeshModel(struct ObjectData inObject);
 };

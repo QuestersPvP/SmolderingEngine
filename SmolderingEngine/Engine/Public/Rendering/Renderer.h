@@ -227,7 +227,7 @@ public:
 
 	// TODO: SCENEMANAGER SHOULD HANDLE THIS
 	void DestroyAllRendererTextures();
-
+	bool shouldSaveLevel = false;
 	bool shouldLoadNewLevel = false;
 };
 

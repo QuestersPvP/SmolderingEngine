@@ -38,6 +38,7 @@ void EngineLevelManager::LoadLevel(std::string inLevelFilePath)
 		if (line.empty()) continue;
 
 		ObjectData currentObject;
+		currentObject.objectMatrix = glm::mat4(1.0f);
 
 		if (line[0] == '@') // Determine what is being loaded
 		{
@@ -98,17 +99,10 @@ void EngineLevelManager::LoadLevel(std::string inLevelFilePath)
 			}
 			if (keyword == "texturePath")
 			{
-				// Load texture filename
 				while (std::getline(file, line))
 				{
 					if (line.empty())
 						continue;
-					else if (line[0] == '-')
-					{
-						// Create the mesh
-						LoadMeshModel(currentObject);
-						break;
-					}
 					else if (line[0] == '@')
 					{
 						keyword = line.substr(1);
@@ -119,14 +113,127 @@ void EngineLevelManager::LoadLevel(std::string inLevelFilePath)
 						line = line.substr(1); // Remove '~'
 						currentObject.texturePath = std::string(PROJECT_SOURCE_DIR) + line;
 					}
-					else
-						std::cout << "Strange line encountered while reading in file: " + line + "\n";
 				}
+			}
+			if (keyword == "objectMatrix")
+			{
+				int row = 0;
+				while (std::getline(file, line))
+				{
+					if (line.empty())
+						continue;
+					else if (line[0] == '-')
+					{
+						break;
+					}
+					else if (line[0] == '@')
+					{
+						keyword = line.substr(1);
+						break;
+					}
+					else if (line[0] == '~')
+					{
+						line = line.substr(1); // Remove '~'
+
+						std::stringstream ss(line);
+						std::string valueStr;
+						float values[4];
+
+						for (int col = 0; col < 4; ++col) 
+						{
+							std::getline(ss, valueStr, ',');
+							values[col] = std::stof(valueStr);
+						}
+
+						currentObject.objectMatrix[row] = glm::vec4(values[0], values[1], values[2], values[3]);
+						row++;
+					}
+				}
+			}
+
+			if (line[0] == '-')
+			{
+				// Create the mesh
+				LoadMeshModel(currentObject);
+				break;
+			}
+			else
+			{
+				std::cout << "Strange line encountered while reading in file: " + line + "\n";
 			}
 		}
 	}
 
 	file.close();
+}
+
+void EngineLevelManager::SaveLevel(std::string inFileName)
+{
+	std::ofstream outFile(inFileName);
+
+	if (!outFile.is_open()) 
+	{
+		std::cerr << "Error: Could not open the file for writing." << std::endl;
+		return;
+	}
+
+	for (GameObject* object : game->gameObjects)
+	{
+		ObjectData data = object->GetObjectData();
+
+		outFile << "-" << std::endl;
+		outFile << "@objectID" << std::endl;
+		outFile << "~" << data.objectID << std::endl;
+		outFile << "@parentID" << std::endl;
+		outFile << "~" << data.parentID << std::endl;
+		// For file paths we convert it to a relative file path before saving.
+		outFile << "@objectPath" << std::endl;
+		std::string objectPath = MakeRelativePath(data.objectPath);
+		outFile << "~" << objectPath << std::endl;
+		outFile << "@texturePath" << std::endl;
+		std::string texturePath = MakeRelativePath(data.texturePath);
+		outFile << "~" << texturePath << std::endl;
+		// Write the model matrix
+		outFile << "@objectMatrix" << std::endl;
+
+		outFile << std::setprecision(std::numeric_limits<float>::max_digits10);
+		for (int row = 0; row < 4; ++row) 
+		{
+			outFile << "~";
+			for (int col = 0; col < 4; ++col) 
+			{
+				outFile << data.objectMatrix[row][col];
+				if (col < 3) 
+				{
+					outFile << ",";
+				}
+			}
+			outFile << std::endl;
+		}
+
+		outFile << "-" << std::endl;
+	}
+
+	outFile.close();
+}
+
+std::string EngineLevelManager::MakeRelativePath(const std::string& inPath)
+{
+	// TODO: The name of the folder could change, we should account for that at some point.
+	// Define the base folder that marks the start of your relative path
+	const std::string baseFolder = "SmolderingEngine";
+
+	// Find the position of "SmolderingEngine" in the full path
+	size_t position = inPath.find(baseFolder);
+	position += baseFolder.size();
+
+	// If "SmolderingEngine" is found, strip everything before it
+	if (position != std::string::npos) 
+	{
+		return inPath.substr(position);
+	}
+
+	return inPath;
 }
 
 std::string EngineLevelManager::OpenFileExplorer()
@@ -152,6 +259,40 @@ std::string EngineLevelManager::OpenFileExplorer()
 	if (GetOpenFileName(&ofn) == TRUE)
 	{
 		return std::string(ofn.lpstrFile); // Return the selected file path
+	}
+
+	return ""; // Return an empty string if no file is selected
+}
+
+std::string EngineLevelManager::SaveFileExplorer()
+{
+	OPENFILENAME ofn;       // Common dialog box structure
+	char szFile[260];       // Buffer for file name
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = nullptr; // Handle to owner window (nullptr for no specific window)
+	ofn.lpstrFile = szFile;
+	// Set initial filename to empty
+	ofn.lpstrFile[0] = '\0';
+	ofn.nMaxFile = sizeof(szFile);
+	// File type filter (show only .selevel files)
+	ofn.lpstrFilter = "SmolderingEngine Level Files\0*.selevel\0All Files\0*.*\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = nullptr;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = nullptr;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_OVERWRITEPROMPT; // Overwrite prompt flag for existing files
+
+	// Display the Save dialog box
+	if (GetSaveFileName(&ofn) == TRUE)
+	{
+		// Append the ".selevel" extension if not already provided
+		std::string filePath(ofn.lpstrFile);
+		if (filePath.find(".selevel") == std::string::npos)
+		{
+			filePath += ".selevel";  // Add the file extension if not present
+		}
+		return filePath;  // Return the selected file path
 	}
 
 	return ""; // Return an empty string if no file is selected
@@ -234,8 +375,10 @@ void EngineLevelManager::LoadMeshModel(ObjectData inObject)
 	MeshModel meshModel = MeshModel(modelMeshes);
 	GameObject* object = new GameObject();
 	object->objectMeshModel = meshModel;
-	object->SetUseTexture(1);
+	object->SetObjectData(inObject);
+	object->SetUseTexture(1); // TODO: fix this up
 	object->SetObjectID(0);
 	object->SetObjectParentID(-1);
+	object->SetModel(inObject.objectMatrix);
 	game->gameObjects.push_back(object);
 }

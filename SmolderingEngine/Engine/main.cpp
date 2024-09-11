@@ -61,13 +61,17 @@ int main()
 	seRenderer->SetEngineLevelManager(seEngineLevel); // will remove this soon
 	seEngineLevel->LoadLevel(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Levels/newLevel.selevel");
 
-	// --- TEMP ROTATION ETC. UNTIL WE ADD MORE FUNCTIONALITY TO FILE LOAD/SAVER ---
+	//// --- TEMP ROTATION ETC. UNTIL WE ADD MORE FUNCTIONALITY TO FILE LOAD/SAVER ---
 	// model was rotated strange - this is just to fix that for now.
 	glm::mat4 modelMatrix = glm::mat4(1.0f);
 	modelMatrix = glm::rotate(modelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	modelMatrix = glm::rotate(modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	seGame->gameObjects[0]->SetModel(modelMatrix);
-	// --- TEMP ROTATION ETC. UNTIL WE ADD MORE FUNCTIONALITY TO FILE LOAD/SAVER ---
+
+
+	//ObjectData temp = seGame->gameObjects[0]->GetObjectData();
+	//temp.objectMatrix = modelMatrix;
+	//// --- TEMP ROTATION ETC. UNTIL WE ADD MORE FUNCTIONALITY TO FILE LOAD/SAVER ---
 
 	// -------- imGui ------------
 	ImGui::CreateContext();

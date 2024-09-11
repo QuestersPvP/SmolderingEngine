@@ -120,6 +120,16 @@ void Renderer::Draw()
 		levelManager->LoadNewScene();
 		shouldLoadNewLevel = false;
 	}
+	if (shouldSaveLevel)
+	{
+		// get where they want to save and replace all the \\ with / so it works in file explorer
+		std::string fileName = levelManager->SaveFileExplorer();
+		std::replace(fileName.begin(), fileName.end(), '\\', '/');
+
+
+		levelManager->SaveLevel(fileName);
+		shouldSaveLevel = false;
+	}
 
 	// Wait for given fence to signal/open from last draw call before continuing
 	vkWaitForFences(Devices.LogicalDevice, 1, &DrawFences[CurrentFrame], VK_TRUE , std::numeric_limits<uint64_t>::max());
@@ -1520,7 +1530,7 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 		{
 			if (ImGui::MenuItem("Save Level"))
 			{
-				// TODO: SAVE LOGIC
+				shouldSaveLevel = true;
 			}
 			if (ImGui::MenuItem("Load Level"))
 			{

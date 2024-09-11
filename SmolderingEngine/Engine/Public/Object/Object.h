@@ -11,6 +11,15 @@
 // Engine includes
 #include "Engine/Public/Rendering/Utilities.h"
 
+struct ObjectData
+{
+	int objectID = -1;
+	int parentID = -1;
+	std::string objectPath;
+	std::string texturePath;
+	glm::mat4 objectMatrix;
+};
+
 class Object
 {
 	/*
@@ -18,10 +27,10 @@ class Object
 	* The object class holds the backend for things such as:
 	* - Parent/Child relationships
 	* - Update functions
-	* 
-	* Object class does NOT support:
 	* - Location
 	* - Rotation/Transform
+	* 
+	* Object class does NOT support:
 	* - Rendering (e.g. no mesh etc.)
 	* - Collision
 	* - etc.
@@ -33,9 +42,7 @@ class Object
 	*/
 
 	/* Variables */
-
 public:
-	//glm::mat4 transform = glm::mat4(1.0f);
 
 protected:
 	std::vector<Object*> childObjects;
@@ -43,6 +50,9 @@ protected:
 private:
 	int objectID;
 	int parentObjectID;
+
+	// TODO: WORK ON OBJECT CLASS MORE
+	ObjectData objectData;
 
 	/* Functions */
 
@@ -53,6 +63,10 @@ public:
 	std::vector<Object*> GetChildObjects();
 	bool HasChildObjects();
 
+	ObjectData GetObjectData() { return objectData; };
+	void SetObjectData(ObjectData inData) { objectData = inData; };
+
+	//---
 	void SetObjectID(int inObjectID); // TODO: REMOVE THIS
 	const int GetObjectID();
 	void SetObjectParentID(int inParentObjectID);
