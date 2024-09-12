@@ -193,20 +193,19 @@ void EngineLevelManager::SaveLevel(std::string inFileName)
 		outFile << "@texturePath" << std::endl;
 		std::string texturePath = MakeRelativePath(data.texturePath);
 		outFile << "~" << texturePath << std::endl;
+		
 		// Write the model matrix
 		outFile << "@objectMatrix" << std::endl;
+		outFile << std::fixed << std::setprecision(8);
 
-		outFile << std::setprecision(std::numeric_limits<float>::max_digits10);
 		for (int row = 0; row < 4; ++row) 
 		{
-			outFile << "~";
+			outFile << "~"; 
 			for (int col = 0; col < 4; ++col) 
 			{
-				outFile << data.objectMatrix[row][col];
-				if (col < 3) 
-				{
-					outFile << ",";
-				}
+				outFile << object->GetModel().modelMatrix[row][col];
+				if (col < 3)
+					outFile << ",";  // Add a comma between elements (but not after the last one)
 			}
 			outFile << std::endl;
 		}

@@ -1,5 +1,7 @@
 #include "Engine/Public/Object/GameObject.h"
 
+#include <iostream>
+
 GameObject::GameObject()
 {
 	objectModel.modelMatrix = glm::mat4(1.0f);
@@ -39,7 +41,6 @@ void GameObject::SetModel(glm::mat4 inModel)
 {
 	objectModel.modelMatrix = inModel;
 	GetObjectData().objectMatrix = inModel;
-	//CalculateMeshAABB(initialVertexPositions);
 }
 
 Model GameObject::GetModel()
