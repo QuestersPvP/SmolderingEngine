@@ -37,7 +37,7 @@ Camera* seCamera;
 InputManager* seInput;
 EngineLevelManager* seEngineLevel;
 
-GLFWwindow* seWindow;
+//GLFWwindow* seWindow;
 
 int main()
 {
@@ -49,7 +49,6 @@ int main()
 
 	// Setup the window
 	seInput->InitWindow("Smoldering Engine", 1280, 720);
-	seInput->initializeKeyStates();
 
 	// Setup the renderer
 	if (seRenderer->InitRenderer(seInput->window, seGame, seCamera) == EXIT_FAILURE)
@@ -76,13 +75,29 @@ int main()
 
 	while (!glfwWindowShouldClose(seInput->window))
 	{
-		//process da inputs 30 times per second please 
-		seInput->processInput(updateInterval.count(), seCamera);
-
 		// Check for window inputs
 		glfwPollEvents();
-		// Draw all objects
-		seRenderer->Draw();
+
+		// Ensure the window is not minimized
+		if (glfwGetWindowAttrib(seInput->window, GLFW_ICONIFIED) == GLFW_FALSE)
+		{
+			// Handle window resizing
+			int width, height;
+			glfwGetFramebufferSize(seInput->window, &width, &height);
+			if (seInput->windowWidth != width || seInput->windowHeight != height)
+			{
+				seRenderer->ResizeRenderer(width, height);
+				seInput->windowWidth = width;
+				seInput->windowHeight = height;
+			}
+
+
+			//process da inputs 30 times per second please 
+			seInput->processInput(updateInterval.count(), seCamera);
+
+			// Draw all objects
+			seRenderer->Draw();
+		}
 		
 		// Sleep to prevent busy waiting
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));

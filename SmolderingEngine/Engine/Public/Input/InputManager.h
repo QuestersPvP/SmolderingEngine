@@ -43,15 +43,23 @@ public:
 
     bool mouseModeChanged = false;
 
+    int windowWidth;
+    int windowHeight;
+
     /* Functions */
 public:
     InputManager();
 
     void InitWindow(const std::string& inWindowName = "Smoldering Engine", int inWidth = 1280, int inHeight = 720);
-    void initializeKeyStates();
+    void InitKeyStates();
+    //void InitRendererCallback(class Renderer* inRenderer);
+
     void processInput(float inDeltaTime, class Camera* inCamera);
 
 private:
     static void KeyCallback(GLFWwindow* inWindow, int inKey, int inScancode, int inAction, int inMods);
     static void MouseCallback(GLFWwindow* inWindow, double inXPos, double inYPos);
+    
+    // Handle resizing of the window
+    //static void WindowResizeCallback(GLFWwindow* inWindow, int inWidth, int inHeight);
 };

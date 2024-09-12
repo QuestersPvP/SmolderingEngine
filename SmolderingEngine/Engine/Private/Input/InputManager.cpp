@@ -1,17 +1,21 @@
 #include "Engine/Public/Input/InputManager.h"
 
+#include "Engine/Public/Rendering/Renderer.h"
+
 InputManager::InputManager() : window(nullptr) 
 {
-    initializeKeyStates();
+    InitKeyStates();
 }
 
-void InputManager::InitWindow(const std::string& inWindowName, int inWidth, int inHeight) 
+void InputManager::InitWindow(const std::string& inWindowName, int inWidth, int inHeight)
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     window = glfwCreateWindow(inWidth, inHeight, inWindowName.c_str(), nullptr, nullptr);
+    windowWidth = inWidth;
+    windowHeight = inHeight;
 
     // Initialize the mouse position to center of screen
     lastMouseX = inWidth / 2.f;
@@ -19,14 +23,16 @@ void InputManager::InitWindow(const std::string& inWindowName, int inWidth, int 
 
     if (window) 
     {
-        glfwSetWindowUserPointer(window, this);
+        glfwSetWindowUserPointer(window, this);        
+        
+        // Input Handling
         glfwSetKeyCallback(window, KeyCallback);
         glfwSetCursorPosCallback(window, MouseCallback);
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Capture the mouse cursor
     }
 }
 
-void InputManager::initializeKeyStates() 
+void InputManager::InitKeyStates() 
 {
     // --- ENGINE KEYBINDS ---
     keyStates[GLFW_KEY_ESCAPE] = false;
@@ -37,6 +43,14 @@ void InputManager::initializeKeyStates()
     keyStates[GLFW_KEY_A] = false;
     keyStates[GLFW_KEY_D] = false;
 }
+
+//void InputManager::InitRendererCallback(Renderer* inRenderer)
+//{
+//    // Set the user pointer to the Renderer instance
+//    glfwSetWindowUserPointer(window, inRenderer);
+//    // Called when window is resized
+//    glfwSetFramebufferSizeCallback(window, WindowResizeCallback);
+//}
 
 void InputManager::KeyCallback(GLFWwindow* inWindow, int inKey, int inScancode, int inAction, int inMods)
 {
@@ -67,6 +81,19 @@ void InputManager::MouseCallback(GLFWwindow* inWindow, double inXPos, double inY
         inputManager->currentMouseY = inYPos;
     }
 }
+
+//void InputManager::WindowResizeCallback(GLFWwindow* inWindow, int inWidth, int inHeight)
+//{
+//    InputManager* inputManager = static_cast<InputManager*>(glfwGetWindowUserPointer(inWindow));
+//    Renderer* seRenderer = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(inWindow));
+//
+//    if (seRenderer && inputManager)
+//    {
+//        inputManager->resizingWindow = true;
+//        seRenderer->ResizeRenderer(inWidth, inHeight);
+//        inputManager->resizingWindow = false;
+//    }
+//}
 
 void InputManager::processInput(float inDeltaTime, class Camera* inCamera)
 {

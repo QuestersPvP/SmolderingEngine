@@ -1980,6 +1980,38 @@ void Renderer::ImGuiResultCheck(VkResult inError)
 	}
 }
 
+void Renderer::ResizeRenderer(int inWidth, int inHeight)
+{
+	// Wait for commands to finish
+	vkDeviceWaitIdle(Devices.LogicalDevice);
+
+	// Destroy Depth Buffer stuff
+	vkDestroyImageView(Devices.LogicalDevice, depthBufferImageView, nullptr);
+	vkDestroyImage(Devices.LogicalDevice, depthBufferImage, nullptr);
+	vkFreeMemory(Devices.LogicalDevice, depthBufferImageMemory, nullptr);
+	// Destroy Frame Buffers
+	for (auto framebuffer : SwapchainFramebuffers)
+		vkDestroyFramebuffer(Devices.LogicalDevice, framebuffer, nullptr);
+	// Destroy the Graphics Pipeline
+	vkDestroyPipeline(Devices.LogicalDevice, GraphicsPipeline, nullptr);
+	vkDestroyPipelineLayout(Devices.LogicalDevice, PipelineLayout, nullptr);
+	// Destroy the Swapchain Images
+	for (auto image : SwapchainImages)
+		vkDestroyImageView(Devices.LogicalDevice, image.imageView, nullptr);
+	// Destroy the Swapchain
+	vkDestroySwapchainKHR(Devices.LogicalDevice, Swapchain, nullptr);
+
+	// Clear vectors that are now holding nullptrs
+	SwapchainImages.clear();
+	SwapchainFramebuffers.clear();
+
+	// re-create them all
+	CreateSwapChain();
+	CreateGraphicsPipeline();
+	CreateDepthBufferImage();
+	CreateFramebuffers();
+}
+
 VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 {
 	if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)

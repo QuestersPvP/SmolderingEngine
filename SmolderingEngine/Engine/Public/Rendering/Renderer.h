@@ -203,6 +203,9 @@ public:
 	bool InitImGuiForVulkan();
 	void ImGuiResultCheck(VkResult inError);
 
+	// Re-creates window based off of new window size
+	void ResizeRenderer(int inWidth, int inHeight);
+
 	/*
 	https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Validation_layers
 	The first parameter specifies the severity of the message, which is one of the following flags:
