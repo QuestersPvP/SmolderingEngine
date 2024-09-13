@@ -1515,6 +1515,8 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 	// you can draw more stuff here also
 
 	// --- ImGui rendering ---
+	// TODO: ADD IMGUI RENDERING TO AN ENGINE GUI CLASS
+	
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -1541,8 +1543,32 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 		ImGui::EndMainMenuBar();
 	}
 
-	ImGui::Begin("Hello, world!");
-	ImGui::Text("This is some text rendered by ImGui.");
+
+	ImGui::Begin("Edit Object", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+	// Input field for the object ID
+	ImGui::Text("Object ID");
+	ImGui::InputInt("ID", &currentSelectedModelID);
+
+	if (currentSelectedModelID < SEGame->gameObjects.size())
+	{
+		glm::mat4 modelMat = SEGame->gameObjects[currentSelectedModelID]->GetModel().modelMatrix;
+
+		float position[3] = { modelMat[3].x, modelMat[3].y, modelMat[3].z };
+		// Input fields for the position
+		ImGui::Text("Object Position");
+		ImGui::InputFloat3("##Position", position);
+
+		if (modelMat[3].x != position[0] || modelMat[3].y != position[1] || modelMat[3].z != position[2])
+		{
+			modelMat[3].x = position[0];
+			modelMat[3].y = position[1];
+			modelMat[3].z = position[2];
+
+			SEGame->gameObjects[currentSelectedModelID]->SetModel(modelMat);
+		}
+	}
+
 	ImGui::End();
 
 	// Render ImGui's draw data into the command buffer
@@ -2056,4 +2082,8 @@ void Renderer::DestroyAllRendererTextures()
 		vkDestroyImage(Devices.LogicalDevice, textureImages[i], nullptr);
 		vkFreeMemory(Devices.LogicalDevice, textureImageMemory[i], nullptr);
 	}
+
+	textureImageViews.clear();
+	textureImages.clear();
+	textureImageMemory.clear();
 }

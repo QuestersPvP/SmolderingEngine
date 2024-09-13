@@ -46,6 +46,8 @@ public:
 	// Scene (TODO: MOVE)
 	//UniformBufferObjectViewProjection uboViewProjection;
 	void UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix, float inRotation);
+	// TODO: ENGINE GUI CLASS
+	int currentSelectedModelID = 0;
 
 private:
 	GLFWwindow* Window;

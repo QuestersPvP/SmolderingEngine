@@ -305,12 +305,11 @@ void EngineLevelManager::DestroyGameMeshes()
 	for (int i = game->gameObjects.size() - 1; i >= 0; i--)
 	{
 		MeshModel tempModel = game->gameObjects[i]->objectMeshModel;
-
 		tempModel.DestroyMeshModel();
-
 		delete game->gameObjects[i];
-		game->gameObjects.pop_back();
 	}
+
+	game->gameObjects.clear();
 }
 
 void EngineLevelManager::LoadNewScene()

@@ -91,7 +91,6 @@ int main()
 				seInput->windowHeight = height;
 			}
 
-
 			//process da inputs 30 times per second please 
 			seInput->processInput(updateInterval.count(), seCamera);
 
