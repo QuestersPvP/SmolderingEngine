@@ -70,3 +70,9 @@ target_include_directories(SmolderingEngine PRIVATE 	${GLFW_INCLUDE_DIR}
 target_link_libraries(SmolderingEngine 			${GLFW_LIBRARY}
 							${Vulkan_LIBRARIES}
 							${ASSIMP_LIBRARY})
+
+#Add assimp-vc143-mt.dll to build folder 
+add_custom_command(TARGET SmolderingEngine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/ASSIMP/assimp-vc143-mt.dll"
+    $<TARGET_FILE_DIR:SmolderingEngine>)
