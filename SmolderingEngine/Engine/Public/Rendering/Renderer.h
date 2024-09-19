@@ -134,7 +134,7 @@ public:
 	~Renderer();
 
 	int InitRenderer(GLFWwindow* inWindow, Game* inGame, class Camera* inCamera);
-	void Draw();
+	void Draw(class SkyboxRenderer* _skybox);
 	void DestroyRenderer();
 
 	// Vulkan functions
@@ -158,9 +158,8 @@ public:
 	//void AllocateDynamicBufferTransferSpace();
 
 	VkImageView CreateImageView(VkImage InImage, VkFormat InFormat, VkImageAspectFlags InAspectFlags);
-	VkShaderModule CreateShaderModule(const std::vector<char>& InCode);
 
-	void RecordCommands(uint32_t inImageIndex);
+	void RecordCommands(class SkyboxRenderer* _skybox, uint32_t inImageIndex);
 	void UpdateUniformBuffers(uint32_t inImageIndex);
 
 	// Not allocating memory, no need to delete.
@@ -185,17 +184,21 @@ public:
 	VkPhysicalDevice GetPhysicalDevice() { return Devices.PhysicalDevice; };
 	VkQueue GetGraphicsQueue() { return GraphicsQueue; };
 	VkCommandPool GetGraphicsCommandPool() { return GraphicsCommandPool; };
+	VkRenderPass GetRenderPass() { return RenderPass; };
+	std::vector<VkFramebuffer> GetSwapchainFramebuffers() { return SwapchainFramebuffers; };
+
 	QueueFamilyIndicies GetQueueFamilies(VkPhysicalDevice InPhysicalDevice);
 	SwapchainDetails GetSwapchainDetails(VkPhysicalDevice InPhysicalDevice);
 
 	void SetEngineLevelManager(class EngineLevelManager* inLevel) { levelManager = inLevel; };
 
-	// TEXTURE
+	// --- TEXTURE ---
 	void CreateTextureSampler();
 	int CreateTextureImage(std::string inFileName);
 	int CreateTexture(std::string inFileName);
 	int CreateTextureDescriptor(VkImageView inTextureImage);
 	stbi_uc* LoadTextureFile(std::string inFileName, int* inWidth, int* inHeight, VkDeviceSize* inImageSize);
+	// --- TEXTURE ---
 
 	// Validation Layer Callback Functions
 	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& CreateInfo);

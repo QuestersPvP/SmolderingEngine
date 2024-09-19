@@ -9,7 +9,7 @@
 
 const int MAX_FRAME_DRAWS = 2;
 const int MAX_OBJECTS = 256;
-const bool ENABLE_VULKAN_DEBUG_VALIDATION_LAYERS = false;
+const bool ENABLE_VULKAN_DEBUG_VALIDATION_LAYERS = true;
 
 const std::vector<const char*> deviceExtensions =
 {
@@ -239,7 +239,7 @@ static void CopyImageBuffer(VkDevice inLogicalDevice, VkQueue inTransferQueue, V
 	EndAndSubmitCommandBuffer(inLogicalDevice, inTransferCommandPool, inTransferQueue, transferCommandBuffer);
 }
 
-static void TransitionImageLayout(VkDevice inLogicalDevice, VkQueue inQueue, VkCommandPool inCommandPool, VkImage inImage, VkImageLayout inOldLayout, VkImageLayout inNewLayout)
+static void TransitionImageLayout(VkDevice inLogicalDevice, VkQueue inQueue, VkCommandPool inCommandPool, VkImage inImage, VkImageLayout inOldLayout, VkImageLayout inNewLayout, uint32_t _layerCount)
 {
 	// Create buffer
 	VkCommandBuffer commandBuffer = BeginCommandBuffer(inLogicalDevice, inCommandPool);
@@ -255,7 +255,7 @@ static void TransitionImageLayout(VkDevice inLogicalDevice, VkQueue inQueue, VkC
 	imageMemoryBarrier.subresourceRange.baseMipLevel = 0;						// First mip level to start alterations on
 	imageMemoryBarrier.subresourceRange.levelCount = 1;							// Number of mip levels to alter starting from baseMipLevel
 	imageMemoryBarrier.subresourceRange.baseArrayLayer = 0;						// First layer to start alterations on
-	imageMemoryBarrier.subresourceRange.layerCount = 1;							// Number of layers to alter starting from baseArrayLayer
+	imageMemoryBarrier.subresourceRange.layerCount = _layerCount;				// Number of layers to alter starting from baseArrayLayer
 
 	VkPipelineStageFlags srcStage;
 	VkPipelineStageFlags dstStage;
@@ -289,4 +289,20 @@ static void TransitionImageLayout(VkDevice inLogicalDevice, VkQueue inQueue, VkC
 	);
 
 	EndAndSubmitCommandBuffer(inLogicalDevice, inCommandPool, inQueue, commandBuffer);
+}
+
+static 	VkShaderModule CreateShaderModule(VkDevice _logicalDevice, const std::vector<char>& _code)
+{
+	VkShaderModuleCreateInfo ShaderModuleCreateInfo = {};
+	ShaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	ShaderModuleCreateInfo.codeSize = _code.size();
+	ShaderModuleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(_code.data());
+
+	VkShaderModule ShaderModule;
+	VkResult Result = vkCreateShaderModule(_logicalDevice, &ShaderModuleCreateInfo, nullptr, &ShaderModule);
+
+	if (Result != VK_SUCCESS)
+		throw std::runtime_error("Failed to create shader module!");
+
+	return ShaderModule;
 }

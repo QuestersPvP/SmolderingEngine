@@ -1,6 +1,8 @@
 #include "Engine/Public/Rendering/Renderer.h"
 
 // Project Includes
+#include "Engine/Public/Rendering/SkyboxRenderer.h"
+
 #include "Engine/Public/Camera/Camera.h"
 #include "Engine/Public/EngineLevel/EngineLevelManager.h"
 
@@ -113,7 +115,7 @@ int Renderer::InitRenderer(GLFWwindow* inWindow, Game* inGame, class Camera* inC
 	return EXIT_SUCCESS;
 }
 
-void Renderer::Draw()
+void Renderer::Draw(class SkyboxRenderer* _skybox)
 {
 	if (shouldLoadNewLevel)
 	{
@@ -142,8 +144,12 @@ void Renderer::Draw()
 	if (Result != VK_SUCCESS)
 		throw std::runtime_error("Failed to acquire next image!");
 
-	RecordCommands(ImageIndex);
 	UpdateUniformBuffers(ImageIndex);
+	_skybox->UpdateUniformBuffer(seCamera);
+	
+	RecordCommands(_skybox, ImageIndex);
+
+
 
 	// Submit the command buffer we want to render
 	VkSubmitInfo SubmitInfo = {};
@@ -674,39 +680,29 @@ void Renderer::CreateGraphicsPipeline()
 {
 #pragma region Shader Stage Creation
 	// Read in SPIR-V code
-	std::vector<char> VertexShaderCode = ReadFile(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Engine/Shaders/vert.spv");
-	std::vector<char> FragmentShaderCode = ReadFile(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Engine/Shaders/frag.spv");
+	std::vector<char> vertexShaderCode = ReadFile(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Engine/Shaders/Compiled/Shader.vert.spv");
+	std::vector<char> fragmentShaderCode = ReadFile(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Engine/Shaders/Compiled/Shader.frag.spv");
 
 	// Convert the SPIR-V code into shader modules
-	VkShaderModule VertexShaderModule = CreateShaderModule(VertexShaderCode);
-	VkShaderModule FragmentShaderModule = CreateShaderModule(FragmentShaderCode);
+	VkShaderModule VertexShaderModule = CreateShaderModule(Devices.LogicalDevice, vertexShaderCode);
+	VkShaderModule FragmentShaderModule = CreateShaderModule(Devices.LogicalDevice, fragmentShaderCode);
 
-	/*
-	VkStructureType                     sType;
-	const void*                         pNext;
-	VkPipelineShaderStageCreateFlags    flags;
-	VkShaderStageFlagBits               stage;
-	VkShaderModule                      module;
-	const char*                         pName;
-	const VkSpecializationInfo*         pSpecializationInfo;
-	*/
-	VkPipelineShaderStageCreateInfo VertexShaderStageCreateInfo = {};
-	VertexShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	VertexShaderStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	VertexShaderStageCreateInfo.module = VertexShaderModule;
-	VertexShaderStageCreateInfo.pName = "main"; // run the "main" function in the shader	
+	VkPipelineShaderStageCreateInfo vertexShaderStageCreateInfo = {};
+	vertexShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	vertexShaderStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+	vertexShaderStageCreateInfo.module = VertexShaderModule;
+	vertexShaderStageCreateInfo.pName = "main"; // run the "main" function in the shader	
 
-	VkPipelineShaderStageCreateInfo FragmentShaderStageCreateInfo = {};
-	FragmentShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	FragmentShaderStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	FragmentShaderStageCreateInfo.module = FragmentShaderModule;
-	FragmentShaderStageCreateInfo.pName = "main"; // run the "main" function in the shader
+	VkPipelineShaderStageCreateInfo fragmentShaderStageCreateInfo = {};
+	fragmentShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	fragmentShaderStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fragmentShaderStageCreateInfo.module = FragmentShaderModule;
+	fragmentShaderStageCreateInfo.pName = "main"; // run the "main" function in the shader
 
-	VkPipelineShaderStageCreateInfo ShaderStages[] = { VertexShaderStageCreateInfo, FragmentShaderStageCreateInfo };
+	VkPipelineShaderStageCreateInfo ShaderStages[] = { vertexShaderStageCreateInfo, fragmentShaderStageCreateInfo };
 #pragma endregion
 
 #pragma region Vertex Input
-
 	// How the data for a single vertex is as a whole (position, color, texture coords, normals, etc.)
 	VkVertexInputBindingDescription VertexBindingDescription = {};
 	VertexBindingDescription.binding = 0;								// Can bind multiple streams of data
@@ -736,65 +732,40 @@ void Renderer::CreateGraphicsPipeline()
 	AttributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
 	AttributeDescriptions[2].offset = offsetof(Vertex, texture);
 
-	/*
-	VkStructureType                             sType;
-	const void*                                 pNext;
-	VkPipelineVertexInputStateCreateFlags       flags;
-	uint32_t                                    vertexBindingDescriptionCount;
-	const VkVertexInputBindingDescription*      pVertexBindingDescriptions;
-	uint32_t                                    vertexAttributeDescriptionCount;
-	const VkVertexInputAttributeDescription*    pVertexAttributeDescriptions;
-	*/
 	VkPipelineVertexInputStateCreateInfo VertexInputCreateInfo = {};
 	VertexInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	VertexInputCreateInfo.vertexBindingDescriptionCount = 1;
 	VertexInputCreateInfo.pVertexBindingDescriptions = &VertexBindingDescription;		// List of vertex binding descriptions (data spacing and stride info)
 	VertexInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(AttributeDescriptions.size());
-	VertexInputCreateInfo.pVertexAttributeDescriptions = AttributeDescriptions.data();	// List of vertex attribute descriptions (data format and where to bind to/from)  
+	VertexInputCreateInfo.pVertexAttributeDescriptions = AttributeDescriptions.data();	// List of vertex attribute descriptions (data format and where to bind to/from)
 #pragma endregion
 
 #pragma region Input Assembly
-	/*
-	VkStructureType                            sType;
-	const void*                                pNext;
-	VkPipelineInputAssemblyStateCreateFlags    flags;
-	VkPrimitiveTopology                        topology;
-	VkBool32                                   primitiveRestartEnable;
-	*/
-	VkPipelineInputAssemblyStateCreateInfo InputAssembly = {};
-	InputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	InputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-	InputAssembly.primitiveRestartEnable = VK_FALSE;
+	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
+	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	inputAssembly.primitiveRestartEnable = VK_FALSE;	
 #pragma endregion
 
 #pragma region Viewport and Scissor
-	VkViewport Viewport = {};
-	Viewport.x = 0.0f;
-	Viewport.y = 0.0f;
-	Viewport.width = (float)SwapchainExtent.width;
-	Viewport.height = (float)SwapchainExtent.height;
-	Viewport.minDepth = 0.0f;
-	Viewport.maxDepth = 1.0f;
+	VkViewport viewport = {};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = (float)SwapchainExtent.width;
+	viewport.height = (float)SwapchainExtent.height;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
 
-	VkRect2D Scissor = {};
-	Scissor.offset = { 0,0 };
-	Scissor.extent = SwapchainExtent;
+	VkRect2D scissor = {};
+	scissor.offset = { 0,0 };
+	scissor.extent = SwapchainExtent;
 
-	/*
-	VkStructureType                       sType;
-	const void*                           pNext;
-	VkPipelineViewportStateCreateFlags    flags;
-	uint32_t                              viewportCount;
-	const VkViewport*                     pViewports;
-	uint32_t                              scissorCount;
-	const VkRect2D*                       pScissors;
-	*/
-	VkPipelineViewportStateCreateInfo ViewportStateCreateInfo = {};
-	ViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	ViewportStateCreateInfo.viewportCount = 1;
-	ViewportStateCreateInfo.pViewports = &Viewport;
-	ViewportStateCreateInfo.scissorCount = 1;
-	ViewportStateCreateInfo.pScissors = &Scissor;
+	VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {};
+	viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	viewportStateCreateInfo.viewportCount = 1;
+	viewportStateCreateInfo.pViewports = &viewport;
+	viewportStateCreateInfo.scissorCount = 1;
+	viewportStateCreateInfo.pScissors = &scissor;
 #pragma endregion
 
 	//// TODO: Dynamic States
@@ -808,61 +779,26 @@ void Renderer::CreateGraphicsPipeline()
 	//DynamicStateCreateInfo.pDynamicStates = EnabledDynamicStates.data();
 
 #pragma region Rasterization Creation
-					/*
-	VkStructureType                            sType;
-	const void*                                pNext;
-	VkPipelineRasterizationStateCreateFlags    flags;
-	VkBool32                                   depthClampEnable;
-	VkBool32                                   rasterizerDiscardEnable;
-	VkPolygonMode                              polygonMode;
-	VkCullModeFlags                            cullMode;
-	VkFrontFace                                frontFace;
-	VkBool32                                   depthBiasEnable;
-	float                                      depthBiasConstantFactor;
-	float                                      depthBiasClamp;
-	float                                      depthBiasSlopeFactor;
-	float                                      lineWidth;
-	*/
-	VkPipelineRasterizationStateCreateInfo RasterizationCreateInfo = {};
-	RasterizationCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	RasterizationCreateInfo.depthClampEnable = VK_FALSE;					// Requires DepthClamp = true on device features. in order to enable
-	RasterizationCreateInfo.rasterizerDiscardEnable = VK_FALSE;				// Wether to discard data and skip rasterizer. Never creates fragments, only suitable for pipeline without framebuffer ouput
-	RasterizationCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;				// When a polygon is drawn, what do we do (e.g. we want if colored)
-	RasterizationCreateInfo.lineWidth = 1.0f;								// How thick lines should be when drawn (if we want VK_POLYGON_MODE_LINE above)
-	RasterizationCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;				// Do not draw back side of triangles.
-	RasterizationCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;	// Basically helps figure out what the backside of the triangle is.
-	RasterizationCreateInfo.depthBiasClamp = VK_FALSE;						// If we should add depth bias to fragments (good for stopping "shadow acne")
+
+	VkPipelineRasterizationStateCreateInfo rasterizationCreateInfo = {};
+	rasterizationCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterizationCreateInfo.depthClampEnable = VK_FALSE;					// Requires DepthClamp = true on device features. in order to enable
+	rasterizationCreateInfo.rasterizerDiscardEnable = VK_FALSE;				// Wether to discard data and skip rasterizer. Never creates fragments, only suitable for pipeline without framebuffer ouput
+	rasterizationCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;				// When a polygon is drawn, what do we do (e.g. we want if colored)
+	rasterizationCreateInfo.lineWidth = 1.0f;								// How thick lines should be when drawn (if we want VK_POLYGON_MODE_LINE above)
+	rasterizationCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;				// Do not draw back side of triangles.
+	rasterizationCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;	// Basically helps figure out what the backside of the triangle is.
+	rasterizationCreateInfo.depthBiasClamp = VK_FALSE;						// If we should add depth bias to fragments (good for stopping "shadow acne")
 #pragma endregion
 
 #pragma region Multisampling
-	/*
-	VkStructureType                          sType;
-    const void*                              pNext;
-    VkPipelineMultisampleStateCreateFlags    flags;
-    VkSampleCountFlagBits                    rasterizationSamples;
-    VkBool32                                 sampleShadingEnable;
-    float                                    minSampleShading;
-    const VkSampleMask*                      pSampleMask;
-    VkBool32                                 alphaToCoverageEnable;
-    VkBool32                                 alphaToOneEnable;
-	*/
-	VkPipelineMultisampleStateCreateInfo MultisampleCreateInfo = {};
-	MultisampleCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	MultisampleCreateInfo.sampleShadingEnable = VK_FALSE;
-	MultisampleCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;	// number of samples to use per fragment  
+	VkPipelineMultisampleStateCreateInfo multisampleCreateInfo = {};
+	multisampleCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisampleCreateInfo.sampleShadingEnable = VK_FALSE;
+	multisampleCreateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;	// number of samples to use per fragment  
 #pragma endregion
 
 #pragma region Color Blending
-	/*
-	VkBool32                 blendEnable;
-    VkBlendFactor            srcColorBlendFactor;
-    VkBlendFactor            dstColorBlendFactor;
-    VkBlendOp                colorBlendOp;
-    VkBlendFactor            srcAlphaBlendFactor;
-    VkBlendFactor            dstAlphaBlendFactor;
-    VkBlendOp                alphaBlendOp;
-    VkColorComponentFlags    colorWriteMask;
-	*/
 	VkPipelineColorBlendAttachmentState ColorState = {};
 	ColorState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT	// Colors to apply blending to
 		| VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -875,16 +811,6 @@ void Renderer::CreateGraphicsPipeline()
 	ColorState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 	ColorState.alphaBlendOp = VK_BLEND_OP_ADD;
 
-	/*
-	VkStructureType                               sType;
-    const void*                                   pNext;
-    VkPipelineColorBlendStateCreateFlags          flags;
-    VkBool32                                      logicOpEnable;
-    VkLogicOp                                     logicOp;
-    uint32_t                                      attachmentCount;
-    const VkPipelineColorBlendAttachmentState*    pAttachments;
-    float                                         blendConstants[4];
-	*/
 	VkPipelineColorBlendStateCreateInfo ColorBlendingCreateInfo = {};
 	ColorBlendingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	ColorBlendingCreateInfo.logicOpEnable = VK_FALSE;
@@ -922,11 +848,11 @@ void Renderer::CreateGraphicsPipeline()
 	GraphicsPipelineCreateInfo.stageCount = 2;
 	GraphicsPipelineCreateInfo.pStages = ShaderStages;
 	GraphicsPipelineCreateInfo.pVertexInputState = &VertexInputCreateInfo;
-	GraphicsPipelineCreateInfo.pInputAssemblyState = &InputAssembly;
-	GraphicsPipelineCreateInfo.pViewportState = &ViewportStateCreateInfo;
+	GraphicsPipelineCreateInfo.pInputAssemblyState = &inputAssembly;
+	GraphicsPipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
 	GraphicsPipelineCreateInfo.pDynamicState = nullptr;
-	GraphicsPipelineCreateInfo.pRasterizationState = &RasterizationCreateInfo;
-	GraphicsPipelineCreateInfo.pMultisampleState = &MultisampleCreateInfo;
+	GraphicsPipelineCreateInfo.pRasterizationState = &rasterizationCreateInfo;
+	GraphicsPipelineCreateInfo.pMultisampleState = &multisampleCreateInfo;
 	GraphicsPipelineCreateInfo.pColorBlendState = &ColorBlendingCreateInfo;
 	GraphicsPipelineCreateInfo.pDepthStencilState = &depthStencilCreateInfo;
 	GraphicsPipelineCreateInfo.layout = PipelineLayout;
@@ -939,7 +865,7 @@ void Renderer::CreateGraphicsPipeline()
 	Result = vkCreateGraphicsPipelines(Devices.LogicalDevice, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &GraphicsPipeline);
 	
 	if (Result != VK_SUCCESS)
-		throw std::runtime_error("Failed to create graphics pipeline!");
+		throw std::runtime_error("Failed to create graphics pipeline!");	
 
 	// Destroy shader modules
 	vkDestroyShaderModule(Devices.LogicalDevice, FragmentShaderModule, nullptr);
@@ -1419,62 +1345,43 @@ VkImageView Renderer::CreateImageView(VkImage InImage, VkFormat InFormat, VkImag
 	return ImageView;
 }
 
-VkShaderModule Renderer::CreateShaderModule(const std::vector<char>& InCode)
-{
-	/*
-	VkStructureType              sType;
-    const void*                  pNext;
-    VkShaderModuleCreateFlags    flags;
-    size_t                       codeSize;
-    const uint32_t*              pCode;
-	*/
-	VkShaderModuleCreateInfo ShaderModuleCreateInfo = {};
-	ShaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	ShaderModuleCreateInfo.codeSize = InCode.size();
-	ShaderModuleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(InCode.data());
-
-	VkShaderModule ShaderModule;
-	VkResult Result = vkCreateShaderModule(Devices.LogicalDevice, &ShaderModuleCreateInfo, nullptr, &ShaderModule);
-
-	if (Result != VK_SUCCESS)
-		throw std::runtime_error("Failed to create shader module!");
-
-	return ShaderModule;
-}
-
-void Renderer::RecordCommands(uint32_t inImageIndex)
+void Renderer::RecordCommands(SkyboxRenderer* _skybox, uint32_t inImageIndex)
 {
 	VkCommandBufferBeginInfo bufferBeginInfo = {};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-	// Info on how to begin a render pass (for graphical applications)
-	VkRenderPassBeginInfo renderPassBeginInfo = {};
-	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = RenderPass;
-	renderPassBeginInfo.renderArea.offset = { 0, 0 };
-	renderPassBeginInfo.renderArea.extent = SwapchainExtent;
-
-	std::array<VkClearValue, 2> clearValues = {}; 
-	clearValues[0].color = {0.6f, 0.6f, 0.4f, 1.0f};
-	clearValues[1].depthStencil.depth = 1.0f;
-
-	renderPassBeginInfo.pClearValues = clearValues.data();				// Clear values
-	renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-
 
 	// Start recording
 	VkResult result = vkBeginCommandBuffer(CommandBuffers[inImageIndex],&bufferBeginInfo);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to start recording a command buffer!");
 
-	// start the render pass
-	renderPassBeginInfo.framebuffer = SwapchainFramebuffers[inImageIndex];
-	vkCmdBeginRenderPass(CommandBuffers[inImageIndex], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	// Info on how to begin a render pass
+	VkRenderPassBeginInfo renderPassBeginInfo = {};
+	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassBeginInfo.renderPass = RenderPass;
+	renderPassBeginInfo.renderArea.offset = { 0, 0 };
+	renderPassBeginInfo.renderArea.extent = SwapchainExtent;
 
-	// Bind the pipeline to render pass 
-	vkCmdBindPipeline(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipeline);
+	std::array<VkClearValue, 2> clearValues = {};
+	clearValues[0].color = { 0.6f, 0.6f, 0.4f, 1.0f };
+	clearValues[1].depthStencil.depth = 1.0f;
+
+	renderPassBeginInfo.pClearValues = clearValues.data();				// Clear values
+	renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+	renderPassBeginInfo.framebuffer = SwapchainFramebuffers[inImageIndex];
+
+	// start the render pass
+	vkCmdBeginRenderPass(CommandBuffers[inImageIndex], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 	
 	// Bind more stuff here
+	_skybox->RecordToCommandBuffer(CommandBuffers[inImageIndex], inImageIndex);
+
+	// Bind the main graphics pipeline and its pipeline layout
+	vkCmdBindPipeline(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipeline);
+
+	// Re-bind descriptor sets for the main pipeline
+	vkCmdBindDescriptorSets(CommandBuffers[inImageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, PipelineLayout,
+		0, 1, &descriptorSets[inImageIndex], 0, nullptr);
 
 	for (size_t i = 0; i < SEGame->gameObjects.size(); i++)
 	{		
@@ -1822,14 +1729,14 @@ int Renderer::CreateTextureImage(std::string inFileName)
 	// COPY DATA TO IMAGE
 	// Transition image to be DST for copy operation
 	TransitionImageLayout(Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool,
-		texImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		texImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
 
 	// Copy image data
 	CopyImageBuffer(Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool, imageStagingBuffer, texImage, width, height);
 
 	// Transition image to be shader readable for shader usage
 	TransitionImageLayout(Devices.LogicalDevice, GraphicsQueue, GraphicsCommandPool,
-		texImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		texImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
 
 	// Add texture data to vector for reference
 	textureImages.push_back(texImage);
