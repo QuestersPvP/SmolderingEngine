@@ -72,6 +72,7 @@ int SkyboxRenderer::InitSkyboxRenderer(std::string _fileLocation, std::vector<st
 	graphicsCommandPool = _renderer->GetGraphicsCommandPool();
 	renderPass = _renderer->GetRenderPass();
 	swapchainFramebuffers = _renderer->GetSwapchainFramebuffers();
+	imageCount = _renderer->GetSwapchainImageSize();
 
 	try
 	{
@@ -112,25 +113,25 @@ void SkyboxRenderer::RecordToCommandBuffer(VkCommandBuffer _commandBuffer, uint3
 
 	// Bind descriptor sets (using the skybox pipeline layout)
 	vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cubemapPipelineLayout,
-		0, 1, &cubemapUBODescriptorSet, 0, nullptr); // Set 0
+		0, 1, &cubemapUBODescriptorSets[_imageIndex], 0, nullptr); // Set 0
 	vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cubemapPipelineLayout,
-		1, 1, &cubemapDescriptorSet, 0, nullptr); // Set 1
+		1, 1, &cubemapSamplerDescriptorSet, 0, nullptr); // Set 1 remains the same if texture doesn't change
 
 	// Draw the skybox cube
 	vkCmdDraw(_commandBuffer, static_cast<uint32_t>(skyboxVertices.size()), 1, 0, 0);
 }
 
-void SkyboxRenderer::UpdateUniformBuffer(const Camera* _camera)
+void SkyboxRenderer::UpdateUniformBuffer(const Camera* _camera, uint32_t _imageIndex)
 {
 	UniformBufferObjectViewProjection ubo = {};
-	ubo.view = glm::mat4(glm::mat3(_camera->uboViewProjection.view)); // Remove translation
+	ubo.view = _camera->uboViewProjection.view; // Remove translation
 	ubo.projection = _camera->uboViewProjection.projection;
-	ubo.projection[1][1] *= -1; // Flip Y coordinate since we r using glm
-	
+	ubo.projection[1][1] *= -1; // Flip Y coordinate since we are using GLM
+
 	void* data;
-	vkMapMemory(logicalDevice, cubemapUniformBufferMemory, 0, sizeof(ubo), 0, &data);
+	vkMapMemory(logicalDevice, cubemapUniformBufferMemories[_imageIndex], 0, sizeof(ubo), 0, &data);
 	memcpy(data, &ubo, sizeof(ubo));
-	vkUnmapMemory(logicalDevice, cubemapUniformBufferMemory);
+	vkUnmapMemory(logicalDevice, cubemapUniformBufferMemories[_imageIndex]);
 }
 
 void SkyboxRenderer::CreateCubemapTextureSampler()
@@ -191,97 +192,23 @@ void SkyboxRenderer::CreateCubemapDescriptorSetLayout()
 
 	if (vkCreateDescriptorSetLayout(logicalDevice, &samplerLayoutCreateInfo, nullptr, &cubemapSamplerSetLayout) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create sampler descriptor set layout!");
-
-	//VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-	//samplerLayoutBinding.binding = 0;
-	//samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	//samplerLayoutBinding.descriptorCount = 1; // Only one sampler
-	//samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; // Accessible in fragment shader
-	//samplerLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-	//VkDescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-	//layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	//layoutCreateInfo.bindingCount = 1;
-	//layoutCreateInfo.pBindings = &samplerLayoutBinding;
-
-	//if (vkCreateDescriptorSetLayout(logicalDevice, &layoutCreateInfo, nullptr, &cubemapSamplerSetLayout) != VK_SUCCESS)
-	//	throw std::runtime_error("Failed to create descriptor set layout!");
-
-	////// UBO Layoutbinding
-	////VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-	////uboLayoutBinding.binding = 0;
-	////uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	////uboLayoutBinding.descriptorCount = 1;
-	////uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	////uboLayoutBinding.pImmutableSamplers = nullptr;
-
-	////VkDescriptorSetLayoutCreateInfo uboLayoutInfo = {};
-	////uboLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	////uboLayoutInfo.bindingCount = 1;
-	////uboLayoutInfo.pBindings = &uboLayoutBinding;
-
-	////if (vkCreateDescriptorSetLayout(logicalDevice, &uboLayoutInfo, nullptr, &cubemapUBOSetLayout) != VK_SUCCESS)
-	////	throw std::runtime_error("Failed to create UBO descriptor set layout!");
 }
 
 void SkyboxRenderer::CreateCubemapUniformBuffer()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObjectViewProjection);
-	
-	// Create uniform buffer
-	CreateBuffer(physicalDevice, logicalDevice, bufferSize,
-		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		&cubemapUniformBuffer, &cubemapUniformBufferMemory);
-}
 
-//void SkyboxRenderer::CreateDescriptorSets()
-//{
-//	std::vector<VkDescriptorSetLayout> layouts(3, cubemapDescriptorSetLayout);
-//
-//	VkDescriptorSetAllocateInfo allocInfo = {};
-//	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-//	allocInfo.descriptorPool = cubemapDescriptorPool;
-//	allocInfo.descriptorSetCount = 3;
-//	allocInfo.pSetLayouts = layouts.data();
-//
-//	cubemapDescriptorSets.resize(3);
-//	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, cubemapDescriptorSets.data()) != VK_SUCCESS)
-//		throw std::runtime_error("Failed to allocate skybox descriptor sets!");
-//
-//	for (size_t i = 0; i < 3; i++)
-//	{
-//		VkDescriptorBufferInfo bufferInfo = {};
-//		bufferInfo.buffer = cubemapUniformBuffers[i];
-//		bufferInfo.offset = 0;
-//		bufferInfo.range = sizeof(UniformBufferObjectViewProjection);
-//
-//		VkDescriptorImageInfo imageInfo = {};
-//		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-//		imageInfo.imageView = cubemapImageView;
-//		imageInfo.sampler = cubemapTextureSampler;
-//
-//		std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
-//
-//		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-//		descriptorWrites[0].dstSet = cubemapDescriptorSets[i];
-//		descriptorWrites[0].dstBinding = 0;
-//		descriptorWrites[0].dstArrayElement = 0;
-//		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-//		descriptorWrites[0].descriptorCount = 1;
-//		descriptorWrites[0].pBufferInfo = &bufferInfo;
-//
-//		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-//		descriptorWrites[1].dstSet = cubemapDescriptorSets[i];
-//		descriptorWrites[1].dstBinding = 1;
-//		descriptorWrites[1].dstArrayElement = 0;
-//		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-//		descriptorWrites[1].descriptorCount = 1;
-//		descriptorWrites[1].pImageInfo = &imageInfo;
-//
-//		vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-//	}
-//}
+	cubemapUniformBuffers.resize(imageCount);
+	cubemapUniformBufferMemories.resize(imageCount);
+
+	for (size_t i = 0; i < imageCount; i++)
+	{
+		CreateBuffer(physicalDevice, logicalDevice, bufferSize,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&cubemapUniformBuffers[i], &cubemapUniformBufferMemories[i]);
+	}
+}
 
 void SkyboxRenderer::CreateCubemapDescriptorPool()
 {
@@ -295,35 +222,28 @@ void SkyboxRenderer::CreateCubemapDescriptorPool()
 	poolCreateInfo.pPoolSizes = &poolSize;
 	poolCreateInfo.maxSets = 1; // Maximum number of descriptor sets that can be allocated
 
-	if (vkCreateDescriptorPool(logicalDevice, &poolCreateInfo, nullptr, &cubemapDescriptorPool) != VK_SUCCESS)
+	if (vkCreateDescriptorPool(logicalDevice, &poolCreateInfo, nullptr, &cubemapSamplerDescriptorPool) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create descriptor pool!");
 
 	// Create UBO descriptor pool
 	VkDescriptorPoolSize uboPoolSize = {};
 	uboPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboPoolSize.descriptorCount = 1;
+	uboPoolSize.descriptorCount = imageCount;
 
-	VkDescriptorPoolCreateInfo uboPoolCreateInfo = {};
-	uboPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	uboPoolCreateInfo.poolSizeCount = 1;
-	uboPoolCreateInfo.pPoolSizes = &uboPoolSize;
-	uboPoolCreateInfo.maxSets = 1;
+	VkDescriptorPoolSize samplerPoolSize = {};
+	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerPoolSize.descriptorCount = 1;
 
-	if (vkCreateDescriptorPool(logicalDevice, &uboPoolCreateInfo, nullptr, &cubemapUBODescriptorPool) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create UBO descriptor pool!");
+	std::array<VkDescriptorPoolSize, 2> poolSizes = { uboPoolSize, samplerPoolSize };
 
-	//VkDescriptorPoolSize uboPoolSize = {};
-	//uboPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	//uboPoolSize.descriptorCount = 1;
+	VkDescriptorPoolCreateInfo poolInfo = {};
+	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+	poolInfo.pPoolSizes = poolSizes.data();
+	poolInfo.maxSets = static_cast<uint32_t>(imageCount + 1); // +1 for the sampler descriptor set
 
-	//VkDescriptorPoolCreateInfo uboPoolCreateInfo = {};
-	//uboPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	//uboPoolCreateInfo.poolSizeCount = 1;
-	//uboPoolCreateInfo.pPoolSizes = &uboPoolSize;
-	//uboPoolCreateInfo.maxSets = 1;
-
-	//if (vkCreateDescriptorPool(logicalDevice, &uboPoolCreateInfo, nullptr, &cubemapUBODescriptorPool) != VK_SUCCESS)
-	//	throw std::runtime_error("Failed to create UBO descriptor pool!");
+	if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &cubemapUBODescriptorPool) != VK_SUCCESS)
+		throw std::runtime_error("failed to create cubemap descriptor pool!");
 }
 
 void SkyboxRenderer::CreateCubemapGraphicsPipeline()
@@ -526,6 +446,8 @@ void SkyboxRenderer::CreateCubemapTextureImage(std::string _fileLocation, std::v
 	VkDeviceSize layerSize;
 	VkDeviceSize totalSize = 0;
 
+	stbi_set_flip_vertically_on_load(1);
+
 	for (size_t i = 0; i < 6; ++i)
 	{
 		std::string imagePath = _fileLocation + _fileNames[i];
@@ -657,11 +579,11 @@ void SkyboxRenderer::CreateCubemapTextureDescriptor(VkImageView _cubemapImageVie
 {
 	VkDescriptorSetAllocateInfo setAllocInfo = {};
 	setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	setAllocInfo.descriptorPool = cubemapDescriptorPool;
+	setAllocInfo.descriptorPool = cubemapSamplerDescriptorPool;
 	setAllocInfo.descriptorSetCount = 1;
 	setAllocInfo.pSetLayouts = &cubemapSamplerSetLayout;
 
-	if (vkAllocateDescriptorSets(logicalDevice, &setAllocInfo, &cubemapDescriptorSet) != VK_SUCCESS)
+	if (vkAllocateDescriptorSets(logicalDevice, &setAllocInfo, &cubemapSamplerDescriptorSet) != VK_SUCCESS)
 		throw std::runtime_error("Failed to allocate cubemap descriptor set!");
 
 	VkDescriptorImageInfo imageInfo = {};
@@ -671,7 +593,7 @@ void SkyboxRenderer::CreateCubemapTextureDescriptor(VkImageView _cubemapImageVie
 
 	VkWriteDescriptorSet descriptorWrite = {};
 	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = cubemapDescriptorSet;
+	descriptorWrite.dstSet = cubemapSamplerDescriptorSet;
 	descriptorWrite.dstBinding = 0; // Adjust binding as per your descriptor set layout
 	descriptorWrite.dstArrayElement = 0;
 	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -681,58 +603,36 @@ void SkyboxRenderer::CreateCubemapTextureDescriptor(VkImageView _cubemapImageVie
 	vkUpdateDescriptorSets(logicalDevice, 1, &descriptorWrite, 0, nullptr);
 
 	// Descriptor Set for UBO
-	VkDescriptorSetAllocateInfo uboAllocInfo = {};
-	uboAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	uboAllocInfo.descriptorPool = cubemapUBODescriptorPool;
-	uboAllocInfo.descriptorSetCount = 1;
-	uboAllocInfo.pSetLayouts = &cubemapUBOSetLayout;
+	cubemapUBODescriptorSets.resize(imageCount);
 
-	if (vkAllocateDescriptorSets(logicalDevice, &uboAllocInfo, &cubemapUBODescriptorSet) != VK_SUCCESS)
+	std::vector<VkDescriptorSetLayout> layouts(imageCount, cubemapUBOSetLayout);
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = cubemapUBODescriptorPool;
+	allocInfo.descriptorSetCount = imageCount;
+	allocInfo.pSetLayouts = layouts.data();
+
+	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, cubemapUBODescriptorSets.data()) != VK_SUCCESS)
+		throw std::runtime_error("failed to allocate cubemap uniform buffer descriptor sets!");
+
+	for (size_t i = 0; i < imageCount; i++)
 	{
-		throw std::runtime_error("Failed to allocate UBO descriptor set!");
+		VkDescriptorBufferInfo bufferInfo = {};
+		bufferInfo.buffer = cubemapUniformBuffers[i];
+		bufferInfo.offset = 0;
+		bufferInfo.range = sizeof(UniformBufferObjectViewProjection);
+
+		VkWriteDescriptorSet descriptorWrite = {};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = cubemapUBODescriptorSets[i];
+		descriptorWrite.dstBinding = 0;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo = &bufferInfo;
+
+		vkUpdateDescriptorSets(logicalDevice, 1, &descriptorWrite, 0, nullptr);
 	}
-
-	VkDescriptorBufferInfo bufferInfo = {};
-	bufferInfo.buffer = cubemapUniformBuffer;
-	bufferInfo.offset = 0;
-	bufferInfo.range = sizeof(UniformBufferObjectViewProjection);
-
-	VkWriteDescriptorSet uboDescriptorWrite = {};
-	uboDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	uboDescriptorWrite.dstSet = cubemapUBODescriptorSet;
-	uboDescriptorWrite.dstBinding = 0;
-	uboDescriptorWrite.dstArrayElement = 0;
-	uboDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboDescriptorWrite.descriptorCount = 1;
-	uboDescriptorWrite.pBufferInfo = &bufferInfo;
-
-	vkUpdateDescriptorSets(logicalDevice, 1, &uboDescriptorWrite, 0, nullptr);
-	 
-	//VkDescriptorSetAllocateInfo uboAllocInfo = {};
-	//uboAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	//uboAllocInfo.descriptorPool = cubemapUBODescriptorPool;
-	//uboAllocInfo.descriptorSetCount = 1;
-	//uboAllocInfo.pSetLayouts = &cubemapUBOSetLayout;
-
-	//if (vkAllocateDescriptorSets(logicalDevice, &uboAllocInfo, &cubemapUBODescriptorSet) != VK_SUCCESS)
-	//	throw std::runtime_error("Failed to allocate UBO descriptor set!");
-
-	//// Update the descriptor set with the UBO buffer
-	//VkDescriptorBufferInfo bufferInfo = {};
-	//bufferInfo.buffer = cubemapUniformBuffer;
-	//bufferInfo.offset = 0;
-	//bufferInfo.range = sizeof(UniformBufferObject);
-
-	//VkWriteDescriptorSet uboDescriptorWrite = {};
-	//uboDescriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	//uboDescriptorWrite.dstSet = cubemapUBODescriptorSet;
-	//uboDescriptorWrite.dstBinding = 0;
-	//uboDescriptorWrite.dstArrayElement = 0;
-	//uboDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	//uboDescriptorWrite.descriptorCount = 1;
-	//uboDescriptorWrite.pBufferInfo = &bufferInfo;
-
-	//vkUpdateDescriptorSets(logicalDevice, 1, &uboDescriptorWrite, 0, nullptr);
 }
 
 void SkyboxRenderer::CopyBufferToCubemapImage(VkDevice _logicalDevice, VkQueue _queue, VkCommandPool _commandPool, VkBuffer _buffer,

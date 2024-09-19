@@ -20,27 +20,33 @@ public:
 	VkCommandPool graphicsCommandPool;
 	VkRenderPass renderPass;
 	std::vector<VkFramebuffer> swapchainFramebuffers;
+	uint32_t imageCount;
 
+	// Sampler to get textures
 	VkSampler cubemapTextureSampler;
 	
+	// Store texture image views
 	VkImage cubemapImage;
 	VkDeviceMemory cubemapImageMemory;
 	VkImageView cubemapImageView;
 
-	VkDescriptorSet cubemapDescriptorSet;
-	VkDescriptorPool cubemapDescriptorPool;
-	VkDescriptorSetLayout cubemapSamplerSetLayout;
+	// Uniform buffers for each frame
+	std::vector<VkBuffer> cubemapUniformBuffers;
+	std::vector<VkDeviceMemory> cubemapUniformBufferMemories;
 
-	VkBuffer cubemapUniformBuffer;
-	VkDeviceMemory cubemapUniformBufferMemory;
-
-	VkDescriptorSet cubemapUBODescriptorSet;
-	VkDescriptorSetLayout cubemapUBOSetLayout;
+	// UBO and Texture descriptors 
+	VkDescriptorSet cubemapSamplerDescriptorSet;
+	std::vector<VkDescriptorSet> cubemapUBODescriptorSets;
+	
+	VkDescriptorPool cubemapSamplerDescriptorPool;
 	VkDescriptorPool cubemapUBODescriptorPool;
 
+	VkDescriptorSetLayout cubemapSamplerSetLayout;
+	VkDescriptorSetLayout cubemapUBOSetLayout;
+
+	// Graphics pipeline
 	VkPipeline cubemapGraphicsPipeline;
 	VkPipelineLayout cubemapPipelineLayout;
-	//VkRenderPass cubemapRenderPass;
 
 	// Cube that the skybox renders
 	std::vector<struct Vertex> skyboxVertices;
@@ -55,7 +61,7 @@ public:
 
 	void DrawSkybox();
 	void RecordToCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageIndex);
-	void UpdateUniformBuffer(const class Camera* _camera);
+	void UpdateUniformBuffer(const class Camera* _camera, uint32_t _imageIndex);
 	
 	void CreateCubemapTextureSampler();
 	void CreateCubemapDescriptorSetLayout();

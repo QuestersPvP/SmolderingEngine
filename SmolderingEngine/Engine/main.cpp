@@ -62,7 +62,7 @@ int main()
 	seEngineLevel = new EngineLevelManager(seRenderer->GetPhysicalDevice(), seRenderer->GetLogicalDevice(),
 		seRenderer->GetGraphicsQueue(), seRenderer->GetGraphicsCommandPool(), seGame, seRenderer);
 	seRenderer->SetEngineLevelManager(seEngineLevel); // will remove this soon
-	//seEngineLevel->LoadLevel(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Levels/defaultLevel.selevel");
+	seEngineLevel->LoadLevel(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Levels/defaultLevel.selevel");
 	// --- LEVEL MANAGER ---
 
 	// --- IMGUI ---
@@ -75,8 +75,9 @@ int main()
 
 	// --- LOAD SKYBOX ---
 	std::vector<std::string> imageNames =
-		//{"posx.jpg", "negx.jpg", "posy.jpg", "negy.jpg", "posz.jpg", "negz.jpg" };
-		{"right.jpg", "left.jpg", "top.jpg", "bottom.jpg", "front.jpg", "back.jpg" };
+								// TODO: is this correct?
+		{"posx.jpg", "negx.jpg", "negy.jpg", "posy.jpg", "posz.jpg", "negz.jpg" };
+		//{"right.jpg", "left.jpg", "top.jpg", "bottom.jpg", "front.jpg", "back.jpg" };
 	std::string fileLocation = 
 		std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Skybox/mountain-skyboxes/Maskonaive2/";
 	

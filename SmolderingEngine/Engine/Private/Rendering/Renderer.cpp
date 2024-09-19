@@ -145,7 +145,7 @@ void Renderer::Draw(class SkyboxRenderer* _skybox)
 		throw std::runtime_error("Failed to acquire next image!");
 
 	UpdateUniformBuffers(ImageIndex);
-	_skybox->UpdateUniformBuffer(seCamera);
+	_skybox->UpdateUniformBuffer(seCamera, ImageIndex);
 	
 	RecordCommands(_skybox, ImageIndex);
 

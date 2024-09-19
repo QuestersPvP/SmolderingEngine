@@ -185,6 +185,7 @@ public:
 	VkQueue GetGraphicsQueue() { return GraphicsQueue; };
 	VkCommandPool GetGraphicsCommandPool() { return GraphicsCommandPool; };
 	VkRenderPass GetRenderPass() { return RenderPass; };
+	uint32_t GetSwapchainImageSize() { return SwapchainImages.size(); };
 	std::vector<VkFramebuffer> GetSwapchainFramebuffers() { return SwapchainFramebuffers; };
 
 	QueueFamilyIndicies GetQueueFamilies(VkPhysicalDevice InPhysicalDevice);
