@@ -2,6 +2,7 @@
 
 // Engine includes
 #include "Engine/Public/Rendering/Renderer.h"
+#include "Engine/Public/Rendering/LevelRenderer.h"
 #include "Engine/Public/Rendering/Mesh.h"
 
 #include "Engine/Public/Object/GameObject.h"
@@ -318,7 +319,7 @@ void EngineLevelManager::LoadNewScene()
 	vkDeviceWaitIdle(logicalDevice);
 
 	// Destroy texture-related Vulkan objects for the current level
-	renderer->DestroyAllRendererTextures();
+	//renderer->DestroyAllRendererTextures();
 
 	// TODO: Eventually we should do this, issue is the DescriptorPool wont allow it unless we modify it some.
 	// it adds an excess of ~3mb of memory but technically doesnt leak it because when the descriptor pool is cleaned up
@@ -363,7 +364,7 @@ void EngineLevelManager::LoadMeshModel(ObjectData inObject)
 			//std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Models/Castle/Textures/" + textureNames[i]);
 			//std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Models/Aircraft/textures/" + textureNames[i]);
 			std::string fileLoc = (inObject.texturePath + textureNames[i]);
-			materialToTexture[i] = renderer->CreateTexture(fileLoc);
+			//materialToTexture[i] = renderer->GetLevelRenderer()->CreateTexture(fileLoc);
 		}
 	}
 

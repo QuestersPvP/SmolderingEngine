@@ -8,19 +8,16 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+
+// Project includes
+#include "Engine/Public/Rendering/Renderer.h"
+
 class SkyboxRenderer
 {
 	/* Variables */
 public:
-	// Retrieved from the Renderer
-	VkPhysicalDevice physicalDevice;
-	VkDevice logicalDevice;
-	VkExtent2D swapchainExtent;
-	VkQueue graphicsQueue;
-	VkCommandPool graphicsCommandPool;
-	VkRenderPass renderPass;
-	std::vector<VkFramebuffer> swapchainFramebuffers;
-	uint32_t imageCount;
+	/* Struct that holds general vulkan resources (already created by Renderer) */
+	VulkanResources vulkanResources;
 
 	// Sampler to get textures
 	VkSampler cubemapTextureSampler;
@@ -56,20 +53,20 @@ public:
 	/* Functions */
 public:
 	SkyboxRenderer();
-	int InitSkyboxRenderer(std::string _fileLocation, std::vector<std::string> _fileNames, class Renderer* _renderer);
+	SkyboxRenderer(std::string _fileLocation, std::vector<std::string> _fileNames, const VulkanResources& _resources);
 	void DestroySkyboxRenderer();
 
-	void DrawSkybox();
+	// Handle drawing commands
 	void RecordToCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageIndex);
 	void UpdateUniformBuffer(const class Camera* _camera, uint32_t _imageIndex);
 	
+	// Create needed resources
 	void CreateCubemapTextureSampler();
 	void CreateCubemapDescriptorSetLayout();
 	void CreateCubemapUniformBuffer();
 	void CreateCubemapDescriptorPool();
 	void CreateCubemapGraphicsPipeline();
 	void CreateVertexBuffer();
-
 
 	void CreateCubemapTextureImage(std::string _fileLocation, std::vector<std::string> _fileNames);
 	VkImage CreateCubemapImage(uint32_t _width, uint32_t _height, VkFormat _format, VkImageTiling _tiling,
@@ -79,4 +76,7 @@ public:
 
 	void CopyBufferToCubemapImage(VkDevice _logicalDevice, VkQueue _queue, VkCommandPool _commandPool,
 		VkBuffer _buffer, VkImage _image, uint32_t _width, uint32_t _height);
+
+	// Create skybox vertices
+	void CreateSkyboxVertices();
 };

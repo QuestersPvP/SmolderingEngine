@@ -23,7 +23,7 @@
 
 // Project Includes
 #include "Engine/Public/Rendering/Renderer.h"
-#include "Engine/Public/Rendering/SkyboxRenderer.h"
+//#include "Engine/Public/Rendering/SkyboxRenderer.h"
 
 #include "Engine/Public/Collision/CollisionManager.h"
 #include "Engine/Public/Input/InputManager.h"
@@ -33,7 +33,7 @@
 #include "Game/Public/Game.h"
 
 Renderer* seRenderer;
-SkyboxRenderer* seSkyboxRenderer;
+//SkyboxRenderer* seSkyboxRenderer;
 Game* seGame;
 CollisionManager* seCollision;
 Camera* seCamera;
@@ -47,7 +47,6 @@ int main()
 	seInput = new InputManager();
 	seCamera = new Camera();
 	seRenderer = new Renderer();
-	seSkyboxRenderer = new SkyboxRenderer();
 	seGame = new Game(); // TODO: this should be broken into 2 classes at least - 1 for game management (engine side), 1 more focused directly gameplay
 	seCollision = new CollisionManager();
 
@@ -64,26 +63,6 @@ int main()
 	seRenderer->SetEngineLevelManager(seEngineLevel); // will remove this soon
 	seEngineLevel->LoadLevel(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Levels/defaultLevel.selevel");
 	// --- LEVEL MANAGER ---
-
-	// --- IMGUI ---
-	ImGui::CreateContext();
-	ImGui_ImplGlfw_InitForVulkan(seInput->window, true);
-	// Initialize ImGui for Vulkan
-	if (seRenderer->InitImGuiForVulkan() == EXIT_FAILURE)
-		return EXIT_FAILURE;
-	// --- IMGUI ---
-
-	// --- LOAD SKYBOX ---
-	std::vector<std::string> imageNames =
-								// TODO: is this correct?
-		{"posx.jpg", "negx.jpg", "negy.jpg", "posy.jpg", "posz.jpg", "negz.jpg" };
-		//{"right.jpg", "left.jpg", "top.jpg", "bottom.jpg", "front.jpg", "back.jpg" };
-	std::string fileLocation = 
-		std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Skybox/mountain-skyboxes/Maskonaive2/";
-	
-	if (seSkyboxRenderer->InitSkyboxRenderer(fileLocation, imageNames, seRenderer) == EXIT_FAILURE)
-		return EXIT_FAILURE;
-	// --- LOAD SKYBOX ---
 
 	//chrono stuff, update it 1/30 per second
 	constexpr int updatesPerSecond = 30; //if you want this to not be initialized in compiler change constexpr to const
@@ -116,7 +95,7 @@ int main()
 			// There should be a skyboxrenderer (complete), a levelrenderer (not done), and finally
 			// a general renderer that handles creating logical devices etc. and figuring out what to draw. 
 			// Draw all objects
-			seRenderer->Draw(seSkyboxRenderer);
+			seRenderer->Draw();
 		}
 		
 		// Sleep to prevent busy waiting
