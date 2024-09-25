@@ -361,10 +361,9 @@ void EngineLevelManager::LoadMeshModel(ObjectData inObject)
 			materialToTexture[i] = 0;
 		else
 		{
-			//std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Models/Castle/Textures/" + textureNames[i]);
-			//std::string fileLoc = (std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Models/Aircraft/textures/" + textureNames[i]);
 			std::string fileLoc = (inObject.texturePath + textureNames[i]);
-			//materialToTexture[i] = renderer->GetLevelRenderer()->CreateTexture(fileLoc);
+			materialToTexture[i] = renderer->GetLevelRenderer()->CreateTexture(fileLoc);
+
 		}
 	}
 

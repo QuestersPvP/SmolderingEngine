@@ -57,9 +57,6 @@ class Renderer
 {
 	/* Variables */
 public:
-	// Scene (TODO: MOVE)
-	//UniformBufferObjectViewProjection uboViewProjection;
-	//void UpdateModelPosition(int inModelId, glm::mat4 inModelMatrix, float inRotation);
 
 private:
 	GLFWwindow* window;
@@ -77,69 +74,25 @@ private:
 	VulkanResources vulkanResources;
 
 	// Vulkan Components
-	//VulkanDevices Devices;
-	//VkInstance VulkanInstance;
-	VkDebugUtilsMessengerEXT DebugMessenger;
-	//VkQueue GraphicsQueue;
 	VkQueue PresentationQueue;
 	VkSurfaceKHR VulkanSurface;
-	//VkSwapchainKHR Swapchain;
 	VkFormat SwapchainImageFormat;
-	//VkExtent2D SwapchainExtent;
 
-	//std::vector<SwapchainImage> SwapchainImages;
 	std::vector<VkFramebuffer> SwapchainFramebuffers;
 	std::vector<VkCommandBuffer> CommandBuffers;
-
-	VkDescriptorPool imguiDescriptorPool;
 
 	// Depth Buffer
 	VkImage depthBufferImage;
 	VkDeviceMemory depthBufferImageMemory;
 	VkImageView depthBufferImageView;
-	//VkFormat depthAttachmentFormat;
-
-	// Vulkan Pools
-	//VkCommandPool GraphicsCommandPool;
-
-	// Vulkan Pipeline
-	VkPipeline GraphicsPipeline;
-	VkPipelineLayout PipelineLayout;
-	//VkRenderPass RenderPass;
 
 	// Synchronisation
 	std::vector<VkSemaphore> ImageAvailableSemaphores;
 	std::vector<VkSemaphore> RenderingCompleteSemaphores;
 	std::vector<VkFence> DrawFences;
 
-	// Descriptors
-	//VkDescriptorSetLayout descriptorSetLayout;
-
-	//VkDescriptorPool descriptorPool;
-	//std::vector<VkDescriptorSet> descriptorSets;
-
-	//std::vector<VkBuffer> viewProjectionUniformBuffers;
-	//std::vector<VkDeviceMemory> viewProjectionUniformBufferMemory;	
-	
-	//VkPushConstantRange pushConstantRange;
-
-	//// TEXTURE
-	//std::vector<VkDescriptorSet> samplerDescriptorSets;
-	//VkDescriptorPool samplerDescriptorPool;
-	//VkDescriptorSetLayout samplerSetLayout;
-	//VkSampler textureSampler;
-	//std::vector<VkImage> textureImages;
-	//std::vector<VkDeviceMemory> textureImageMemory;
-	//std::vector<VkImageView> textureImageViews;
-
-
-	//std::vector<VkBuffer> modelDynamicUniformBuffers;
-	//std::vector<VkDeviceMemory> modelDynamicUniformBufferMemory;
-
-	// Dynamic uniform buffer stuff, not needed currently
-	//VkDeviceSize minUniformBufferOffset;
-	//size_t modelUniformAlignment;
-	//Model* modelTransferSpace;
+	// Debug
+	VkDebugUtilsMessengerEXT DebugMessenger;
 
 	// Vulkan Validation Layers
 	const std::vector<const char*> validationLayers = 
@@ -157,6 +110,7 @@ public:
 	void DestroyRenderer();
 
 	void Draw();
+	void RecordCommands(uint32_t inImageIndex);
 
 	// Re-creates window based off of new window size
 	void ResizeRenderer(int inWidth, int inHeight);
@@ -167,27 +121,18 @@ public:
 	void CreateVulkanSurface();
 	void CreateSwapChain();
 	void CreateRenderpass();
-	//void CreateDescriptorSetLayout();
-	//void CreatePushConstantRange();
-	//void CreateGraphicsPipeline();
 	void CreateDepthBufferImage();
 	void CreateFramebuffers();
 	void CreateCommandPool();
 	void CreateSynchronizationPrimatives();
-	//void CreateUniformBuffers();
-	//void CreateDescriptorPool();
 
-	//void AllocateDescriptorSets();
 	void AllocateCommandBuffers();
-	//void AllocateDynamicBufferTransferSpace();
 
 	//TODO: MOVE THIS INTO RENDERER UTILS ONCE EVERYTHING IS FINISHED
 	VkImageView CreateImageView(VkImage InImage, VkFormat InFormat, VkImageAspectFlags InAspectFlags);
 	VkImage CreateImage(uint32_t inWidth, uint32_t inHeight, VkFormat inFormat, VkImageTiling inTiling,
 		VkImageUsageFlags inUsageFlags, VkMemoryPropertyFlags inPropertyFlags, VkDeviceMemory* outImageMemory);
 
-	void RecordCommands(uint32_t inImageIndex);
-	//void UpdateUniformBuffers(uint32_t inImageIndex);
 
 	// Not allocating memory, no need to delete.
 	void RetrievePhysicalDevice();
@@ -219,15 +164,6 @@ public:
 	QueueFamilyIndicies GetQueueFamilies(VkPhysicalDevice InPhysicalDevice);
 	SwapchainDetails GetSwapchainDetails(VkPhysicalDevice InPhysicalDevice);
 
-
-	// --- TEXTURE ---
-	//void CreateTextureSampler();
-	//int CreateTextureImage(std::string inFileName);
-	//int CreateTexture(std::string inFileName);
-	//int CreateTextureDescriptor(VkImageView inTextureImage);
-	//stbi_uc* LoadTextureFile(std::string inFileName, int* inWidth, int* inHeight, VkDeviceSize* inImageSize);
-	// --- TEXTURE ---
-
 	// Validation Layer Callback Functions
 	void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& CreateInfo);
 	void SetupDebugMessenger();
@@ -253,10 +189,5 @@ public:
 	void DestroyDebugUtilsMessengerEXT(
 		VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
 		const VkAllocationCallbacks* pAllocator);
-
-	//// TODO: LEVEL MANAGER SHOULD HANDLE THIS
-	//void DestroyAllRendererTextures();
-	//bool shouldSaveLevel = false;
-	//bool shouldLoadNewLevel = false;
 };
 

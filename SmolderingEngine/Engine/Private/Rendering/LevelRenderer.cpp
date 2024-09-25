@@ -46,6 +46,35 @@ LevelRenderer::LevelRenderer(const VulkanResources& _resources, class Game* _gam
 
 void LevelRenderer::DestroyLevelRenderer()
 {
+	// Destroy texture image views, images, and memory
+	for (size_t i = 0; i < textureImageViews.size(); i++) 
+	{
+		vkDestroyImageView(vulkanResources.logicalDevice, textureImageViews[i], nullptr);
+		vkDestroyImage(vulkanResources.logicalDevice, textureImages[i], nullptr);
+		vkFreeMemory(vulkanResources.logicalDevice, textureImageMemory[i], nullptr);
+	}
+
+	// Destroy the texture sampler
+	vkDestroySampler(vulkanResources.logicalDevice, textureSampler, nullptr);
+
+	// Destroy descriptor pools
+	vkDestroyDescriptorPool(vulkanResources.logicalDevice, uboDescriptorPool, nullptr);
+	vkDestroyDescriptorPool(vulkanResources.logicalDevice, samplerDescriptorPool, nullptr);
+
+	// Destroy uniform buffers
+	for (size_t i = 0; i < viewProjectionUniformBuffers.size(); i++) 
+	{
+		vkDestroyBuffer(vulkanResources.logicalDevice, viewProjectionUniformBuffers[i], nullptr);
+		vkFreeMemory(vulkanResources.logicalDevice, viewProjectionUniformBufferMemory[i], nullptr);
+	}
+
+	// Destroy the graphics pipeline and its layout
+	vkDestroyPipeline(vulkanResources.logicalDevice, graphicsPipeline, nullptr);
+	vkDestroyPipelineLayout(vulkanResources.logicalDevice, graphicsPipelineLayout, nullptr);
+
+	// Destroy descriptor set layouts
+	vkDestroyDescriptorSetLayout(vulkanResources.logicalDevice, uboDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(vulkanResources.logicalDevice, samplerSetLayout, nullptr);
 
 	delete(this);
 }
@@ -107,9 +136,9 @@ void LevelRenderer::UpdateUniformBuffer(const Camera* _camera, uint32_t _imageIn
 
 void LevelRenderer::CreateDescriptorSetLayout()
 {
-	// Model View Projection binding info
+	// View Projection binding info
 	VkDescriptorSetLayoutBinding viewProjectionLayoutBinding = {};
-	viewProjectionLayoutBinding.binding = 0;										// binding point in shader
+	viewProjectionLayoutBinding.binding = 1;										// binding point in shader
 	viewProjectionLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	viewProjectionLayoutBinding.descriptorCount = 1;
 	viewProjectionLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;			// it is bound in the vertex shader
@@ -455,7 +484,7 @@ void LevelRenderer::AllocateDescriptorSets()
 		VkWriteDescriptorSet viewProjectionSetWrite = {};
 		viewProjectionSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		viewProjectionSetWrite.dstSet = uboDescriptorSets[i];							// desriptor set to update
-		viewProjectionSetWrite.dstBinding = 0;										// binding in shader to update
+		viewProjectionSetWrite.dstBinding = 1;										// binding in shader to update
 		viewProjectionSetWrite.dstArrayElement = 0;									// index to update
 		viewProjectionSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		viewProjectionSetWrite.descriptorCount = 1;

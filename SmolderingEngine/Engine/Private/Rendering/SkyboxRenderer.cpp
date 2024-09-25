@@ -35,6 +35,36 @@ SkyboxRenderer::SkyboxRenderer(std::string _fileLocation, std::vector<std::strin
 
 void SkyboxRenderer::DestroySkyboxRenderer()
 {
+	// Destroy the pipeline stuff
+	vkDestroyPipeline(vulkanResources.logicalDevice, cubemapGraphicsPipeline, nullptr);
+	vkDestroyPipelineLayout(vulkanResources.logicalDevice, cubemapPipelineLayout, nullptr);
+
+	// Destroy the cubemap texture image 
+	vkDestroyImageView(vulkanResources.logicalDevice, cubemapImageView, nullptr);
+	vkDestroyImage(vulkanResources.logicalDevice, cubemapImage, nullptr);
+	vkFreeMemory(vulkanResources.logicalDevice, cubemapImageMemory, nullptr);
+
+	// Destroy the vertex buffer
+	vkDestroyBuffer(vulkanResources.logicalDevice, skyboxVertexBuffer, nullptr);
+	vkFreeMemory(vulkanResources.logicalDevice, skyboxVertexBufferMemory, nullptr);
+
+	// Destroy the uniform buffers
+	for (size_t i = 0; i < cubemapUniformBuffers.size(); i++)
+	{
+		vkDestroyBuffer(vulkanResources.logicalDevice, cubemapUniformBuffers[i], nullptr);
+		vkFreeMemory(vulkanResources.logicalDevice, cubemapUniformBufferMemories[i], nullptr);
+	}
+
+	// Destroy the descriptor pools
+	vkDestroyDescriptorPool(vulkanResources.logicalDevice, cubemapSamplerDescriptorPool, nullptr);
+	vkDestroyDescriptorPool(vulkanResources.logicalDevice, cubemapUBODescriptorPool, nullptr);
+
+	// Destroy the descriptor set layouts
+	vkDestroyDescriptorSetLayout(vulkanResources.logicalDevice, cubemapSamplerSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(vulkanResources.logicalDevice, cubemapUBOSetLayout, nullptr);
+
+	// Destroy the texture sampler
+	vkDestroySampler(vulkanResources.logicalDevice, cubemapTextureSampler, nullptr);
 
 	delete(this);
 }
@@ -62,11 +92,15 @@ void SkyboxRenderer::RecordToCommandBuffer(VkCommandBuffer _commandBuffer, uint3
 
 void SkyboxRenderer::UpdateUniformBuffer(const Camera* _camera, uint32_t _imageIndex)
 {
-	UniformBufferObjectViewProjection ubo = {};
-	ubo.view = _camera->uboViewProjection.view; // Remove translation
-	ubo.projection = _camera->uboViewProjection.projection;
-	ubo.projection[1][1] *= -1; // Flip Y coordinate since we are using GLM
+	// Make local copies of the camera's matrices
+	UniformBufferObjectViewProjection ubo = _camera->uboViewProjection;
 
+	// Modify the view matrix to remove translation
+	ubo.view[3][0] = 0.0f;
+	ubo.view[3][1] = 0.0f;
+	ubo.view[3][2] = 0.0f;
+
+	// Copy the modified data to the uniform buffer
 	void* data;
 	vkMapMemory(vulkanResources.logicalDevice, cubemapUniformBufferMemories[_imageIndex], 0, sizeof(ubo), 0, &data);
 	memcpy(data, &ubo, sizeof(ubo));
@@ -311,9 +345,9 @@ void SkyboxRenderer::CreateCubemapGraphicsPipeline()
 	// Depth stencil
 	VkPipelineDepthStencilStateCreateInfo cubemapDepthStencilCreateInfo = {};
 	cubemapDepthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	cubemapDepthStencilCreateInfo.depthTestEnable = VK_TRUE;
+	cubemapDepthStencilCreateInfo.depthTestEnable = VK_TRUE; //VK_TRUE
 	cubemapDepthStencilCreateInfo.depthWriteEnable = VK_FALSE;
-	cubemapDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+	cubemapDepthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL; //VK_COMPARE_OP_LESS_OR_EQUAL
 	cubemapDepthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
 	cubemapDepthStencilCreateInfo.stencilTestEnable = VK_FALSE;
 
@@ -384,8 +418,6 @@ void SkyboxRenderer::CreateCubemapTextureImage(std::string _fileLocation, std::v
 	VkDeviceSize imageSize;
 	VkDeviceSize layerSize;
 	VkDeviceSize totalSize = 0;
-
-	stbi_set_flip_vertically_on_load(1);
 
 	for (size_t i = 0; i < 6; ++i)
 	{
@@ -607,52 +639,102 @@ void SkyboxRenderer::CreateSkyboxVertices()
 {
 	skyboxVertices =
 	{
-		// Right face (+X)
-		{ { 1.0f, -1.0f, -1.0f } },
+		// Right face (+X) reversed
+		{ { 1.0f,  1.0f,  1.0f } },
 		{ { 1.0f, -1.0f,  1.0f } },
-		{ { 1.0f,  1.0f,  1.0f } },
-		{ { 1.0f,  1.0f,  1.0f } },
-		{ { 1.0f,  1.0f, -1.0f } },
 		{ { 1.0f, -1.0f, -1.0f } },
+		{ { 1.0f, -1.0f, -1.0f } },
+		{ { 1.0f,  1.0f, -1.0f } },
+		{ { 1.0f,  1.0f,  1.0f } },
 
-		// Left face (-X)
-		{ { -1.0f, -1.0f,  1.0f } },
+		// Left face (-X) reversed
+		{ { -1.0f,  1.0f, -1.0f } },
 		{ { -1.0f, -1.0f, -1.0f } },
-		{ { -1.0f,  1.0f, -1.0f } },
-		{ { -1.0f,  1.0f, -1.0f } },
-		{ { -1.0f,  1.0f,  1.0f } },
 		{ { -1.0f, -1.0f,  1.0f } },
-
-		// Top face (+Y)
-		{ { -1.0f,  1.0f, -1.0f } },
-		{ {  1.0f,  1.0f, -1.0f } },
-		{ {  1.0f,  1.0f,  1.0f } },
-		{ {  1.0f,  1.0f,  1.0f } },
+		{ { -1.0f, -1.0f,  1.0f } },
 		{ { -1.0f,  1.0f,  1.0f } },
 		{ { -1.0f,  1.0f, -1.0f } },
 
-		// Bottom face (-Y)
-		{ { -1.0f, -1.0f,  1.0f } },
-		{ {  1.0f, -1.0f,  1.0f } },
-		{ {  1.0f, -1.0f, -1.0f } },
-		{ {  1.0f, -1.0f, -1.0f } },
-		{ { -1.0f, -1.0f, -1.0f } },
-		{ { -1.0f, -1.0f,  1.0f } },
-
-		// Front face (+Z)
-		{ { -1.0f, -1.0f, -1.0f } },
-		{ {  1.0f, -1.0f, -1.0f } },
-		{ {  1.0f,  1.0f, -1.0f } },
+		// Top face (+Y) reversed
+		{ {  1.0f,  1.0f,  1.0f } },
 		{ {  1.0f,  1.0f, -1.0f } },
 		{ { -1.0f,  1.0f, -1.0f } },
-		{ { -1.0f, -1.0f, -1.0f } },
+		{ { -1.0f,  1.0f, -1.0f } },
+		{ { -1.0f,  1.0f,  1.0f } },
+		{ {  1.0f,  1.0f,  1.0f } },
 
-		// Back face (-Z)
+		// Bottom face (-Y) reversed
+		{ {  1.0f, -1.0f, -1.0f } },
 		{ {  1.0f, -1.0f,  1.0f } },
 		{ { -1.0f, -1.0f,  1.0f } },
+		{ { -1.0f, -1.0f,  1.0f } },
+		{ { -1.0f, -1.0f, -1.0f } },
+		{ {  1.0f, -1.0f, -1.0f } },
+
+		// Front face (+Z) reversed
+		{ {  1.0f,  1.0f, -1.0f } },
+		{ {  1.0f, -1.0f, -1.0f } },
+		{ { -1.0f, -1.0f, -1.0f } },
+		{ { -1.0f, -1.0f, -1.0f } },
+		{ { -1.0f,  1.0f, -1.0f } },
+		{ {  1.0f,  1.0f, -1.0f } },
+
+		// Back face (-Z) reversed
 		{ { -1.0f,  1.0f,  1.0f } },
-		{ { -1.0f,  1.0f,  1.0f } },
+		{ { -1.0f, -1.0f,  1.0f } },
+		{ {  1.0f, -1.0f,  1.0f } },
+		{ {  1.0f, -1.0f,  1.0f } },
 		{ {  1.0f,  1.0f,  1.0f } },
-		{ {  1.0f, -1.0f,  1.0f } }
+		{ { -1.0f,  1.0f,  1.0f } }
+
+	//	// Right face (+X)
+	//	{ { 1.0f, -1.0f, -1.0f } },
+	//	{ { 1.0f, -1.0f,  1.0f } },
+	//	{ { 1.0f,  1.0f,  1.0f } },
+	//	{ { 1.0f,  1.0f,  1.0f } },
+	//	{ { 1.0f,  1.0f, -1.0f } },
+	//	{ { 1.0f, -1.0f, -1.0f } },
+
+	//	// Left face (-X)
+	//	{ { -1.0f, -1.0f,  1.0f } },
+	//	{ { -1.0f, -1.0f, -1.0f } },
+	//	{ { -1.0f,  1.0f, -1.0f } },
+	//	{ { -1.0f,  1.0f, -1.0f } },
+	//	{ { -1.0f,  1.0f,  1.0f } },
+	//	{ { -1.0f, -1.0f,  1.0f } },
+
+	//	// Top face (+Y)
+	//	{ { -1.0f,  1.0f, -1.0f } },
+	//	{ {  1.0f,  1.0f, -1.0f } },
+	//	{ {  1.0f,  1.0f,  1.0f } },
+	//	{ {  1.0f,  1.0f,  1.0f } },
+	//	{ { -1.0f,  1.0f,  1.0f } },
+	//	{ { -1.0f,  1.0f, -1.0f } },
+
+	//	// Bottom face (-Y)
+	//	{ { -1.0f, -1.0f,  1.0f } },
+	//	{ {  1.0f, -1.0f,  1.0f } },
+	//	{ {  1.0f, -1.0f, -1.0f } },
+	//	{ {  1.0f, -1.0f, -1.0f } },
+	//	{ { -1.0f, -1.0f, -1.0f } },
+	//	{ { -1.0f, -1.0f,  1.0f } },
+
+	//	// Front face (+Z)
+	//	{ { -1.0f, -1.0f, -1.0f } },
+	//	{ {  1.0f, -1.0f, -1.0f } },
+	//	{ {  1.0f,  1.0f, -1.0f } },
+	//	{ {  1.0f,  1.0f, -1.0f } },
+	//	{ { -1.0f,  1.0f, -1.0f } },
+	//	{ { -1.0f, -1.0f, -1.0f } },
+
+	//	// Back face (-Z)
+	//	{ {  1.0f, -1.0f,  1.0f } },
+	//	{ { -1.0f, -1.0f,  1.0f } },
+	//	{ { -1.0f,  1.0f,  1.0f } },
+	//	{ { -1.0f,  1.0f,  1.0f } },
+	//	{ {  1.0f,  1.0f,  1.0f } },
+	//	{ {  1.0f, -1.0f,  1.0f } }
 	};
+
+
 }

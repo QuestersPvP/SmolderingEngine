@@ -21,10 +21,11 @@ public:
 
 	/* Variables */
 public:
+
+private:
 	/* Struct that holds general vulkan resources (already created by Renderer) */
 	VulkanResources vulkanResources;
 
-private:
 	// Graphics pipeline
 	VkPipeline graphicsPipeline;
 	VkPipelineLayout graphicsPipelineLayout;
