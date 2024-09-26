@@ -19,7 +19,7 @@ class EngineGUIRenderer
 
 private:
 	/* Struct that holds general vulkan resources (already created by Renderer) */
-	VulkanResources vulkanResources; 
+	const VulkanResources* vulkanResources;
 
 	VkDescriptorPool imguiDescriptorPool = VK_NULL_HANDLE;
 
@@ -30,7 +30,7 @@ private:
 	/* Functions */
 public:
 	EngineGUIRenderer() {};
-	EngineGUIRenderer(const VulkanResources& _resources);
+	EngineGUIRenderer(const VulkanResources* _resources);
 	void DestroyEngineGUIRenderer();
 
 	void RecordToCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageIndex);

@@ -62,8 +62,8 @@ private:
 	GLFWwindow* window;
 	Game* seGame;
 	class Camera* seCamera;
-	class EngineLevelManager* levelManager;
-	int CurrentFrame = 0;
+	class EngineLevelManager* seLevelManager;
+	int currentFrame = 0;
 
 	// Other renderer references
 	class SkyboxRenderer* seSkyboxRenderer;
@@ -71,15 +71,15 @@ private:
 	class LevelRenderer* seLevelRenderer;
 
 	/* General Vulkan Resources that other renderers will need */
-	VulkanResources vulkanResources;
+	VulkanResources* vulkanResources;
 
 	// Vulkan Components
-	VkQueue PresentationQueue;
-	VkSurfaceKHR VulkanSurface;
-	VkFormat SwapchainImageFormat;
+	VkQueue presentationQueue;
+	VkSurfaceKHR vulkanSurface;
+	VkFormat swapchainImageFormat;
 
-	std::vector<VkFramebuffer> SwapchainFramebuffers;
-	std::vector<VkCommandBuffer> CommandBuffers;
+	std::vector<VkFramebuffer> swapchainFramebuffers;
+	std::vector<VkCommandBuffer> commandBuffers;
 
 	// Depth Buffer
 	VkImage depthBufferImage;
@@ -87,12 +87,12 @@ private:
 	VkImageView depthBufferImageView;
 
 	// Synchronisation
-	std::vector<VkSemaphore> ImageAvailableSemaphores;
-	std::vector<VkSemaphore> RenderingCompleteSemaphores;
-	std::vector<VkFence> DrawFences;
+	std::vector<VkSemaphore> imageAvailableSemaphores;
+	std::vector<VkSemaphore> renderingCompleteSemaphores;
+	std::vector<VkFence> drawFences;
 
 	// Debug
-	VkDebugUtilsMessengerEXT DebugMessenger;
+	VkDebugUtilsMessengerEXT debugMessenger;
 
 	// Vulkan Validation Layers
 	const std::vector<const char*> validationLayers = 
@@ -103,10 +103,8 @@ private:
 	/* Functions */
 
 public:
-	Renderer();
-	~Renderer();
-
-	int InitRenderer(GLFWwindow* inWindow, Game* inGame, class Camera* inCamera);
+	Renderer() {};
+	Renderer(GLFWwindow* _window, Game* _game, class Camera* _camera);
 	void DestroyRenderer();
 
 	void Draw();
@@ -149,17 +147,17 @@ public:
 	VkExtent2D ChooseSwapChainExtent(const VkSurfaceCapabilitiesKHR& InSurfaceCapabilities);
 	
 	// Getters & setters
-	VulkanResources GetVulkanResources() { return vulkanResources; };
+	VulkanResources GetVulkanResources() { return *vulkanResources; };
 	// TODO: REMOVE ASAP
 	class LevelRenderer* GetLevelRenderer() { return seLevelRenderer; };
-	void SetEngineLevelManager(class EngineLevelManager* inLevel) { levelManager = inLevel; };
-	VkDevice GetLogicalDevice() { return vulkanResources.logicalDevice; };
-	VkPhysicalDevice GetPhysicalDevice() { return vulkanResources.physicalDevice; };
-	VkQueue GetGraphicsQueue() { return vulkanResources.graphicsQueue; };
-	VkCommandPool GetGraphicsCommandPool() { return vulkanResources.graphicsCommandPool; };
-	VkRenderPass GetRenderPass() { return vulkanResources.renderPass; };
-	uint32_t GetSwapchainImageSize() { return vulkanResources.swapchainImages.size(); };
-	std::vector<VkFramebuffer> GetSwapchainFramebuffers() { return SwapchainFramebuffers; };
+	void SetEngineLevelManager(class EngineLevelManager* inLevel) { seLevelManager = inLevel; };
+	VkDevice GetLogicalDevice() { return vulkanResources->logicalDevice; };
+	VkPhysicalDevice GetPhysicalDevice() { return vulkanResources->physicalDevice; };
+	VkQueue GetGraphicsQueue() { return vulkanResources->graphicsQueue; };
+	VkCommandPool GetGraphicsCommandPool() { return vulkanResources->graphicsCommandPool; };
+	VkRenderPass GetRenderPass() { return vulkanResources->renderPass; };
+	uint32_t GetSwapchainImageSize() { return vulkanResources->swapchainImages.size(); };
+	std::vector<VkFramebuffer> GetSwapchainFramebuffers() { return swapchainFramebuffers; };
 
 	QueueFamilyIndicies GetQueueFamilies(VkPhysicalDevice InPhysicalDevice);
 	SwapchainDetails GetSwapchainDetails(VkPhysicalDevice InPhysicalDevice);

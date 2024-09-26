@@ -13,7 +13,7 @@ SkyboxRenderer::SkyboxRenderer()
 	CreateSkyboxVertices();
 }
 
-SkyboxRenderer::SkyboxRenderer(std::string _fileLocation, std::vector<std::string> _fileNames, const VulkanResources& _resources)
+SkyboxRenderer::SkyboxRenderer(std::string _fileLocation, std::vector<std::string> _fileNames, const VulkanResources* _resources)
 	: vulkanResources(_resources)
 {
 	try
@@ -36,35 +36,35 @@ SkyboxRenderer::SkyboxRenderer(std::string _fileLocation, std::vector<std::strin
 void SkyboxRenderer::DestroySkyboxRenderer()
 {
 	// Destroy the pipeline stuff
-	vkDestroyPipeline(vulkanResources.logicalDevice, cubemapGraphicsPipeline, nullptr);
-	vkDestroyPipelineLayout(vulkanResources.logicalDevice, cubemapPipelineLayout, nullptr);
+	vkDestroyPipeline(vulkanResources->logicalDevice, cubemapGraphicsPipeline, nullptr);
+	vkDestroyPipelineLayout(vulkanResources->logicalDevice, cubemapPipelineLayout, nullptr);
 
 	// Destroy the cubemap texture image 
-	vkDestroyImageView(vulkanResources.logicalDevice, cubemapImageView, nullptr);
-	vkDestroyImage(vulkanResources.logicalDevice, cubemapImage, nullptr);
-	vkFreeMemory(vulkanResources.logicalDevice, cubemapImageMemory, nullptr);
+	vkDestroyImageView(vulkanResources->logicalDevice, cubemapImageView, nullptr);
+	vkDestroyImage(vulkanResources->logicalDevice, cubemapImage, nullptr);
+	vkFreeMemory(vulkanResources->logicalDevice, cubemapImageMemory, nullptr);
 
 	// Destroy the vertex buffer
-	vkDestroyBuffer(vulkanResources.logicalDevice, skyboxVertexBuffer, nullptr);
-	vkFreeMemory(vulkanResources.logicalDevice, skyboxVertexBufferMemory, nullptr);
+	vkDestroyBuffer(vulkanResources->logicalDevice, skyboxVertexBuffer, nullptr);
+	vkFreeMemory(vulkanResources->logicalDevice, skyboxVertexBufferMemory, nullptr);
 
 	// Destroy the uniform buffers
 	for (size_t i = 0; i < cubemapUniformBuffers.size(); i++)
 	{
-		vkDestroyBuffer(vulkanResources.logicalDevice, cubemapUniformBuffers[i], nullptr);
-		vkFreeMemory(vulkanResources.logicalDevice, cubemapUniformBufferMemories[i], nullptr);
+		vkDestroyBuffer(vulkanResources->logicalDevice, cubemapUniformBuffers[i], nullptr);
+		vkFreeMemory(vulkanResources->logicalDevice, cubemapUniformBufferMemories[i], nullptr);
 	}
 
 	// Destroy the descriptor pools
-	vkDestroyDescriptorPool(vulkanResources.logicalDevice, cubemapSamplerDescriptorPool, nullptr);
-	vkDestroyDescriptorPool(vulkanResources.logicalDevice, cubemapUBODescriptorPool, nullptr);
+	vkDestroyDescriptorPool(vulkanResources->logicalDevice, cubemapSamplerDescriptorPool, nullptr);
+	vkDestroyDescriptorPool(vulkanResources->logicalDevice, cubemapUBODescriptorPool, nullptr);
 
 	// Destroy the descriptor set layouts
-	vkDestroyDescriptorSetLayout(vulkanResources.logicalDevice, cubemapSamplerSetLayout, nullptr);
-	vkDestroyDescriptorSetLayout(vulkanResources.logicalDevice, cubemapUBOSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(vulkanResources->logicalDevice, cubemapSamplerSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(vulkanResources->logicalDevice, cubemapUBOSetLayout, nullptr);
 
 	// Destroy the texture sampler
-	vkDestroySampler(vulkanResources.logicalDevice, cubemapTextureSampler, nullptr);
+	vkDestroySampler(vulkanResources->logicalDevice, cubemapTextureSampler, nullptr);
 
 	delete(this);
 }
@@ -102,9 +102,17 @@ void SkyboxRenderer::UpdateUniformBuffer(const Camera* _camera, uint32_t _imageI
 
 	// Copy the modified data to the uniform buffer
 	void* data;
-	vkMapMemory(vulkanResources.logicalDevice, cubemapUniformBufferMemories[_imageIndex], 0, sizeof(ubo), 0, &data);
+	vkMapMemory(vulkanResources->logicalDevice, cubemapUniformBufferMemories[_imageIndex], 0, sizeof(ubo), 0, &data);
 	memcpy(data, &ubo, sizeof(ubo));
-	vkUnmapMemory(vulkanResources.logicalDevice, cubemapUniformBufferMemories[_imageIndex]);
+	vkUnmapMemory(vulkanResources->logicalDevice, cubemapUniformBufferMemories[_imageIndex]);
+}
+
+void SkyboxRenderer::ResizeRenderer()
+{
+	vkDestroyPipelineLayout(vulkanResources->logicalDevice, cubemapPipelineLayout, nullptr);
+	vkDestroyPipeline(vulkanResources->logicalDevice, cubemapGraphicsPipeline, nullptr);
+
+	CreateCubemapGraphicsPipeline();
 }
 
 void SkyboxRenderer::CreateCubemapTextureSampler()
@@ -126,7 +134,7 @@ void SkyboxRenderer::CreateCubemapTextureSampler()
 	samplerCreateInfo.anisotropyEnable = VK_TRUE;
 	samplerCreateInfo.maxAnisotropy = 16;
 
-	if (vkCreateSampler(vulkanResources.logicalDevice, &samplerCreateInfo, nullptr, &cubemapTextureSampler) != VK_SUCCESS)
+	if (vkCreateSampler(vulkanResources->logicalDevice, &samplerCreateInfo, nullptr, &cubemapTextureSampler) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create cubemap sampler!");
 	}
@@ -147,7 +155,7 @@ void SkyboxRenderer::CreateCubemapDescriptorSetLayout()
 	uboLayoutCreateInfo.bindingCount = 1;
 	uboLayoutCreateInfo.pBindings = &uboLayoutBinding;
 
-	if (vkCreateDescriptorSetLayout(vulkanResources.logicalDevice, &uboLayoutCreateInfo, nullptr, &cubemapUBOSetLayout) != VK_SUCCESS)
+	if (vkCreateDescriptorSetLayout(vulkanResources->logicalDevice, &uboLayoutCreateInfo, nullptr, &cubemapUBOSetLayout) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create UBO descriptor set layout!");
 
 	// Sampler Descriptor Set Layout (Set 1)
@@ -163,7 +171,7 @@ void SkyboxRenderer::CreateCubemapDescriptorSetLayout()
 	samplerLayoutCreateInfo.bindingCount = 1;
 	samplerLayoutCreateInfo.pBindings = &samplerLayoutBinding;
 
-	if (vkCreateDescriptorSetLayout(vulkanResources.logicalDevice, &samplerLayoutCreateInfo, nullptr, &cubemapSamplerSetLayout) != VK_SUCCESS)
+	if (vkCreateDescriptorSetLayout(vulkanResources->logicalDevice, &samplerLayoutCreateInfo, nullptr, &cubemapSamplerSetLayout) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create sampler descriptor set layout!");
 }
 
@@ -171,12 +179,12 @@ void SkyboxRenderer::CreateCubemapUniformBuffer()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObjectViewProjection);
 
-	cubemapUniformBuffers.resize(vulkanResources.swapchainImages.size());
-	cubemapUniformBufferMemories.resize(vulkanResources.swapchainImages.size());
+	cubemapUniformBuffers.resize(vulkanResources->swapchainImages.size());
+	cubemapUniformBufferMemories.resize(vulkanResources->swapchainImages.size());
 
-	for (size_t i = 0; i < vulkanResources.swapchainImages.size(); i++)
+	for (size_t i = 0; i < vulkanResources->swapchainImages.size(); i++)
 	{
-		CreateBuffer(vulkanResources.physicalDevice, vulkanResources.logicalDevice, bufferSize,
+		CreateBuffer(vulkanResources->physicalDevice, vulkanResources->logicalDevice, bufferSize,
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&cubemapUniformBuffers[i], &cubemapUniformBufferMemories[i]);
@@ -195,13 +203,13 @@ void SkyboxRenderer::CreateCubemapDescriptorPool()
 	poolCreateInfo.pPoolSizes = &poolSize;
 	poolCreateInfo.maxSets = 1; // Maximum number of descriptor sets that can be allocated
 
-	if (vkCreateDescriptorPool(vulkanResources.logicalDevice, &poolCreateInfo, nullptr, &cubemapSamplerDescriptorPool) != VK_SUCCESS)
+	if (vkCreateDescriptorPool(vulkanResources->logicalDevice, &poolCreateInfo, nullptr, &cubemapSamplerDescriptorPool) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create descriptor pool!");
 
 	// Create UBO descriptor pool
 	VkDescriptorPoolSize uboPoolSize = {};
 	uboPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboPoolSize.descriptorCount = vulkanResources.swapchainImages.size();
+	uboPoolSize.descriptorCount = vulkanResources->swapchainImages.size();
 
 	VkDescriptorPoolSize samplerPoolSize = {};
 	samplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -213,9 +221,9 @@ void SkyboxRenderer::CreateCubemapDescriptorPool()
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	poolInfo.pPoolSizes = poolSizes.data();
-	poolInfo.maxSets = static_cast<uint32_t>(vulkanResources.swapchainImages.size() + 1); // +1 for the sampler descriptor set
+	poolInfo.maxSets = static_cast<uint32_t>(vulkanResources->swapchainImages.size() + 1); // +1 for the sampler descriptor set
 
-	if (vkCreateDescriptorPool(vulkanResources.logicalDevice, &poolInfo, nullptr, &cubemapUBODescriptorPool) != VK_SUCCESS)
+	if (vkCreateDescriptorPool(vulkanResources->logicalDevice, &poolInfo, nullptr, &cubemapUBODescriptorPool) != VK_SUCCESS)
 		throw std::runtime_error("failed to create cubemap descriptor pool!");
 }
 
@@ -228,8 +236,8 @@ void SkyboxRenderer::CreateCubemapGraphicsPipeline()
 		"/SmolderingEngine/Engine/Shaders/Compiled/CubemapSkyboxFragmentShader.frag.spv");
 
 	// Convert the SPIR-V code into shader modules
-	VkShaderModule cubemapVertexShaderModule = CreateShaderModule(vulkanResources.logicalDevice, cubemapVertexShaderCode);
-	VkShaderModule cubemapFragmentShaderModule = CreateShaderModule(vulkanResources.logicalDevice, cubemapFragmentShaderCode);
+	VkShaderModule cubemapVertexShaderModule = CreateShaderModule(vulkanResources->logicalDevice, cubemapVertexShaderCode);
+	VkShaderModule cubemapFragmentShaderModule = CreateShaderModule(vulkanResources->logicalDevice, cubemapFragmentShaderCode);
 
 	VkPipelineShaderStageCreateInfo cubemapVertexShaderStageCreateInfo = {};
 	cubemapVertexShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -274,14 +282,14 @@ void SkyboxRenderer::CreateCubemapGraphicsPipeline()
 	VkViewport cubemapViewport = {};
 	cubemapViewport.x = 0.0f;
 	cubemapViewport.y = 0.0f;
-	cubemapViewport.width = (float)vulkanResources.swapchainExtent.width;
-	cubemapViewport.height = (float)vulkanResources.swapchainExtent.height;
+	cubemapViewport.width = (float)vulkanResources->swapchainExtent.width;
+	cubemapViewport.height = (float)vulkanResources->swapchainExtent.height;
 	cubemapViewport.minDepth = 0.0f;
 	cubemapViewport.maxDepth = 1.0f;
 
 	VkRect2D cubemapScissor = {};
 	cubemapScissor.offset = { 0,0 };
-	cubemapScissor.extent = vulkanResources.swapchainExtent;
+	cubemapScissor.extent = vulkanResources->swapchainExtent;
 
 	VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {};
 	viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -339,7 +347,7 @@ void SkyboxRenderer::CreateCubemapGraphicsPipeline()
 	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(cubemapDescriptorSetLayouts.size());
 	pipelineLayoutInfo.pSetLayouts = cubemapDescriptorSetLayouts.data();
 
-	if (vkCreatePipelineLayout(vulkanResources.logicalDevice, &pipelineLayoutInfo, nullptr, &cubemapPipelineLayout) != VK_SUCCESS)
+	if (vkCreatePipelineLayout(vulkanResources->logicalDevice, &pipelineLayoutInfo, nullptr, &cubemapPipelineLayout) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create cubemap pipeline layout!");
 
 	// Depth stencil
@@ -364,18 +372,18 @@ void SkyboxRenderer::CreateCubemapGraphicsPipeline()
 	cubemapGraphicsPipelineCreateInfo.pColorBlendState = &cubemapColorBlending;
 	cubemapGraphicsPipelineCreateInfo.pDepthStencilState = &cubemapDepthStencilCreateInfo;
 	cubemapGraphicsPipelineCreateInfo.layout = cubemapPipelineLayout;
-	cubemapGraphicsPipelineCreateInfo.renderPass = vulkanResources.renderPass;
+	cubemapGraphicsPipelineCreateInfo.renderPass = vulkanResources->renderPass;
 	cubemapGraphicsPipelineCreateInfo.subpass = 0;
 	cubemapGraphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 	cubemapGraphicsPipelineCreateInfo.basePipelineIndex = -1;
 
-	VkResult result = vkCreateGraphicsPipelines(vulkanResources.logicalDevice, VK_NULL_HANDLE, 1, &cubemapGraphicsPipelineCreateInfo, nullptr, &cubemapGraphicsPipeline);
+	VkResult result = vkCreateGraphicsPipelines(vulkanResources->logicalDevice, VK_NULL_HANDLE, 1, &cubemapGraphicsPipelineCreateInfo, nullptr, &cubemapGraphicsPipeline);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create cubemap graphics pipeline!");
 
 	// Destroy the shader modules
-	vkDestroyShaderModule(vulkanResources.logicalDevice, cubemapFragmentShaderModule, nullptr);
-	vkDestroyShaderModule(vulkanResources.logicalDevice, cubemapVertexShaderModule, nullptr);
+	vkDestroyShaderModule(vulkanResources->logicalDevice, cubemapFragmentShaderModule, nullptr);
+	vkDestroyShaderModule(vulkanResources->logicalDevice, cubemapVertexShaderModule, nullptr);
 }
 
 void SkyboxRenderer::CreateVertexBuffer()
@@ -385,29 +393,29 @@ void SkyboxRenderer::CreateVertexBuffer()
 	// Create staging buffer
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	CreateBuffer(vulkanResources.physicalDevice, vulkanResources.logicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	CreateBuffer(vulkanResources->physicalDevice, vulkanResources->logicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		&stagingBuffer, &stagingBufferMemory);
 
 	// Copy vertex data to staging buffer
 	void* data;
-	vkMapMemory(vulkanResources.logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+	vkMapMemory(vulkanResources->logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
 	memcpy(data, skyboxVertices.data(), (size_t)bufferSize);
-	vkUnmapMemory(vulkanResources.logicalDevice, stagingBufferMemory);
+	vkUnmapMemory(vulkanResources->logicalDevice, stagingBufferMemory);
 
 	// Create vertex buffer
-	CreateBuffer(vulkanResources.physicalDevice, vulkanResources.logicalDevice, bufferSize,
+	CreateBuffer(vulkanResources->physicalDevice, vulkanResources->logicalDevice, bufferSize,
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		&skyboxVertexBuffer, &skyboxVertexBufferMemory);
 
 	// Copy data from staging buffer to vertex buffer
-	CopyBuffer(vulkanResources.logicalDevice, vulkanResources.graphicsQueue, vulkanResources.graphicsCommandPool,
+	CopyBuffer(vulkanResources->logicalDevice, vulkanResources->graphicsQueue, vulkanResources->graphicsCommandPool,
 		stagingBuffer, skyboxVertexBuffer, bufferSize);
 
 	// Clean up staging buffer
-	vkDestroyBuffer(vulkanResources.logicalDevice, stagingBuffer, nullptr);
-	vkFreeMemory(vulkanResources.logicalDevice, stagingBufferMemory, nullptr);
+	vkDestroyBuffer(vulkanResources->logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(vulkanResources->logicalDevice, stagingBufferMemory, nullptr);
 }
 
 void SkyboxRenderer::CreateCubemapTextureImage(std::string _fileLocation, std::vector<std::string> _fileNames)
@@ -434,13 +442,13 @@ void SkyboxRenderer::CreateCubemapTextureImage(std::string _fileLocation, std::v
 	// Create staging buffer
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	CreateBuffer(vulkanResources.physicalDevice, vulkanResources.logicalDevice, totalSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	CreateBuffer(vulkanResources->physicalDevice, vulkanResources->logicalDevice, totalSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		&stagingBuffer, &stagingBufferMemory);
 
 	// Copy face data into staging buffer
 	void* data;
-	vkMapMemory(vulkanResources.logicalDevice, stagingBufferMemory, 0, totalSize, 0, &data);
+	vkMapMemory(vulkanResources->logicalDevice, stagingBufferMemory, 0, totalSize, 0, &data);
 	VkDeviceSize offset = 0;
 	for (size_t i = 0; i < 6; ++i)
 	{
@@ -449,22 +457,22 @@ void SkyboxRenderer::CreateCubemapTextureImage(std::string _fileLocation, std::v
 		offset += layerSize;
 		stbi_image_free(faceData[i]); // Free individual face data after copying
 	}
-	vkUnmapMemory(vulkanResources.logicalDevice, stagingBufferMemory);
+	vkUnmapMemory(vulkanResources->logicalDevice, stagingBufferMemory);
 
 	// Create cubemap image
 	cubemapImage = CreateCubemapImage(width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &cubemapImageMemory);
 
 	// Transition image to TRANSFER_DST_OPTIMAL
-	TransitionImageLayout(vulkanResources.logicalDevice, vulkanResources.graphicsQueue, vulkanResources.graphicsCommandPool,
+	TransitionImageLayout(vulkanResources->logicalDevice, vulkanResources->graphicsQueue, vulkanResources->graphicsCommandPool,
 		cubemapImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 6);
 
 	// Copy buffer to image
-	CopyBufferToCubemapImage(vulkanResources.logicalDevice, vulkanResources.graphicsQueue, vulkanResources.graphicsCommandPool,
+	CopyBufferToCubemapImage(vulkanResources->logicalDevice, vulkanResources->graphicsQueue, vulkanResources->graphicsCommandPool,
 		stagingBuffer, cubemapImage, width, height);
 
 	// Transition image to SHADER_READ_ONLY_OPTIMAL
-	TransitionImageLayout(vulkanResources.logicalDevice, vulkanResources.graphicsQueue, vulkanResources.graphicsCommandPool,
+	TransitionImageLayout(vulkanResources->logicalDevice, vulkanResources->graphicsQueue, vulkanResources->graphicsCommandPool,
 		cubemapImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 6);
 
 	// Create image view
@@ -474,8 +482,8 @@ void SkyboxRenderer::CreateCubemapTextureImage(std::string _fileLocation, std::v
 	CreateCubemapTextureDescriptor(cubemapImageView);
 
 	// Clean up staging buffer
-	vkDestroyBuffer(vulkanResources.logicalDevice, stagingBuffer, nullptr);
-	vkFreeMemory(vulkanResources.logicalDevice, stagingBufferMemory, nullptr);
+	vkDestroyBuffer(vulkanResources->logicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(vulkanResources->logicalDevice, stagingBufferMemory, nullptr);
 }
 
 VkImage SkyboxRenderer::CreateCubemapImage(uint32_t _width, uint32_t _height, VkFormat _format, VkImageTiling _tiling, VkImageUsageFlags _usageFlags, VkMemoryPropertyFlags _propertyFlags, VkDeviceMemory* _imageMemory)
@@ -497,26 +505,26 @@ VkImage SkyboxRenderer::CreateCubemapImage(uint32_t _width, uint32_t _height, Vk
 	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;		// Image will not be shared between queues
 
 	VkImage image;
-	VkResult result = vkCreateImage(vulkanResources.logicalDevice, &imageCreateInfo, nullptr, &image);
+	VkResult result = vkCreateImage(vulkanResources->logicalDevice, &imageCreateInfo, nullptr, &image);
 
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create an image!");
 
 	// Get memory requirements for a type of image
 	VkMemoryRequirements memoryRequirements;
-	vkGetImageMemoryRequirements(vulkanResources.logicalDevice, image, &memoryRequirements);
+	vkGetImageMemoryRequirements(vulkanResources->logicalDevice, image, &memoryRequirements);
 
 	VkMemoryAllocateInfo memoryAllocationInfo = {};
 	memoryAllocationInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	memoryAllocationInfo.allocationSize = memoryRequirements.size;
-	memoryAllocationInfo.memoryTypeIndex = FindMemoryTypeIndex(vulkanResources.physicalDevice, memoryRequirements.memoryTypeBits, _propertyFlags);
+	memoryAllocationInfo.memoryTypeIndex = FindMemoryTypeIndex(vulkanResources->physicalDevice, memoryRequirements.memoryTypeBits, _propertyFlags);
 
-	result = vkAllocateMemory(vulkanResources.logicalDevice, &memoryAllocationInfo, nullptr, _imageMemory);
+	result = vkAllocateMemory(vulkanResources->logicalDevice, &memoryAllocationInfo, nullptr, _imageMemory);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to allocate memory!");
 
 	// Bind memory to the image
-	vkBindImageMemory(vulkanResources.logicalDevice, image, *_imageMemory, 0);
+	vkBindImageMemory(vulkanResources->logicalDevice, image, *_imageMemory, 0);
 
 	return image;
 }
@@ -538,7 +546,7 @@ VkImageView SkyboxRenderer::CreateCubemapImageView(VkImage _image, VkFormat _for
 	viewInfo.subresourceRange.layerCount = 6;
 
 	VkImageView imageView;
-	if (vkCreateImageView(vulkanResources.logicalDevice, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+	if (vkCreateImageView(vulkanResources->logicalDevice, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create cubemap image view!");
 	}
@@ -554,7 +562,7 @@ void SkyboxRenderer::CreateCubemapTextureDescriptor(VkImageView _cubemapImageVie
 	setAllocInfo.descriptorSetCount = 1;
 	setAllocInfo.pSetLayouts = &cubemapSamplerSetLayout;
 
-	if (vkAllocateDescriptorSets(vulkanResources.logicalDevice, &setAllocInfo, &cubemapSamplerDescriptorSet) != VK_SUCCESS)
+	if (vkAllocateDescriptorSets(vulkanResources->logicalDevice, &setAllocInfo, &cubemapSamplerDescriptorSet) != VK_SUCCESS)
 		throw std::runtime_error("Failed to allocate cubemap descriptor set!");
 
 	VkDescriptorImageInfo imageInfo = {};
@@ -571,22 +579,22 @@ void SkyboxRenderer::CreateCubemapTextureDescriptor(VkImageView _cubemapImageVie
 	descriptorWrite.descriptorCount = 1;
 	descriptorWrite.pImageInfo = &imageInfo;
 
-	vkUpdateDescriptorSets(vulkanResources.logicalDevice, 1, &descriptorWrite, 0, nullptr);
+	vkUpdateDescriptorSets(vulkanResources->logicalDevice, 1, &descriptorWrite, 0, nullptr);
 
 	// Descriptor Set for UBO
-	cubemapUBODescriptorSets.resize(vulkanResources.swapchainImages.size());
+	cubemapUBODescriptorSets.resize(vulkanResources->swapchainImages.size());
 
-	std::vector<VkDescriptorSetLayout> layouts(vulkanResources.swapchainImages.size(), cubemapUBOSetLayout);
+	std::vector<VkDescriptorSetLayout> layouts(vulkanResources->swapchainImages.size(), cubemapUBOSetLayout);
 	VkDescriptorSetAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = cubemapUBODescriptorPool;
-	allocInfo.descriptorSetCount = vulkanResources.swapchainImages.size();
+	allocInfo.descriptorSetCount = vulkanResources->swapchainImages.size();
 	allocInfo.pSetLayouts = layouts.data();
 
-	if (vkAllocateDescriptorSets(vulkanResources.logicalDevice, &allocInfo, cubemapUBODescriptorSets.data()) != VK_SUCCESS)
+	if (vkAllocateDescriptorSets(vulkanResources->logicalDevice, &allocInfo, cubemapUBODescriptorSets.data()) != VK_SUCCESS)
 		throw std::runtime_error("failed to allocate cubemap uniform buffer descriptor sets!");
 
-	for (size_t i = 0; i < vulkanResources.swapchainImages.size(); i++)
+	for (size_t i = 0; i < vulkanResources->swapchainImages.size(); i++)
 	{
 		VkDescriptorBufferInfo bufferInfo = {};
 		bufferInfo.buffer = cubemapUniformBuffers[i];
@@ -602,14 +610,14 @@ void SkyboxRenderer::CreateCubemapTextureDescriptor(VkImageView _cubemapImageVie
 		descriptorWrite.descriptorCount = 1;
 		descriptorWrite.pBufferInfo = &bufferInfo;
 
-		vkUpdateDescriptorSets(vulkanResources.logicalDevice, 1, &descriptorWrite, 0, nullptr);
+		vkUpdateDescriptorSets(vulkanResources->logicalDevice, 1, &descriptorWrite, 0, nullptr);
 	}
 }
 
 void SkyboxRenderer::CopyBufferToCubemapImage(VkDevice _logicalDevice, VkQueue _queue, VkCommandPool _commandPool,
 	VkBuffer _buffer, VkImage _image, uint32_t _width, uint32_t _height)
 {
-	VkCommandBuffer commandBuffer = BeginCommandBuffer(vulkanResources.logicalDevice, _commandPool);
+	VkCommandBuffer commandBuffer = BeginCommandBuffer(vulkanResources->logicalDevice, _commandPool);
 
 	std::vector<VkBufferImageCopy> bufferCopyRegions;
 	VkDeviceSize layerSize = _width * _height * 4; // Assuming 4 bytes per pixel (RGBA)
@@ -632,7 +640,7 @@ void SkyboxRenderer::CopyBufferToCubemapImage(VkDevice _logicalDevice, VkQueue _
 	vkCmdCopyBufferToImage(commandBuffer, _buffer, _image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		static_cast<uint32_t>(bufferCopyRegions.size()), bufferCopyRegions.data());
 
-	EndAndSubmitCommandBuffer(vulkanResources.logicalDevice, _commandPool, _queue, commandBuffer);
+	EndAndSubmitCommandBuffer(vulkanResources->logicalDevice, _commandPool, _queue, commandBuffer);
 }
 
 void SkyboxRenderer::CreateSkyboxVertices()

@@ -46,7 +46,6 @@ int main()
 {
 	seInput = new InputManager();
 	seCamera = new Camera();
-	seRenderer = new Renderer();
 	seGame = new Game(); // TODO: this should be broken into 2 classes at least - 1 for game management (engine side), 1 more focused directly gameplay
 	seCollision = new CollisionManager();
 
@@ -54,8 +53,7 @@ int main()
 	seInput->InitWindow("Smoldering Engine", 1280, 720);
 
 	// Setup the renderer
-	if (seRenderer->InitRenderer(seInput->window, seGame, seCamera) == EXIT_FAILURE)
-		return EXIT_FAILURE;
+	seRenderer = new Renderer(seInput->window, seGame, seCamera);
 
 	// --- LEVEL MANAGER ---
 	seEngineLevel = new EngineLevelManager(seRenderer->GetPhysicalDevice(), seRenderer->GetLogicalDevice(),
@@ -113,7 +111,6 @@ int main()
 
 	delete(seCollision);
 	delete(seGame);
-	delete(seRenderer);
 	delete(seCamera);
 	delete(seInput);
 

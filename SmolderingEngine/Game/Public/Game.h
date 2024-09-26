@@ -15,7 +15,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-// Engine
+// Project includes
 #include "Engine/Public/Rendering/Mesh.h"
 #include "Engine/Public/Rendering/MeshModel.h"
 #include "Engine/Public/Object/GameObject.h"
@@ -25,7 +25,7 @@ class Game
 {
     /* Variables */
 public:
-    std::vector<GameObject*> gameObjects;
+    std::vector<class GameObject*> gameObjects;
 
     /* Functions */
 public:

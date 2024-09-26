@@ -10,14 +10,14 @@
 void LevelRenderer::DestroyAllRendererTextures()
 {
 	// Wait until queues and all operations are done before cleaning up
-	vkDeviceWaitIdle(vulkanResources.logicalDevice);
+	vkDeviceWaitIdle(vulkanResources->logicalDevice);
 
 	// Destroy texture-related Vulkan objects for the current level
 	for (size_t i = 0; i < textureImages.size(); i++)
 	{
-		vkDestroyImageView(vulkanResources.logicalDevice, textureImageViews[i], nullptr);
-		vkDestroyImage(vulkanResources.logicalDevice, textureImages[i], nullptr);
-		vkFreeMemory(vulkanResources.logicalDevice, textureImageMemory[i], nullptr);
+		vkDestroyImageView(vulkanResources->logicalDevice, textureImageViews[i], nullptr);
+		vkDestroyImage(vulkanResources->logicalDevice, textureImages[i], nullptr);
+		vkFreeMemory(vulkanResources->logicalDevice, textureImageMemory[i], nullptr);
 	}
 
 	textureImageViews.clear();
@@ -25,7 +25,7 @@ void LevelRenderer::DestroyAllRendererTextures()
 	textureImageMemory.clear();
 }
 
-LevelRenderer::LevelRenderer(const VulkanResources& _resources, class Game* _game)
+LevelRenderer::LevelRenderer(const VulkanResources* _resources, class Game* _game)
 	: vulkanResources(_resources), seGame(_game)
 {
 	try
@@ -49,32 +49,32 @@ void LevelRenderer::DestroyLevelRenderer()
 	// Destroy texture image views, images, and memory
 	for (size_t i = 0; i < textureImageViews.size(); i++) 
 	{
-		vkDestroyImageView(vulkanResources.logicalDevice, textureImageViews[i], nullptr);
-		vkDestroyImage(vulkanResources.logicalDevice, textureImages[i], nullptr);
-		vkFreeMemory(vulkanResources.logicalDevice, textureImageMemory[i], nullptr);
+		vkDestroyImageView(vulkanResources->logicalDevice, textureImageViews[i], nullptr);
+		vkDestroyImage(vulkanResources->logicalDevice, textureImages[i], nullptr);
+		vkFreeMemory(vulkanResources->logicalDevice, textureImageMemory[i], nullptr);
 	}
 
 	// Destroy the texture sampler
-	vkDestroySampler(vulkanResources.logicalDevice, textureSampler, nullptr);
+	vkDestroySampler(vulkanResources->logicalDevice, textureSampler, nullptr);
 
 	// Destroy descriptor pools
-	vkDestroyDescriptorPool(vulkanResources.logicalDevice, uboDescriptorPool, nullptr);
-	vkDestroyDescriptorPool(vulkanResources.logicalDevice, samplerDescriptorPool, nullptr);
+	vkDestroyDescriptorPool(vulkanResources->logicalDevice, uboDescriptorPool, nullptr);
+	vkDestroyDescriptorPool(vulkanResources->logicalDevice, samplerDescriptorPool, nullptr);
 
 	// Destroy uniform buffers
 	for (size_t i = 0; i < viewProjectionUniformBuffers.size(); i++) 
 	{
-		vkDestroyBuffer(vulkanResources.logicalDevice, viewProjectionUniformBuffers[i], nullptr);
-		vkFreeMemory(vulkanResources.logicalDevice, viewProjectionUniformBufferMemory[i], nullptr);
+		vkDestroyBuffer(vulkanResources->logicalDevice, viewProjectionUniformBuffers[i], nullptr);
+		vkFreeMemory(vulkanResources->logicalDevice, viewProjectionUniformBufferMemory[i], nullptr);
 	}
 
 	// Destroy the graphics pipeline and its layout
-	vkDestroyPipeline(vulkanResources.logicalDevice, graphicsPipeline, nullptr);
-	vkDestroyPipelineLayout(vulkanResources.logicalDevice, graphicsPipelineLayout, nullptr);
+	vkDestroyPipeline(vulkanResources->logicalDevice, graphicsPipeline, nullptr);
+	vkDestroyPipelineLayout(vulkanResources->logicalDevice, graphicsPipelineLayout, nullptr);
 
 	// Destroy descriptor set layouts
-	vkDestroyDescriptorSetLayout(vulkanResources.logicalDevice, uboDescriptorSetLayout, nullptr);
-	vkDestroyDescriptorSetLayout(vulkanResources.logicalDevice, samplerSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(vulkanResources->logicalDevice, uboDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(vulkanResources->logicalDevice, samplerSetLayout, nullptr);
 
 	delete(this);
 }
@@ -129,9 +129,17 @@ void LevelRenderer::UpdateUniformBuffer(const Camera* _camera, uint32_t _imageIn
 {
 	// copy view projection data
 	void* data;
-	vkMapMemory(vulkanResources.logicalDevice, viewProjectionUniformBufferMemory[_imageIndex], 0, sizeof(UniformBufferObjectViewProjection), 0, &data);
+	vkMapMemory(vulkanResources->logicalDevice, viewProjectionUniformBufferMemory[_imageIndex], 0, sizeof(UniformBufferObjectViewProjection), 0, &data);
 	memcpy(data, &_camera->uboViewProjection, sizeof(UniformBufferObjectViewProjection));
-	vkUnmapMemory(vulkanResources.logicalDevice, viewProjectionUniformBufferMemory[_imageIndex]);
+	vkUnmapMemory(vulkanResources->logicalDevice, viewProjectionUniformBufferMemory[_imageIndex]);
+}
+
+void LevelRenderer::ResizeRenderer()
+{
+	vkDestroyPipelineLayout(vulkanResources->logicalDevice, graphicsPipelineLayout, nullptr);
+	vkDestroyPipeline(vulkanResources->logicalDevice, graphicsPipeline, nullptr);
+
+	CreateGraphicsPipeline();
 }
 
 void LevelRenderer::CreateDescriptorSetLayout()
@@ -153,7 +161,7 @@ void LevelRenderer::CreateDescriptorSetLayout()
 	descriptorSetLayoutCreateInfo.pBindings = layoutBindings.data();
 
 	// Create descriptor set layout
-	VkResult result = vkCreateDescriptorSetLayout(vulkanResources.logicalDevice, &descriptorSetLayoutCreateInfo, nullptr, &uboDescriptorSetLayout);
+	VkResult result = vkCreateDescriptorSetLayout(vulkanResources->logicalDevice, &descriptorSetLayoutCreateInfo, nullptr, &uboDescriptorSetLayout);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create descriptor set layout!");
 
@@ -172,7 +180,7 @@ void LevelRenderer::CreateDescriptorSetLayout()
 	textureLayoutCreateInfo.pBindings = &samplerLayoutBinding;
 
 	// Create Descriptor Set Layout
-	result = vkCreateDescriptorSetLayout(vulkanResources.logicalDevice, &textureLayoutCreateInfo, nullptr, &samplerSetLayout);
+	result = vkCreateDescriptorSetLayout(vulkanResources->logicalDevice, &textureLayoutCreateInfo, nullptr, &samplerSetLayout);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create a Descriptor Set Layout!");
 }
@@ -193,8 +201,8 @@ void LevelRenderer::CreateGraphicsPipeline()
 	std::vector<char> fragmentShaderCode = ReadFile(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Engine/Shaders/Compiled/Shader.frag.spv");
 
 	// Convert the SPIR-V code into shader modules
-	VkShaderModule VertexShaderModule = CreateShaderModule(vulkanResources.logicalDevice, vertexShaderCode);
-	VkShaderModule FragmentShaderModule = CreateShaderModule(vulkanResources.logicalDevice, fragmentShaderCode);
+	VkShaderModule VertexShaderModule = CreateShaderModule(vulkanResources->logicalDevice, vertexShaderCode);
+	VkShaderModule FragmentShaderModule = CreateShaderModule(vulkanResources->logicalDevice, fragmentShaderCode);
 
 	VkPipelineShaderStageCreateInfo vertexShaderStageCreateInfo = {};
 	vertexShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -260,14 +268,14 @@ void LevelRenderer::CreateGraphicsPipeline()
 	VkViewport viewport = {};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = (float)vulkanResources.swapchainExtent.width;
-	viewport.height = (float)vulkanResources.swapchainExtent.height;
+	viewport.width = (float)vulkanResources->swapchainExtent.width;
+	viewport.height = (float)vulkanResources->swapchainExtent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor = {};
 	scissor.offset = { 0,0 };
-	scissor.extent = vulkanResources.swapchainExtent;
+	scissor.extent = vulkanResources->swapchainExtent;
 
 	VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {};
 	viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -336,7 +344,7 @@ void LevelRenderer::CreateGraphicsPipeline()
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 	pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 
-	VkResult Result = vkCreatePipelineLayout(vulkanResources.logicalDevice, &pipelineLayoutCreateInfo, nullptr, &graphicsPipelineLayout);
+	VkResult Result = vkCreatePipelineLayout(vulkanResources->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &graphicsPipelineLayout);
 	if (Result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create pipeline layout");
 #pragma endregion
@@ -364,20 +372,20 @@ void LevelRenderer::CreateGraphicsPipeline()
 	GraphicsPipelineCreateInfo.pColorBlendState = &ColorBlendingCreateInfo;
 	GraphicsPipelineCreateInfo.pDepthStencilState = &depthStencilCreateInfo;
 	GraphicsPipelineCreateInfo.layout = graphicsPipelineLayout;
-	GraphicsPipelineCreateInfo.renderPass = vulkanResources.renderPass;
+	GraphicsPipelineCreateInfo.renderPass = vulkanResources->renderPass;
 	GraphicsPipelineCreateInfo.subpass = 0;
 	// Use if we want to create multiple pipelines deriving from eachother
 	GraphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 	GraphicsPipelineCreateInfo.basePipelineIndex = -1;
 
-	Result = vkCreateGraphicsPipelines(vulkanResources.logicalDevice, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &graphicsPipeline);
+	Result = vkCreateGraphicsPipelines(vulkanResources->logicalDevice, VK_NULL_HANDLE, 1, &GraphicsPipelineCreateInfo, nullptr, &graphicsPipeline);
 
 	if (Result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create graphics pipeline!");
 
 	// Destroy shader modules
-	vkDestroyShaderModule(vulkanResources.logicalDevice, FragmentShaderModule, nullptr);
-	vkDestroyShaderModule(vulkanResources.logicalDevice, VertexShaderModule, nullptr);
+	vkDestroyShaderModule(vulkanResources->logicalDevice, FragmentShaderModule, nullptr);
+	vkDestroyShaderModule(vulkanResources->logicalDevice, VertexShaderModule, nullptr);
 }
 
 void LevelRenderer::CreateTextureSampler()
@@ -399,7 +407,7 @@ void LevelRenderer::CreateTextureSampler()
 	samplerCreateInfo.anisotropyEnable = VK_TRUE;						// Enable Anisotropy
 	samplerCreateInfo.maxAnisotropy = 16;								// Anisotropy sample level
 
-	VkResult result = vkCreateSampler(vulkanResources.logicalDevice, &samplerCreateInfo, nullptr, &textureSampler);
+	VkResult result = vkCreateSampler(vulkanResources->logicalDevice, &samplerCreateInfo, nullptr, &textureSampler);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Filed to create a Texture Sampler!");
 }
@@ -408,12 +416,12 @@ void LevelRenderer::CreateUniformBuffers()
 {
 	VkDeviceSize viewProjectionBufferSize = sizeof(UniformBufferObjectViewProjection);
 
-	viewProjectionUniformBuffers.resize(vulkanResources.swapchainImages.size());
-	viewProjectionUniformBufferMemory.resize(vulkanResources.swapchainImages.size());
+	viewProjectionUniformBuffers.resize(vulkanResources->swapchainImages.size());
+	viewProjectionUniformBufferMemory.resize(vulkanResources->swapchainImages.size());
 
-	for (size_t i = 0; i < vulkanResources.swapchainImages.size(); i++)
+	for (size_t i = 0; i < vulkanResources->swapchainImages.size(); i++)
 	{
-		CreateBuffer(vulkanResources.physicalDevice, vulkanResources.logicalDevice, viewProjectionBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+		CreateBuffer(vulkanResources->physicalDevice, vulkanResources->logicalDevice, viewProjectionBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &viewProjectionUniformBuffers[i], &viewProjectionUniformBufferMemory[i]);
 	}
 }
@@ -430,11 +438,11 @@ void LevelRenderer::CreateDescriptorPool()
 
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
 	descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	descriptorPoolCreateInfo.maxSets = static_cast<uint32_t>(vulkanResources.swapchainImages.size());
+	descriptorPoolCreateInfo.maxSets = static_cast<uint32_t>(vulkanResources->swapchainImages.size());
 	descriptorPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size());
 	descriptorPoolCreateInfo.pPoolSizes = descriptorPoolSizes.data();
 
-	VkResult result = vkCreateDescriptorPool(vulkanResources.logicalDevice, &descriptorPoolCreateInfo, nullptr, &uboDescriptorPool);
+	VkResult result = vkCreateDescriptorPool(vulkanResources->logicalDevice, &descriptorPoolCreateInfo, nullptr, &uboDescriptorPool);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create a descriptor pool");
 
@@ -449,7 +457,7 @@ void LevelRenderer::CreateDescriptorPool()
 	samplerPoolCreateInfo.poolSizeCount = 1;
 	samplerPoolCreateInfo.pPoolSizes = &samplerPoolSize;
 
-	result = vkCreateDescriptorPool(vulkanResources.logicalDevice, &samplerPoolCreateInfo, nullptr, &samplerDescriptorPool);
+	result = vkCreateDescriptorPool(vulkanResources->logicalDevice, &samplerPoolCreateInfo, nullptr, &samplerDescriptorPool);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create a descriptor pool!");
 }
@@ -457,22 +465,22 @@ void LevelRenderer::CreateDescriptorPool()
 void LevelRenderer::AllocateDescriptorSets()
 {
 	// resize descriptor set, the uniform buffers are linked
-	uboDescriptorSets.resize(vulkanResources.swapchainImages.size());
+	uboDescriptorSets.resize(vulkanResources->swapchainImages.size());
 
-	std::vector<VkDescriptorSetLayout> descriptorSetLayouts(vulkanResources.swapchainImages.size(), uboDescriptorSetLayout);
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts(vulkanResources->swapchainImages.size(), uboDescriptorSetLayout);
 
 	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
 	descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	descriptorSetAllocateInfo.descriptorPool = uboDescriptorPool;
-	descriptorSetAllocateInfo.descriptorSetCount = static_cast<uint32_t>(vulkanResources.swapchainImages.size());
+	descriptorSetAllocateInfo.descriptorSetCount = static_cast<uint32_t>(vulkanResources->swapchainImages.size());
 	descriptorSetAllocateInfo.pSetLayouts = descriptorSetLayouts.data();
 
-	VkResult result = vkAllocateDescriptorSets(vulkanResources.logicalDevice, &descriptorSetAllocateInfo, uboDescriptorSets.data());
+	VkResult result = vkAllocateDescriptorSets(vulkanResources->logicalDevice, &descriptorSetAllocateInfo, uboDescriptorSets.data());
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to allocate descriptor sets!");
 
 	// Update all of descriptor set buffer bindings
-	for (size_t i = 0; i < vulkanResources.swapchainImages.size(); i++)
+	for (size_t i = 0; i < vulkanResources->swapchainImages.size(); i++)
 	{
 		// View projection descriptor
 		// Buffer info and data offset info
@@ -493,7 +501,7 @@ void LevelRenderer::AllocateDescriptorSets()
 		std::vector<VkWriteDescriptorSet> writeDescriptors = { viewProjectionSetWrite };
 
 		// update the descriptor sets with the new buffer binding info
-		vkUpdateDescriptorSets(vulkanResources.logicalDevice, static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
+		vkUpdateDescriptorSets(vulkanResources->logicalDevice, static_cast<uint32_t>(writeDescriptors.size()), writeDescriptors.data(), 0, nullptr);
 	}
 }
 
@@ -516,26 +524,26 @@ VkImage LevelRenderer::CreateImage(uint32_t _width, uint32_t _height, VkFormat _
 	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;		// Image will not be shared between queues
 
 	VkImage image;
-	VkResult result = vkCreateImage(vulkanResources.logicalDevice, &imageCreateInfo, nullptr, &image);
+	VkResult result = vkCreateImage(vulkanResources->logicalDevice, &imageCreateInfo, nullptr, &image);
 
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create an image!");
 
 	// Get memory requirements for a type of image
 	VkMemoryRequirements memoryRequirements;
-	vkGetImageMemoryRequirements(vulkanResources.logicalDevice, image, &memoryRequirements);
+	vkGetImageMemoryRequirements(vulkanResources->logicalDevice, image, &memoryRequirements);
 
 	VkMemoryAllocateInfo memoryAllocationInfo = {};
 	memoryAllocationInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	memoryAllocationInfo.allocationSize = memoryRequirements.size;
-	memoryAllocationInfo.memoryTypeIndex = FindMemoryTypeIndex(vulkanResources.physicalDevice, memoryRequirements.memoryTypeBits, _propertyFlags);
+	memoryAllocationInfo.memoryTypeIndex = FindMemoryTypeIndex(vulkanResources->physicalDevice, memoryRequirements.memoryTypeBits, _propertyFlags);
 
-	result = vkAllocateMemory(vulkanResources.logicalDevice, &memoryAllocationInfo, nullptr, _imageMemory);
+	result = vkAllocateMemory(vulkanResources->logicalDevice, &memoryAllocationInfo, nullptr, _imageMemory);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to allocate memory!");
 
 	// Bind memory to the image
-	vkBindImageMemory(vulkanResources.logicalDevice, image, *_imageMemory, 0);
+	vkBindImageMemory(vulkanResources->logicalDevice, image, *_imageMemory, 0);
 
 	return image;
 }
@@ -558,7 +566,7 @@ VkImageView LevelRenderer::CreateImageView(VkImage _image, VkFormat _format, VkI
 	ImageViewInfo.subresourceRange.layerCount = 1;						// number of array levels to view
 
 	VkImageView ImageView;
-	VkResult Result = vkCreateImageView(vulkanResources.logicalDevice, &ImageViewInfo, nullptr, &ImageView);
+	VkResult Result = vkCreateImageView(vulkanResources->logicalDevice, &ImageViewInfo, nullptr, &ImageView);
 
 	if (Result != VK_SUCCESS)
 		throw std::runtime_error("Failed to create image views!");
@@ -595,15 +603,15 @@ int LevelRenderer::CreateTextureImage(std::string _fileName)
 	// Create staging buffer to hold loaded data, ready to copy to device
 	VkBuffer imageStagingBuffer;
 	VkDeviceMemory imageStagingBufferMemory;
-	CreateBuffer(vulkanResources.physicalDevice, vulkanResources.logicalDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	CreateBuffer(vulkanResources->physicalDevice, vulkanResources->logicalDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		&imageStagingBuffer, &imageStagingBufferMemory);
 
 	// Copy image data to staging buffer
 	void* data;
-	vkMapMemory(vulkanResources.logicalDevice, imageStagingBufferMemory, 0, imageSize, 0, &data);
+	vkMapMemory(vulkanResources->logicalDevice, imageStagingBufferMemory, 0, imageSize, 0, &data);
 	memcpy(data, imageData, static_cast<size_t>(imageSize));
-	vkUnmapMemory(vulkanResources.logicalDevice, imageStagingBufferMemory);
+	vkUnmapMemory(vulkanResources->logicalDevice, imageStagingBufferMemory);
 
 	// Free original image data
 	stbi_image_free(imageData);
@@ -617,14 +625,14 @@ int LevelRenderer::CreateTextureImage(std::string _fileName)
 
 	// COPY DATA TO IMAGE
 	// Transition image to be DST for copy operation
-	TransitionImageLayout(vulkanResources.logicalDevice, vulkanResources.graphicsQueue, vulkanResources.graphicsCommandPool,
+	TransitionImageLayout(vulkanResources->logicalDevice, vulkanResources->graphicsQueue, vulkanResources->graphicsCommandPool,
 		texImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
 
 	// Copy image data
-	CopyImageBuffer(vulkanResources.logicalDevice, vulkanResources.graphicsQueue, vulkanResources.graphicsCommandPool, imageStagingBuffer, texImage, width, height);
+	CopyImageBuffer(vulkanResources->logicalDevice, vulkanResources->graphicsQueue, vulkanResources->graphicsCommandPool, imageStagingBuffer, texImage, width, height);
 
 	// Transition image to be shader readable for shader usage
-	TransitionImageLayout(vulkanResources.logicalDevice, vulkanResources.graphicsQueue, vulkanResources.graphicsCommandPool,
+	TransitionImageLayout(vulkanResources->logicalDevice, vulkanResources->graphicsQueue, vulkanResources->graphicsCommandPool,
 		texImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
 
 	// Add texture data to vector for reference
@@ -632,8 +640,8 @@ int LevelRenderer::CreateTextureImage(std::string _fileName)
 	textureImageMemory.push_back(texImageMemory);
 
 	// Destroy staging buffers
-	vkDestroyBuffer(vulkanResources.logicalDevice, imageStagingBuffer, nullptr);
-	vkFreeMemory(vulkanResources.logicalDevice, imageStagingBufferMemory, nullptr);
+	vkDestroyBuffer(vulkanResources->logicalDevice, imageStagingBuffer, nullptr);
+	vkFreeMemory(vulkanResources->logicalDevice, imageStagingBufferMemory, nullptr);
 
 	// Return index of new texture image
 	return textureImages.size() - 1;
@@ -667,7 +675,7 @@ int LevelRenderer::CreateTextureDescriptor(VkImageView _textureImage)
 	setAllocInfo.pSetLayouts = &samplerSetLayout;
 
 	// Allocate Descriptor Sets
-	VkResult result = vkAllocateDescriptorSets(vulkanResources.logicalDevice, &setAllocInfo, &descriptorSet);
+	VkResult result = vkAllocateDescriptorSets(vulkanResources->logicalDevice, &setAllocInfo, &descriptorSet);
 	if (result != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to allocate Texture Descriptor Sets!");
@@ -690,7 +698,7 @@ int LevelRenderer::CreateTextureDescriptor(VkImageView _textureImage)
 	descriptorWrite.pImageInfo = &imageInfo;
 
 	// Update new descriptor set
-	vkUpdateDescriptorSets(vulkanResources.logicalDevice, 1, &descriptorWrite, 0, nullptr);
+	vkUpdateDescriptorSets(vulkanResources->logicalDevice, 1, &descriptorWrite, 0, nullptr);
 
 	// Add descriptor set to list
 	samplerDescriptorSets.push_back(descriptorSet);

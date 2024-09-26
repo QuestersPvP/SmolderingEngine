@@ -1,6 +1,6 @@
 #include "Engine/Public/Rendering/EngineGUIRenderer.h"
 
-EngineGUIRenderer::EngineGUIRenderer(const VulkanResources& _resources)
+EngineGUIRenderer::EngineGUIRenderer(const VulkanResources* _resources)
 	: vulkanResources(_resources)
 {
 	if (InitImGUI() == EXIT_FAILURE)
@@ -10,7 +10,7 @@ EngineGUIRenderer::EngineGUIRenderer(const VulkanResources& _resources)
 void EngineGUIRenderer::DestroyEngineGUIRenderer()
 {
 	ImGui_ImplVulkan_Shutdown();
-	vkDestroyDescriptorPool(vulkanResources.logicalDevice, imguiDescriptorPool, nullptr);
+	vkDestroyDescriptorPool(vulkanResources->logicalDevice, imguiDescriptorPool, nullptr);
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
@@ -24,7 +24,7 @@ void EngineGUIRenderer::RecordToCommandBuffer(VkCommandBuffer _commandBuffer, ui
 	ImGui::NewFrame();
 
 	ImGuiIO& io = ImGui::GetIO();
-	io.DisplaySize = ImVec2((float)vulkanResources.swapchainExtent.width, (float)vulkanResources.swapchainExtent.height);
+	io.DisplaySize = ImVec2((float)vulkanResources->swapchainExtent.width, (float)vulkanResources->swapchainExtent.height);
 
 	// Insert your ImGui code here
 
@@ -103,26 +103,26 @@ bool EngineGUIRenderer::InitImGUI()
 	poolInfo.poolSizeCount = static_cast<uint32_t>(std::size(poolSizes));
 	poolInfo.pPoolSizes = poolSizes;
 
-	if (vkCreateDescriptorPool(vulkanResources.logicalDevice, &poolInfo, nullptr, &imguiDescriptorPool) != VK_SUCCESS)
+	if (vkCreateDescriptorPool(vulkanResources->logicalDevice, &poolInfo, nullptr, &imguiDescriptorPool) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create ImGui descriptor pool!");
 
 	// Initialize ImGui for Vulkan
 	ImGui_ImplVulkan_InitInfo imGuiCreateInfo = {};
-	imGuiCreateInfo.Instance = vulkanResources.vulkanInstance;
-	imGuiCreateInfo.PhysicalDevice = vulkanResources.physicalDevice;
-	imGuiCreateInfo.Device = vulkanResources.logicalDevice;
+	imGuiCreateInfo.Instance = vulkanResources->vulkanInstance;
+	imGuiCreateInfo.PhysicalDevice = vulkanResources->physicalDevice;
+	imGuiCreateInfo.Device = vulkanResources->logicalDevice;
 
 	//QueueFamilyIndicies indicies = GetQueueFamilies(Devices.PhysicalDevice);
 	//imGuiCreateInfo.QueueFamily = indicies.graphicsFamily;
 
-	imGuiCreateInfo.Queue = vulkanResources.graphicsQueue;
+	imGuiCreateInfo.Queue = vulkanResources->graphicsQueue;
 	imGuiCreateInfo.PipelineCache = nullptr;
 	imGuiCreateInfo.DescriptorPool = imguiDescriptorPool;
 	imGuiCreateInfo.Allocator = nullptr;
-	imGuiCreateInfo.MinImageCount = static_cast<uint32_t>(vulkanResources.swapchainImages.size());
-	imGuiCreateInfo.ImageCount = static_cast<uint32_t>(vulkanResources.swapchainImages.size());
+	imGuiCreateInfo.MinImageCount = static_cast<uint32_t>(vulkanResources->swapchainImages.size());
+	imGuiCreateInfo.ImageCount = static_cast<uint32_t>(vulkanResources->swapchainImages.size());
 	imGuiCreateInfo.CheckVkResultFn = nullptr;				// TODO: Setup debug callback function for ImGui
-	imGuiCreateInfo.RenderPass = vulkanResources.renderPass;
+	imGuiCreateInfo.RenderPass = vulkanResources->renderPass;
 
 	// check ! because if it succeeds ImGui_ImplVulkan_Init returns 1 and that = EXIT_FAILURE.
 	return !ImGui_ImplVulkan_Init(&imGuiCreateInfo);

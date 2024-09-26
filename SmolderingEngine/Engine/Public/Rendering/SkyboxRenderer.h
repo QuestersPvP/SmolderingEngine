@@ -16,8 +16,10 @@ class SkyboxRenderer
 {
 	/* Variables */
 public:
+
+private:
 	/* Struct that holds general vulkan resources (already created by Renderer) */
-	VulkanResources vulkanResources;
+	const VulkanResources* vulkanResources;
 
 	// Sampler to get textures
 	VkSampler cubemapTextureSampler;
@@ -53,12 +55,13 @@ public:
 	/* Functions */
 public:
 	SkyboxRenderer();
-	SkyboxRenderer(std::string _fileLocation, std::vector<std::string> _fileNames, const VulkanResources& _resources);
+	SkyboxRenderer(std::string _fileLocation, std::vector<std::string> _fileNames, const VulkanResources* _resources);
 	void DestroySkyboxRenderer();
 
 	// Handle drawing commands
 	void RecordToCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageIndex);
 	void UpdateUniformBuffer(const class Camera* _camera, uint32_t _imageIndex);
+	void ResizeRenderer();
 	
 	// Create needed resources
 	void CreateCubemapTextureSampler();

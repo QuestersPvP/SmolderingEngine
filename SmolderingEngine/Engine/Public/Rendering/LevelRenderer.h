@@ -24,7 +24,7 @@ public:
 
 private:
 	/* Struct that holds general vulkan resources (already created by Renderer) */
-	VulkanResources vulkanResources;
+	const VulkanResources* vulkanResources;
 
 	// Graphics pipeline
 	VkPipeline graphicsPipeline;
@@ -54,12 +54,13 @@ private:
 	/* Functions */
 public:
 	LevelRenderer() {};
-	LevelRenderer(const VulkanResources& _resources, class Game* _game);
+	LevelRenderer(const VulkanResources* _resources, class Game* _game);
 	void DestroyLevelRenderer();
 
 	// Handle drawing commands
 	void RecordToCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageIndex);
 	void UpdateUniformBuffer(const class Camera* _camera, uint32_t _imageIndex);
+	void ResizeRenderer();
 
 	// Create needed resources
 	void CreateDescriptorSetLayout();
