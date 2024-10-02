@@ -22,44 +22,55 @@
 #include <thread>
 
 // Project Includes
-#include "Engine/Public/Rendering/Renderer.h"
+#include "Engine/Source/EngineManager.h"
+
+
+#include "Engine/Source/Public/Rendering/Renderer.h"
 //#include "Engine/Public/Rendering/SkyboxRenderer.h"
 
-#include "Engine/Public/Collision/CollisionManager.h"
-#include "Engine/Public/Input/InputManager.h"
-#include "Engine/Public/Camera/Camera.h"
-#include "Engine/Public/EngineLevel/EngineLevelManager.h"
+#include "Engine/Source/Public/Collision/CollisionManager.h"
+#include "Engine/Source/Public/Input/InputManager.h"
+#include "Engine/Source/Public/Camera/Camera.h"
+#include "Engine/Source/Public/EngineLevel/EngineLevelManager.h"
 
-#include "Game/Public/Game.h"
+#include "Game/Source/Public/Game.h"
 
-Renderer* seRenderer;
+EngineManager* seEngineManager;
+
+//Renderer* seRenderer;
 //SkyboxRenderer* seSkyboxRenderer;
 Game* seGame;
 CollisionManager* seCollision;
-Camera* seCamera;
-InputManager* seInput;
-EngineLevelManager* seEngineLevel;
+//Camera* seCamera;
+//InputManager* seInput;
+//EngineLevelManager* seEngineLevel;
 
 //GLFWwindow* seWindow;
 
 int main()
 {
-	seInput = new InputManager();
-	seCamera = new Camera();
+	seEngineManager = EngineManager::GetEngineManager();
+	seEngineManager->GetEngineLevelManager()->LoadLevel(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Levels/defaultLevel.selevel");
+
+	// Engine manager should handle these
+	//seInput = new InputManager();
+	//seCamera = new Camera();
+	seCollision = new CollisionManager(); // TODO: MAKE COLLISION MANAGER WORK AGAIN
+
+	// Game manager
 	seGame = new Game(); // TODO: this should be broken into 2 classes at least - 1 for game management (engine side), 1 more focused directly gameplay
-	seCollision = new CollisionManager();
 
 	// Setup the window
-	seInput->InitWindow("Smoldering Engine", 1280, 720);
+	//seInput->InitWindow("Smoldering Engine", 1280, 720);
 
 	// Setup the renderer
-	seRenderer = new Renderer(seInput->window, seGame, seCamera);
+	//seRenderer = new Renderer(seInput->window, seCamera);
 
 	// --- LEVEL MANAGER ---
-	seEngineLevel = new EngineLevelManager(seRenderer->GetPhysicalDevice(), seRenderer->GetLogicalDevice(),
-		seRenderer->GetGraphicsQueue(), seRenderer->GetGraphicsCommandPool(), seGame, seRenderer);
-	seRenderer->SetEngineLevelManager(seEngineLevel); // will remove this soon
-	seEngineLevel->LoadLevel(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Levels/defaultLevel.selevel");
+	//seEngineLevel = new EngineLevelManager(seRenderer->GetPhysicalDevice(), seRenderer->GetLogicalDevice(),
+	//	seRenderer->GetGraphicsQueue(), seRenderer->GetGraphicsCommandPool(), seRenderer);
+	//seRenderer->SetEngineLevelManager(seEngineLevel); // will remove this soon
+	//seEngineLevel->LoadLevel(std::string(PROJECT_SOURCE_DIR) + "/SmolderingEngine/Game/Levels/defaultLevel.selevel");
 	// --- LEVEL MANAGER ---
 
 	//chrono stuff, update it 1/30 per second
@@ -68,32 +79,32 @@ int main()
 	auto previousTime = std::chrono::high_resolution_clock::now(); //initialize
 	//auto lag = std::chrono::duration<double>::zero();
 
-	while (!glfwWindowShouldClose(seInput->window))
+	while (!glfwWindowShouldClose(seEngineManager->GetInputManager()->window))
 	{
 		// Check for window inputs
 		glfwPollEvents();
 
 		// Ensure the window is not minimized
-		if (glfwGetWindowAttrib(seInput->window, GLFW_ICONIFIED) == GLFW_FALSE)
+		if (glfwGetWindowAttrib(seEngineManager->GetInputManager()->window, GLFW_ICONIFIED) == GLFW_FALSE)
 		{
 			// Handle window resizing
 			int width, height;
-			glfwGetFramebufferSize(seInput->window, &width, &height);
-			if (seInput->windowWidth != width || seInput->windowHeight != height)
+			glfwGetFramebufferSize(seEngineManager->GetInputManager()->window, &width, &height);
+			if (seEngineManager->GetInputManager()->windowWidth != width || seEngineManager->GetInputManager()->windowHeight != height)
 			{
-				seRenderer->ResizeRenderer(width, height);
-				seInput->windowWidth = width;
-				seInput->windowHeight = height;
+				seEngineManager->GetRenderer()->ResizeRenderer(width, height);
+				seEngineManager->GetInputManager()->windowWidth = width;
+				seEngineManager->GetInputManager()->windowHeight = height;
 			}
 
 			//process da inputs 30 times per second please 
-			seInput->processInput(updateInterval.count(), seCamera);
+			seEngineManager->GetInputManager()->processInput(updateInterval.count(), seEngineManager->GetCamera());
 
 			// TODO: Finish reworking the renderer classes. It is a work in progress currently.
 			// There should be a skyboxrenderer (complete), a levelrenderer (not done), and finally
 			// a general renderer that handles creating logical devices etc. and figuring out what to draw. 
 			// Draw all objects
-			seRenderer->Draw();
+			seEngineManager->GetRenderer()->Draw();
 		}
 		
 		// Sleep to prevent busy waiting
@@ -101,18 +112,18 @@ int main()
 	}
 
 	// Destroys all Renderer resources, also destroys all game objects currently
-	seRenderer->DestroyRenderer();
+	//seRenderer->DestroyRenderer();
 
-	delete(seEngineLevel);
+	//delete(seEngineLevel);
 
 	// Destroy GLFW window / GLFW
-	glfwDestroyWindow(seInput->window);
-	glfwTerminate();
+	//glfwDestroyWindow(seEngineManager->GetInputManager()->window);
+	//glfwTerminate();
 
 	delete(seCollision);
 	delete(seGame);
-	delete(seCamera);
-	delete(seInput);
+	//delete(seCamera);
+	//delete(seInput);
 
 	return EXIT_SUCCESS;
 }

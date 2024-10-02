@@ -33,7 +33,7 @@ set(ASSIMP_SOURCES					${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/ASSIMP/assimp/Impo
 add_executable(SmolderingEngine 			${MY_SOURCES}
 							${MY_HEADERS}
 							${IMGUI_SOURCES}
-							${ASSIMP_SOURCES})
+							${ASSIMP_SOURCES} "SmolderingEngine/Engine/Source/Private/Object/ObjectManager.cpp")
 
 # Include directories for source files
 include_directories(SmolderingEngine PRIVATE 		${CMAKE_CURRENT_SOURCE_DIR}/SmolderingEngine)	# To access Engine or Game folders quickly
