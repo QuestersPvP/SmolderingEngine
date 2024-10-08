@@ -108,7 +108,7 @@ public:
 	void DestroyRenderer();
 
 	void Draw();
-	void RecordCommands(uint32_t inImageIndex);
+	void RecordCommands(uint32_t _imageIndex);
 
 	// Re-creates window based off of new window size
 	void ResizeRenderer(int inWidth, int inHeight);

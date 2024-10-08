@@ -14,10 +14,16 @@ private:
 	std::set<int> reusableIDs;
 	std::vector<class GameObject*> gameObjects;
 
+	// Reference to EngineManager
+	class EngineManager* seEngineManager = nullptr;
+
 	/* Functions */
 public:
+	// Creates a game object and returns it
 	class GameObject* CreateGameObject(struct ObjectData _objectData, class Mesh* _mesh, class MeshModel* _meshModel);
-
+	
+	// Deletes all game objects within a level
+	void DestroyAllGameObjects();
 	//void Game::DestroyMeshes()
 	//{
 	//	// TODO: FIX

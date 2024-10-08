@@ -4,11 +4,14 @@
 #include <string>
 #include <vector>
 #include <iostream>
-
 #include <fstream>
 #include <sstream>
 #include <iomanip>  // Required for std::setprecision
 #include <limits>   // Required for std::numeric_limits
+
+#include <queue>
+#include <mutex>
+#include <functional>
 
 // Third Party
 #include <vulkan/vulkan.h>
@@ -18,19 +21,28 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+struct VulkanTask
+{
+	std::function<void()> function;
+};
+
 class EngineLevelManager
 {
 	/* Variables */
 private:
+	class ObjectManager* seObjectManager;
+	class Renderer* seRenderer;
+	class EngineManager* seEngineManager;
+
+	// Basic vulkan variables needed for loading models
 	VkPhysicalDevice physicalDevice;
 	VkDevice logicalDevice;
 	VkQueue transferQueue;
 	VkCommandPool transferCommandPool;
 
-	class ObjectManager* seObjectManager;
-
-	//class Game* game;
-	class Renderer* seRenderer;
+	// Multi-thread/synchronize loading objects
+	std::queue<VulkanTask> vulkanTaskQueue;
+	std::mutex taskQueueMutex;
 
 	/* Functions*/
 public:
@@ -44,6 +56,11 @@ public:
 	void LoadLevel(std::string inLevelFilePath);
 
 	/*
+	* Loads level models asynchronously when they are done loading
+	*/
+	void ProcessLevelModelTasks();
+
+	/*
 	* Saves a level to wherever you specify
 	*/
 	void SaveLevel(std::string inFileName);
@@ -53,8 +70,6 @@ public:
 	std::string OpenFileExplorer();
 	std::string SaveFileExplorer();
 
-	// TODO: make private?
-	void DestroyGameMeshes();
 	void LoadNewScene();
 
 	/* Getters + Setters */

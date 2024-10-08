@@ -1,5 +1,12 @@
 #include "Engine/Source/Public/Rendering/EngineGUIRenderer.h"
 
+// Project Includes
+#include "Engine/Source/EngineManager.h"
+#include "Engine/Source/Public/EngineLevel/EngineLevelManager.h"
+#include "Engine/Source/Public/Object/ObjectManager.h"
+
+#include "Engine/Source/Public/Rendering/Renderer.h"
+
 EngineGUIRenderer::EngineGUIRenderer(const VulkanResources* _resources)
 	: vulkanResources(_resources)
 {
@@ -19,6 +26,9 @@ void EngineGUIRenderer::DestroyEngineGUIRenderer()
 
 void EngineGUIRenderer::RecordToCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageIndex)
 {
+	if (seEngineManager == nullptr)
+		seEngineManager = EngineManager::GetEngineManager();
+
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -34,11 +44,11 @@ void EngineGUIRenderer::RecordToCommandBuffer(VkCommandBuffer _commandBuffer, ui
 		{
 			if (ImGui::MenuItem("Save Level"))
 			{
-				//shouldSaveLevel = true;
+				shouldSaveLevel = true;
 			}
 			if (ImGui::MenuItem("Load Level"))
 			{
-				//shouldLoadNewLevel = true;
+				shouldLoadLevel = true;
 			}
 			ImGui::EndMenu();
 		}
@@ -52,30 +62,51 @@ void EngineGUIRenderer::RecordToCommandBuffer(VkCommandBuffer _commandBuffer, ui
 	ImGui::Text("Object ID");
 	ImGui::InputInt("ID", &currentSelectedModelID);
 
-	//if (currentSelectedModelID < SEGame->gameObjects.size())
-	//{
-	//	glm::mat4 modelMat = SEGame->gameObjects[currentSelectedModelID]->GetModel().modelMatrix;
-	//
-	//	float position[3] = { modelMat[3].x, modelMat[3].y, modelMat[3].z };
-	//	// Input fields for the position
-	//	ImGui::Text("Object Position");
-	//	ImGui::InputFloat3("##Position", position);
-	//
-	//	if (modelMat[3].x != position[0] || modelMat[3].y != position[1] || modelMat[3].z != position[2])
-	//	{
-	//		modelMat[3].x = position[0];
-	//		modelMat[3].y = position[1];
-	//		modelMat[3].z = position[2];
-	//
-	//		SEGame->gameObjects[currentSelectedModelID]->SetModel(modelMat);
-	//	}
-	//}
+	if (currentSelectedModelID < seEngineManager->GetEngineLevelManager()->GetObjectManager()->GetGameObjects().size())
+	{
+		glm::mat4 modelMat = seEngineManager->GetEngineLevelManager()->GetObjectManager()->GetGameObjects()[currentSelectedModelID]->GetModel().modelMatrix;
+
+		float position[3] = { modelMat[3].x, modelMat[3].y, modelMat[3].z };
+		// Input fields for the position
+		ImGui::Text("Object Position");
+		ImGui::InputFloat3("##Position", position);
+	
+		if (modelMat[3].x != position[0] || modelMat[3].y != position[1] || modelMat[3].z != position[2])
+		{
+			modelMat[3].x = position[0];
+			modelMat[3].y = position[1];
+			modelMat[3].z = position[2];
+	
+			seEngineManager->GetEngineLevelManager()->GetObjectManager()->GetGameObjects()[currentSelectedModelID]->SetModel(modelMat);
+		}
+	}
 
 	ImGui::End();
 
 	// Render ImGui's draw data into the command buffer
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), _commandBuffer);
+}
+
+void EngineGUIRenderer::ProcessEngineGUIInputs()
+{
+	if (seEngineManager == nullptr)
+		seEngineManager = EngineManager::GetEngineManager();
+
+	if (shouldLoadLevel)
+	{
+		seEngineManager->GetEngineLevelManager()->LoadNewScene();
+		shouldLoadLevel = false;
+	}
+	if (shouldSaveLevel)
+	{
+		// get where they want to save and replace all the \\ with / so it works in file explorer
+		std::string fileName = seEngineManager->GetEngineLevelManager()->SaveFileExplorer();
+		std::replace(fileName.begin(), fileName.end(), '\\', '/');
+	
+		seEngineManager->GetEngineLevelManager()->SaveLevel(fileName);
+		shouldSaveLevel = false;
+	}
 }
 
 bool EngineGUIRenderer::InitImGUI()

@@ -11,12 +11,6 @@
 
 class LevelRenderer
 {
-public:
-	// TODO: LEVEL MANAGER SHOULD HANDLE THIS
-	void DestroyAllRendererTextures();
-	bool shouldSaveLevel = false;
-	bool shouldLoadNewLevel = false;
-
 	/* Variables */
 public:
 
@@ -54,6 +48,9 @@ public:
 	LevelRenderer() {};
 	LevelRenderer(const VulkanResources* _resources);
 	void DestroyLevelRenderer();
+
+	// Destroys all textures that the level renderer holds
+	void DestroyAllRendererTextures();
 
 	// Handle drawing commands
 	void RecordToCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageIndex);

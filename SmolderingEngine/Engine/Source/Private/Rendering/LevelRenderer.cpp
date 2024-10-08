@@ -8,24 +8,6 @@
 #include "Engine/Source/Public/Rendering/Utilities.h"
 #include "Engine/Source/Public/Camera/Camera.h"
 
-void LevelRenderer::DestroyAllRendererTextures()
-{
-	// Wait until queues and all operations are done before cleaning up
-	vkDeviceWaitIdle(vulkanResources->logicalDevice);
-
-	// Destroy texture-related Vulkan objects for the current level
-	for (size_t i = 0; i < textureImages.size(); i++)
-	{
-		vkDestroyImageView(vulkanResources->logicalDevice, textureImageViews[i], nullptr);
-		vkDestroyImage(vulkanResources->logicalDevice, textureImages[i], nullptr);
-		vkFreeMemory(vulkanResources->logicalDevice, textureImageMemory[i], nullptr);
-	}
-
-	textureImageViews.clear();
-	textureImages.clear();
-	textureImageMemory.clear();
-}
-
 LevelRenderer::LevelRenderer(const VulkanResources* _resources)
 	: vulkanResources(_resources)
 {
@@ -48,12 +30,7 @@ LevelRenderer::LevelRenderer(const VulkanResources* _resources)
 void LevelRenderer::DestroyLevelRenderer()
 {
 	// Destroy texture image views, images, and memory
-	for (size_t i = 0; i < textureImageViews.size(); i++) 
-	{
-		vkDestroyImageView(vulkanResources->logicalDevice, textureImageViews[i], nullptr);
-		vkDestroyImage(vulkanResources->logicalDevice, textureImages[i], nullptr);
-		vkFreeMemory(vulkanResources->logicalDevice, textureImageMemory[i], nullptr);
-	}
+	DestroyAllRendererTextures();
 
 	// Destroy the texture sampler
 	vkDestroySampler(vulkanResources->logicalDevice, textureSampler, nullptr);
@@ -78,6 +55,24 @@ void LevelRenderer::DestroyLevelRenderer()
 	vkDestroyDescriptorSetLayout(vulkanResources->logicalDevice, samplerSetLayout, nullptr);
 
 	delete(this);
+}
+
+void LevelRenderer::DestroyAllRendererTextures()
+{
+	// Wait until queues and all operations are done before cleaning up
+	vkDeviceWaitIdle(vulkanResources->logicalDevice);
+
+	// Destroy texture-related Vulkan objects for the current level
+	for (size_t i = 0; i < textureImages.size(); i++)
+	{
+		vkDestroyImageView(vulkanResources->logicalDevice, textureImageViews[i], nullptr);
+		vkDestroyImage(vulkanResources->logicalDevice, textureImages[i], nullptr);
+		vkFreeMemory(vulkanResources->logicalDevice, textureImageMemory[i], nullptr);
+	}
+
+	textureImageViews.clear();
+	textureImages.clear();
+	textureImageMemory.clear();
 }
 
 void LevelRenderer::RecordToCommandBuffer(VkCommandBuffer _commandBuffer, uint32_t _imageIndex)

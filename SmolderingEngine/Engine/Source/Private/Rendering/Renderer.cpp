@@ -57,27 +57,13 @@ Renderer::Renderer(GLFWwindow* _window, Camera* _camera)
 
 void Renderer::Draw()
 {
-	// TODO: MAKE ENGINE GUI GREAT AGAIN
-	//if (shouldLoadNewLevel)
-	//{
-	//	levelManager->LoadNewScene();
-	//	shouldLoadNewLevel = false;
-	//}
-	//if (shouldSaveLevel)
-	//{
-	//	// get where they want to save and replace all the \\ with / so it works in file explorer
-	//	std::string fileName = levelManager->SaveFileExplorer();
-	//	std::replace(fileName.begin(), fileName.end(), '\\', '/');
-
-
-	//	levelManager->SaveLevel(fileName);
-	//	shouldSaveLevel = false;
-	//}
-
 	// Wait for given fence to signal/open from last draw call before continuing
 	vkWaitForFences(vulkanResources->logicalDevice, 1, &drawFences[currentFrame], VK_TRUE , std::numeric_limits<uint64_t>::max());
 	// Reset/close the fence again as we work on this new draw call.
 	vkResetFences(vulkanResources->logicalDevice, 1, &drawFences[currentFrame]);
+
+	// Process any GUI inputs prior to rendering
+	seEngineGUIRenderer->ProcessEngineGUIInputs();
 
 	// Aquire the next image we want to draw
 	uint32_t ImageIndex;
@@ -134,7 +120,7 @@ void Renderer::DestroyRenderer()
 	seSkyboxRenderer->DestroySkyboxRenderer();
 
 	// Destroy game objects 
-	seLevelManager->DestroyGameMeshes();
+	//seLevelManager->DestroyGameMeshes();
 
 	// Destroy all general vulkan stuffz
 	vkDestroyImageView(vulkanResources->logicalDevice, depthBufferImageView, nullptr);
@@ -772,13 +758,13 @@ VkImageView Renderer::CreateImageView(VkImage InImage, VkFormat InFormat, VkImag
 	return ImageView;
 }
 
-void Renderer::RecordCommands(uint32_t inImageIndex)
+void Renderer::RecordCommands(uint32_t _imageIndex)
 {
 	VkCommandBufferBeginInfo bufferBeginInfo = {};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
 	// Start recording
-	VkResult result = vkBeginCommandBuffer(commandBuffers[inImageIndex],&bufferBeginInfo);
+	VkResult result = vkBeginCommandBuffer(commandBuffers[_imageIndex],&bufferBeginInfo);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to start recording a command buffer!");
 
@@ -795,10 +781,10 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 
 	renderPassBeginInfo.pClearValues = clearValues.data();				// Clear values
 	renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-	renderPassBeginInfo.framebuffer = swapchainFramebuffers[inImageIndex];
+	renderPassBeginInfo.framebuffer = swapchainFramebuffers[_imageIndex];
 
 	// start the render pass
-	vkCmdBeginRenderPass(commandBuffers[inImageIndex], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(commandBuffers[_imageIndex], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	/*
 	The order we want to draw is:
@@ -806,18 +792,18 @@ void Renderer::RecordCommands(uint32_t inImageIndex)
 	2- Level
 	3- GUI
 	*/
-	seSkyboxRenderer->UpdateUniformBuffer(seCamera, inImageIndex);
-	seSkyboxRenderer->RecordToCommandBuffer(commandBuffers[inImageIndex], inImageIndex);
+	seSkyboxRenderer->UpdateUniformBuffer(seCamera, _imageIndex);
+	seSkyboxRenderer->RecordToCommandBuffer(commandBuffers[_imageIndex], _imageIndex);
 
-	seLevelRenderer->UpdateUniformBuffer(seCamera, inImageIndex);
-	seLevelRenderer->RecordToCommandBuffer(commandBuffers[inImageIndex], inImageIndex);
+	seLevelRenderer->UpdateUniformBuffer(seCamera, _imageIndex);
+	seLevelRenderer->RecordToCommandBuffer(commandBuffers[_imageIndex], _imageIndex);
 
-	seEngineGUIRenderer->RecordToCommandBuffer(commandBuffers[inImageIndex], inImageIndex);
+	seEngineGUIRenderer->RecordToCommandBuffer(commandBuffers[_imageIndex], _imageIndex);
 
-	vkCmdEndRenderPass(commandBuffers[inImageIndex]);
+	vkCmdEndRenderPass(commandBuffers[_imageIndex]);
 
 	// Stop recording
-	result = vkEndCommandBuffer(commandBuffers[inImageIndex]);
+	result = vkEndCommandBuffer(commandBuffers[_imageIndex]);
 	if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to stop recording a command buffer!");
 }

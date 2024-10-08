@@ -27,7 +27,7 @@ void EngineLevelManager::LoadLevel(std::string inLevelFilePath)
 	std::ifstream file(inLevelFilePath);
 	if (!file.is_open())
 	{
-		std::cerr << "Failed to open file: " << inLevelFilePath << std::endl;
+		std::cout << "Failed to open file: " << inLevelFilePath << std::endl;
 		return;
 	}
 
@@ -166,6 +166,25 @@ void EngineLevelManager::LoadLevel(std::string inLevelFilePath)
 	file.close();
 }
 
+void EngineLevelManager::ProcessLevelModelTasks()
+{
+	std::queue<VulkanTask> tasksToProcess;
+
+	// Move tasks from the shared queue to a local queue
+	{
+		std::lock_guard<std::mutex> lock(taskQueueMutex);
+		tasksToProcess.swap(vulkanTaskQueue);
+	}
+
+	// Process tasks
+	while (!tasksToProcess.empty())
+	{
+		VulkanTask& task = tasksToProcess.front();
+		task.function(); // Execute the Vulkan commands
+		tasksToProcess.pop();
+	}
+}
+
 void EngineLevelManager::SaveLevel(std::string inFileName)
 {
 	std::ofstream outFile(inFileName);
@@ -296,30 +315,13 @@ std::string EngineLevelManager::SaveFileExplorer()
 	return ""; // Return an empty string if no file is selected
 }
 
-void EngineLevelManager::DestroyGameMeshes()
-{
-	// TODO: MOVE THIS
-
-	// Wait until queues and all operations are done before cleaning up
-	vkDeviceWaitIdle(logicalDevice);
-
-	for (int i = seObjectManager->GetGameObjects().size() - 1; i >= 0; i--)
-	{
-		MeshModel* tempModel = seObjectManager->GetGameObjects()[i]->objectMeshModel;
-		tempModel->DestroyMeshModel();
-		delete seObjectManager->GetGameObjects()[i];
-	}
-
-	//game->gameObjects.clear();
-}
-
 void EngineLevelManager::LoadNewScene()
 {
 	// Wait until queues and all operations are done before cleaning up
 	vkDeviceWaitIdle(logicalDevice);
 
 	// Destroy texture-related Vulkan objects for the current level
-	//renderer->DestroyAllRendererTextures();
+	seRenderer->GetLevelRenderer()->DestroyAllRendererTextures();
 
 	// TODO: Eventually we should do this, issue is the DescriptorPool wont allow it unless we modify it some.
 	// it adds an excess of ~3mb of memory but technically doesnt leak it because when the descriptor pool is cleaned up
@@ -328,7 +330,7 @@ void EngineLevelManager::LoadNewScene()
 	//vkFreeDescriptorSets(Devices.LogicalDevice, samplerDescriptorPool, static_cast<uint32_t>(samplerDescriptorSets.size()), samplerDescriptorSets.data());
 
 	// Destroy current objects
-	DestroyGameMeshes();
+	seObjectManager->DestroyAllGameObjects();
 
 	std::string filePath = OpenFileExplorer();
 	// the file path is returned such as C:\\name\\bleh.selvel
@@ -340,47 +342,57 @@ void EngineLevelManager::LoadNewScene()
 
 void EngineLevelManager::LoadMeshModel(ObjectData _objectData)
 {
-	// Import model scene
-	Assimp::Importer importer;
-
-	// After model included, make sure all faces are triangulated
-	// Also make sure UVs match our UV system, and finally try to remove any duplicate verticies
-	const aiScene* scene = importer.ReadFile(_objectData.objectPath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
-
-	if (!scene)
-		throw std::runtime_error("failed to load the model passed in: " + _objectData.objectPath);
-
-	std::vector<std::string> textureNames = MeshModel::LoadMaterials(scene);
-
-	// convert the material list IDs to descriptor array IDs
-	std::vector<int> materialToTexture(textureNames.size());
-
-	for (size_t i = 0; i < textureNames.size(); i++)
+	// Put this into a vector of threads, we will launch them after the whole file is done loading
+	std::thread loadingThread([this, _objectData]()
 	{
-		if (textureNames[i].empty())
-			materialToTexture[i] = 0;
-		else
+		// Import model scene
+		std::shared_ptr<Assimp::Importer> importer = std::make_shared<Assimp::Importer>();
+
+		// After model included, make sure all faces are triangulated
+		// Also make sure UVs match our UV system, and finally try to remove any duplicate verticies
+		const aiScene* scene = importer->ReadFile(_objectData.objectPath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
+
+		if (!scene)
+			throw std::runtime_error("failed to load the model passed in: " + _objectData.objectPath);
+
+		// Create a task to perform Vulkan operations
+		VulkanTask task;
+		task.function = [this, _objectData, scene, importer]()
 		{
-			std::string fileLoc = (_objectData.texturePath + textureNames[i]);
-			materialToTexture[i] = seRenderer->GetLevelRenderer()->CreateTexture(fileLoc);
 
+			std::vector<std::string> textureNames = MeshModel::LoadMaterials(scene);
+
+			// convert the material list IDs to descriptor array IDs
+			std::vector<int> materialToTexture(textureNames.size());
+
+			for (size_t i = 0; i < textureNames.size(); i++)
+			{
+				if (textureNames[i].empty())
+					materialToTexture[i] = 0;
+				else
+				{
+					std::string fileLoc = (_objectData.texturePath + textureNames[i]);
+					materialToTexture[i] = seRenderer->GetLevelRenderer()->CreateTexture(fileLoc);
+
+				}
+			}
+
+			// Load in all the meshes
+			std::vector<Mesh> modelMeshes = MeshModel::LoadNode(physicalDevice, logicalDevice, transferQueue, transferCommandPool, scene->mRootNode, scene, materialToTexture);
+
+			MeshModel* meshModel = new MeshModel(modelMeshes);
+
+			seObjectManager->CreateGameObject(_objectData, nullptr, meshModel);
+		};
+
+		// Add the task to the queue
+		{
+			std::lock_guard<std::mutex> lock(taskQueueMutex);
+			vulkanTaskQueue.push(task);
 		}
-	}
 
-	// Load in all the meshes
-	std::vector<Mesh> modelMeshes = MeshModel::LoadNode(physicalDevice, logicalDevice, transferQueue, transferCommandPool, scene->mRootNode, scene, materialToTexture);
-	
-	MeshModel* meshModel = new MeshModel(modelMeshes);
-	
-	seObjectManager->CreateGameObject(_objectData, nullptr, meshModel);
+	});
 
-
-	//GameObject* object = new GameObject();
-	//object->objectMeshModel = meshModel;
-	//object->SetObjectData(inObject);
-	//object->SetUseTexture(1);
-	//object->SetObjectID(0);
-	//object->SetObjectParentID(-1);
-	//object->SetModel(inObject.objectMatrix);
-	//game->gameObjects.push_back(object);
+	// Detatch the thread so it does not block the main thread
+	loadingThread.detach();
 }
