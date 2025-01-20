@@ -32,7 +32,7 @@ public:
 	/* Getters + Setters */
 public:
 	void SetModel(glm::mat4 inModel) override;
-	Model GetModel() override;
+	Model& GetModel() override;
 	int GetUseTexture() override;
 	void SetUseTexture(int inUseTexture) override;
 };

@@ -28,7 +28,7 @@ void Camera::SetModel(glm::mat4 _model)
 {
 }
 
-Model Camera::GetModel()
+Model& Camera::GetModel()
 {
 	return objectModel;
 }

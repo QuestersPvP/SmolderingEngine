@@ -51,7 +51,7 @@ void GameObject::SetModel(glm::mat4 inModel)
 	GetObjectData().objectMatrix = inModel;
 }
 
-Model GameObject::GetModel()
+Model& GameObject::GetModel()
 {
 	return objectModel;
 }

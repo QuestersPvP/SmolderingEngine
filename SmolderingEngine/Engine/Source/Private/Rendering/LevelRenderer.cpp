@@ -95,6 +95,7 @@ void LevelRenderer::RecordToCommandBuffer(VkCommandBuffer _commandBuffer, uint32
 	for (size_t i = 0; i < seEngineManager->GetEngineLevelManager()->GetObjectManager()->GetGameObjects().size(); i++)
 	{
 		MeshModel* tempModel = seEngineManager->GetEngineLevelManager()->GetObjectManager()->GetGameObjects()[i]->objectMeshModel;
+
 		// Push constants to given shader stage directly
 		vkCmdPushConstants(_commandBuffer, graphicsPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Model),
 			&seEngineManager->GetEngineLevelManager()->GetObjectManager()->GetGameObjects()[i]->GetModel());

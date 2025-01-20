@@ -69,7 +69,7 @@ public:
 	/* Overridable Fucntions */
 public:
 	virtual void SetModel(glm::mat4 inModel) = 0;
-	virtual Model GetModel() = 0;
+	virtual Model& GetModel() = 0;
 	virtual int GetUseTexture() = 0;
 	virtual void SetUseTexture(int inUseTexture) = 0;
 };
